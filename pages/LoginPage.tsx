@@ -47,8 +47,10 @@ const LoginPage = () => {
   const signInWithGoogle = async () => {
     setLoading(true);
     setError('');
+    const redirectTo = `${window.location.origin}/GymLog/`; // корректная обратная ссылка для GitHub Pages
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: { redirectTo },
     });
     if (error) {
       setError(error.message);
