@@ -18,6 +18,7 @@ const WorkoutPage = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [isSelectTemplateOpen, setIsSelectTemplateOpen] = useState(false);
 
   const fetchWorkoutData = useCallback(async () => {
     if (!user || !date) return;
@@ -54,16 +55,17 @@ const WorkoutPage = () => {
     } else {
       setWorkout(null);
       setExercises([]); // Clear exercises if no workout is found
-      const { data: templateData, error: templateError } = await supabase
-        .from('workout_templates')
-        .select('*')
-        .eq('user_id', user.id);
-      
-      if (templateError) {
-        console.error('Error fetching templates:', templateError.message);
-      } else {
-        setTemplates(templateData || []);
-      }
+    }
+
+    // Загружаем список шаблонов всегда, чтобы можно было менять тренировку
+    const { data: templateData, error: templateError } = await supabase
+      .from('workout_templates')
+      .select('*')
+      .eq('user_id', user.id);
+    if (templateError) {
+      console.error('Error fetching templates:', templateError.message);
+    } else {
+      setTemplates(templateData || []);
     }
     
     setLoading(false);
@@ -169,11 +171,100 @@ const WorkoutPage = () => {
     handleDeleteWorkout(); // Then trigger action
   };
   
+  const handleOpenChangeTemplate = () => {
+    setMenuOpen(false);
+    setIsSelectTemplateOpen(true);
+  };
+
+  const handleReplaceWithTemplate = async (template: WorkoutTemplate) => {
+    if (!user || !date || !workout) return;
+    try {
+      setIsCreating(true);
+
+      // Загрузим упражнения выбранного шаблона
+      const { data: templateExercises, error: tErr } = await supabase
+        .from('template_exercises')
+        .select('*')
+        .eq('template_id', template.id);
+      if (tErr) throw tErr;
+
+      // Найдём текущие упражнения тренировки
+      const { data: existingExercises, error: exErr } = await supabase
+        .from('workout_exercises')
+        .select('id')
+        .eq('workout_id', workout.id);
+      if (exErr) throw exErr;
+
+      const existingExerciseIds = (existingExercises || []).map(e => e.id);
+
+      if (existingExerciseIds.length > 0) {
+        // Сначала удаляем подходы
+        const { error: setsDelErr } = await supabase
+          .from('workout_sets')
+          .delete()
+          .in('workout_exercise_id', existingExerciseIds);
+        if (setsDelErr) throw setsDelErr;
+
+        // Затем сами упражнения
+        const { error: exDelErr } = await supabase
+          .from('workout_exercises')
+          .delete()
+          .eq('workout_id', workout.id);
+        if (exDelErr) throw exDelErr;
+      }
+
+      // Обновим саму тренировку (имя/ссылка на шаблон)
+      const { error: updErr } = await supabase
+        .from('workouts')
+        .update({ name: template.name, template_id: template.id })
+        .eq('id', workout.id);
+      if (updErr) throw updErr;
+
+      // Вставим новые упражнения
+      const newWorkoutExercises = (templateExercises || []).map(ex => ({
+        workout_id: workout.id,
+        name: ex.name,
+        sets: ex.sets,
+        reps: ex.reps,
+        rest_seconds: ex.rest_seconds,
+        position: ex.position,
+      }));
+
+      const { data: insertedExercises, error: insErr } = await supabase
+        .from('workout_exercises')
+        .insert(newWorkoutExercises)
+        .select();
+      if (insErr) throw insErr;
+
+      const newSets = (insertedExercises || []).flatMap(ex =>
+        Array.from({ length: ex.sets }, (_, i) => ({
+          workout_exercise_id: ex.id,
+          set_index: i + 1,
+        }))
+      );
+      if (newSets.length > 0) {
+        const { error: setsInsErr } = await supabase.from('workout_sets').insert(newSets);
+        if (setsInsErr) throw setsInsErr;
+      }
+
+      setIsSelectTemplateOpen(false);
+      await fetchWorkoutData();
+    } catch (error: any) {
+      console.error('Failed to replace workout from template:', error);
+      alert(`Не удалось изменить тренировку: ${error.message}`);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+  
   const BackButton = () => (
-    <button onClick={() => navigate(-1)} className="absolute -top-2 left-2 p-2 rounded-full hover:bg-gray-100 transition-colors z-10 bg-transparent">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
+    <button
+      onClick={() => navigate(-1)}
+      className="absolute top-4 left-4 p-2 rounded-full border border-transparent text-white transition-colors z-10 bg-transparent hover:border-white active:border-white focus:outline-none"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      </svg>
     </button>
   );
 
@@ -227,16 +318,22 @@ const WorkoutPage = () => {
     <div className="relative p-4 space-y-4">
       <BackButton />
       <div className="absolute top-4 right-4">
-        <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-full hover:bg-gray-100 transition-colors z-20">
+        <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-full text-white hover:bg-white/10 transition-colors z-20">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
           </svg>
         </button>
         {menuOpen && (
-          <div ref={menuRef} className="absolute right-0 mt-2 w-48 card-dark rounded-md shadow-lg z-30 ring-1 ring-black ring-opacity-5">
+          <div ref={menuRef} className="absolute right-0 mt-2 w-56 card-dark rounded-md shadow-lg z-30 ring-1 ring-white/10">
+            <button
+              onClick={handleOpenChangeTemplate}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-white/5"
+            >
+              Изменить тренировку
+            </button>
             <button 
               onClick={handleDeleteClick}
-              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5"
             >
               Удалить тренировку
             </button>
@@ -257,6 +354,53 @@ const WorkoutPage = () => {
           />
         ))}
       </div>
+
+      {/* Нижняя панель действий для наглядности */}
+      <div className="sticky bottom-24 z-10 mt-6">
+        <div className="flex gap-3 justify-center">
+          <button
+            type="button"
+            onClick={handleOpenChangeTemplate}
+            className="px-4 py-2 rounded-md border border-white text-white hover:bg-white/5 transition-colors"
+          >
+            Изменить тренировку
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteWorkout}
+            className="px-4 py-2 rounded-md border border-red-500 text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            Удалить
+          </button>
+        </div>
+      </div>
+
+      {isSelectTemplateOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md card-dark rounded-lg shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Выберите шаблон</h2>
+              <button onClick={() => setIsSelectTemplateOpen(false)} className="px-2 py-1 text-sm text-gray-300 hover:text-white">✕</button>
+            </div>
+            {templates.length === 0 ? (
+              <p className="text-gray-400">Нет доступных шаблонов.</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {templates.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => handleReplaceWithTemplate(t)}
+                    disabled={isCreating}
+                    className="w-full text-left px-4 py-2 rounded-md border border-white/20 text-gray-100 hover:bg-white/5 disabled:opacity-50"
+                  >
+                    {isCreating ? 'Применение...' : t.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

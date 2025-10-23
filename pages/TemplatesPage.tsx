@@ -94,16 +94,10 @@ const TemplatesPage = () => {
   }, [user]);
 
   return (
-    <div className="p-4">
-      <div className="relative flex justify-between items-center mb-4">
+    <div className="p-4 pb-28">
+      <div className="relative flex justify-start items-center mb-4">
         <h1 className="text-3xl font-bold">Шаблоны</h1>
-        <Link 
-          to="/templates/new" 
-          className="relative z-10 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-        >
-          + Создать
-        </Link>
-        {/* Защитная подложка, чтобы переключатель темы не наезжал в правом верхнем углу */}
+        {/* Подложка, чтобы ничего не налезало в хедере */}
         <div className="absolute right-0 -top-3 h-10 w-28" aria-hidden="true" />
       </div>
       
@@ -128,6 +122,16 @@ const TemplatesPage = () => {
           ))}
         </div>
       )}
+
+      {/* Плавающая кнопка создания внизу страницы, прозрачная с белой рамкой */}
+      <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-10">
+        <Link
+          to="/templates/new"
+          className="px-5 py-2 rounded-md border border-white text-white bg-transparent hover:bg-white/5 transition-colors"
+        >
+          + Создать
+        </Link>
+      </div>
     </div>
   );
 };

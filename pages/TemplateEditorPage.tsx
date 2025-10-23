@@ -164,7 +164,7 @@ const TemplateEditorPage = () => {
       <button 
         type="button" 
         onClick={() => navigate('/templates')} 
-        className="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+        className="absolute top-4 left-4 p-2 rounded-full border border-transparent text-white transition-colors bg-transparent hover:border-white active:border-white focus:outline-none"
         aria-label="Назад к шаблонам"
       >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,7 +245,7 @@ const TemplateEditorPage = () => {
               </div>
             </div>
           ))}
-          <button type="button" onClick={addExercise} className="w-full py-2 text-sm font-medium border-2 border-dashed rounded-lg hover:bg-gray-100 transition text-gray-200 border-gray-500">
+          <button type="button" onClick={addExercise} className="w-full py-2 text-sm font-medium rounded-lg border-2 border-dashed border-white/40 text-gray-200 bg-transparent hover:bg-white/5 active:scale-[.98] transition duration-100 ease-out">
             + Добавить упражнение
           </button>
         </div>

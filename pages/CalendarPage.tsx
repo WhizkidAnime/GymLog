@@ -57,9 +57,9 @@ const CalendarPage = () => {
   return (
     <div className="px-4 pt-4 pb-6 w-full h-[calc(100svh-4rem)] max-w-5xl mx-auto flex flex-col items-center">
       <div className="flex justify-between items-center mb-6 glass p-2 rounded-xl w-full max-w-xl">
-        <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-gray-100">&lt;</button>
+        <button onClick={() => changeMonth(-1)} className="p-2 rounded-full border border-transparent text-white hover:border-white active:border-white transition-colors">&lt;</button>
         <h1 className="text-xl font-bold text-center capitalize">{getMonthYear(currentDate)}</h1>
-        <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-gray-100">&gt;</button>
+        <button onClick={() => changeMonth(1)} className="p-2 rounded-full border border-transparent text-white hover:border-white active:border-white transition-colors">&gt;</button>
       </div>
 
       <div className="grid grid-cols-7 gap-3 text-center text-sm text-gray-500 mb-3 w-full max-w-xl">
@@ -77,12 +77,14 @@ const CalendarPage = () => {
             <div
               key={day}
               onClick={() => handleDayClick(day)}
-              className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 lg:h-14 lg:w-14 rounded-full cursor-pointer transition-colors duration-200 mx-auto"
+              className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 lg:h-14 lg:w-14 rounded-full cursor-pointer mx-auto overflow-visible"
             >
-              <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full ${isToday ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}>
+              <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full border ${isToday ? 'bg-blue-600 text-white border-transparent' : 'text-gray-100 border-transparent hover:border-white active:border-white'} transition-colors` }>
                 {day}
               </span>
-              {hasWorkout && <div className="absolute bottom-1 h-1 w-1 bg-blue-500 rounded-full" />}
+              {hasWorkout && (
+                <div className="pointer-events-none absolute bottom-0 translate-y-1/2 h-1.5 w-1.5 bg-blue-500 rounded-full" />
+              )}
             </div>
           );
         })}
