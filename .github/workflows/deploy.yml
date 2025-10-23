@@ -28,8 +28,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: https://sxkgemidgdggpvtkjqev.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4a2dlbWlkZ2RnZ3B2dGtqcWV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDI4MzEsImV4cCI6MjA3Njc3ODgzMX0.vjWI2vgqhTkSNMhHu2JFezGLvMjF_4f-tNw5eGPexsg
 
       # SPA fallback: чтобы прямые ссылки не падали на 404
       - run: cp dist/index.html dist/404.html
