@@ -4,9 +4,10 @@ interface RestTimerProps {
   restSeconds: number;
   // Используем уникальный идентификатор упражнения, чтобы сохранять состояние таймера
   exerciseId?: string;
+  onAdjustRestSeconds?: (delta: number) => void;
 }
 
-export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId }) => {
+export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, onAdjustRestSeconds }) => {
   const storageKey = exerciseId ? `rest_timer:${exerciseId}` : undefined;
 
   const [time, setTime] = useState(restSeconds);
@@ -109,12 +110,46 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId })
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
+  const adjustTime = (delta: number) => {
+    const next = Math.max(0, time + delta);
+    if (next === time) {
+      onAdjustRestSeconds?.(delta);
+      return;
+    }
+
+    setTime(next);
+
+    if (next === 0) {
+      setIsActive(false);
+      setEndAt(null);
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+      persist({ endAt: null, isActive: false });
+    } else if (isActive) {
+      const nextEndAt = Date.now() + next * 1000;
+      setEndAt(nextEndAt);
+      persist({ endAt: nextEndAt, isActive: true });
+    }
+
+    onAdjustRestSeconds?.(delta);
+  };
+
   return (
     <div className="text-center">
-      <div className={`text-2xl font-mono ${isActive ? 'text-blue-500' : ''}`}>
-        {formatTime(time)}
+      <div className="flex items-center justify-center gap-2">
+        <button
+          onClick={() => adjustTime(-30)}
+          disabled={time <= 0 && !isActive}
+          className="w-7 h-7 flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10 disabled:opacity-50"
+        >-</button>
+        <div className={`text-2xl font-mono min-w-[4ch] text-center ${isActive ? 'text-blue-500' : ''}`}>
+          {formatTime(time)}
+        </div>
+        <button
+          onClick={() => adjustTime(30)}
+          className="w-7 h-7 flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10"
+        >+</button>
       </div>
-      <div className="space-x-2 mt-1">
+      <div className="mt-1 flex items-center justify-center gap-2">
         <button onClick={toggle} className="text-xs px-2 py-1 rounded bg-blue-500 text-white">
           {isActive ? 'Пауза' : 'Старт'}
         </button>

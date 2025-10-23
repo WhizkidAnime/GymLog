@@ -27,6 +27,19 @@ const TemplateEditorPage = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const BackButton = ({ className = '' }: { className?: string }) => (
+    <button
+      type="button"
+      onClick={() => navigate('/templates')}
+      className={`inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white transition-colors bg-transparent hover:border-white active:border-white focus:outline-none ${className}`}
+      aria-label="Назад к шаблонам"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      </svg>
+    </button>
+  );
+
   useEffect(() => {
     if (id) {
       const fetchTemplate = async () => {
@@ -178,20 +191,13 @@ const TemplateEditorPage = () => {
   
   return (
     <div className="relative p-4 max-w-lg mx-auto">
-      <button 
-        type="button" 
-        onClick={() => navigate('/templates')} 
-        className="absolute top-4 left-4 p-2 rounded-full border border-transparent text-white transition-colors bg-transparent hover:border-white active:border-white focus:outline-none"
-        aria-label="Назад к шаблонам"
-      >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-      </button>
-      <div className="text-center pt-8 mb-4 glass p-4">
-        <h1 className="text-3xl font-bold">
-          {id ? 'Редактировать шаблон' : 'Новый шаблон'}
-        </h1>
+      <div className="mb-4 glass card-dark p-4 flex items-center gap-4">
+        <BackButton className="shrink-0" />
+        <div className="flex-1 text-center">
+          <h1 className="text-3xl font-bold">
+            {id ? 'Редактировать шаблон' : 'Новый шаблон'}
+          </h1>
+        </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>

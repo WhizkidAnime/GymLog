@@ -135,7 +135,8 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           type="checkbox"
           checked={isDone}
           onChange={handleDoneToggle}
-          className="h-6 w-6 rounded-sm text-blue-600 focus:ring-blue-500 border-gray-300 bg-white"
+          className="h-6 w-6 rounded-sm border border-gray-300 bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          style={{ accentColor: '#ffffff', color: '#0a0a0a' }}
         />
       </div>
        {isSaving && <div className="absolute right-2 top-2 h-2 w-2 bg-blue-500 rounded-full animate-ping"></div>}

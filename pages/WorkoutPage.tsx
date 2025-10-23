@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -16,8 +16,6 @@ const WorkoutPage = () => {
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const [isSelectTemplateOpen, setIsSelectTemplateOpen] = useState(false);
 
   const fetchWorkoutData = useCallback(async () => {
@@ -120,19 +118,6 @@ const WorkoutPage = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, [date]);
   
-  // Close menu on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   const handleUpdateExercise = (updatedExercise: WorkoutExerciseWithSets) => {
     setExercises(prevExercises =>
       prevExercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex))
@@ -211,13 +196,7 @@ const WorkoutPage = () => {
     }
   };
 
-  const handleDeleteClick = () => {
-    setMenuOpen(false); // Close menu first
-    handleDeleteWorkout(); // Then trigger action
-  };
-  
   const handleOpenChangeTemplate = () => {
-    setMenuOpen(false);
     setIsSelectTemplateOpen(true);
   };
 
@@ -302,10 +281,10 @@ const WorkoutPage = () => {
     }
   };
   
-  const BackButton = () => (
+  const BackButton = ({ className = '' }: { className?: string }) => (
     <button
       onClick={() => navigate('/calendar')}
-      className="absolute top-4 left-4 p-2 rounded-full border border-transparent text-white transition-colors z-10 bg-transparent hover:border-white active:border-white focus:outline-none"
+      className={`inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white transition-colors z-10 bg-transparent hover:border-white active:border-white focus:outline-none ${className}`}
     >
       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -319,9 +298,11 @@ const WorkoutPage = () => {
   
   if (!workout) {
     return (
-      <div className="relative p-4 max-w-lg mx-auto text-center">
-        <BackButton />
-        <h1 className="text-xl font-bold mt-12">Тренировка на {date ? formatDateForDisplay(date) : ''}</h1>
+      <div className="p-4 max-w-lg mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <BackButton />
+          <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {date ? formatDateForDisplay(date) : ''}</h1>
+        </div>
         <div className="mt-4 p-6 text-center border-2 border-dashed rounded-lg">
           <p className="text-gray-500 mb-4">Тренировка не запланирована.</p>
           {templates.length > 0 ? (
@@ -361,34 +342,12 @@ const WorkoutPage = () => {
 
   return (
     <div className="relative p-4 space-y-4">
-      <BackButton />
-      <div className="absolute top-4 right-4">
-        <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-full text-white hover:bg-white/10 transition-colors z-20">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01" />
-          </svg>
-        </button>
-        {menuOpen && (
-          <div ref={menuRef} className="absolute right-0 mt-2 w-56 card-dark rounded-md shadow-lg z-30 ring-1 ring-white/10">
-            <button
-              onClick={handleOpenChangeTemplate}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-white/5"
-            >
-              Изменить тренировку
-            </button>
-            <button 
-              onClick={handleDeleteClick}
-              className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-white/5"
-            >
-              Удалить тренировку
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="text-center pt-8 glass card-dark p-4">
-        <h1 className="text-3xl font-bold capitalize">{workout.name}</h1>
-        <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {date ? formatDateForDisplay(date) : ''}</p>
+      <div className="glass card-dark p-4 flex items-center gap-4">
+        <BackButton className="shrink-0" />
+        <div className="flex-1 text-center">
+          <h1 className="text-3xl font-bold capitalize">{workout.name}</h1>
+          <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {date ? formatDateForDisplay(date) : ''}</p>
+        </div>
       </div>
       {/* Контейнер действий над тренировкой */}
       <div className="glass card-dark p-3 rounded-md flex items-center justify-center gap-3">

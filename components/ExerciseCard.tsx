@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { WorkoutExerciseWithSets } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 import { SetRow } from './SetRow';
@@ -15,14 +15,40 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
 
   const [nameInput, setNameInput] = useState(exercise.name);
   const [setsCount, setSetsCount] = useState<number>(exercise.sets);
+  const [restSeconds, setRestSeconds] = useState<number>(exercise.rest_seconds);
   const [busy, setBusy] = useState(false);
 
+  const nameInputRef = useRef<HTMLTextAreaElement | null>(null);
   const debouncedName = useDebounce(nameInput, 500);
+  const debouncedRestSeconds = useDebounce(restSeconds, 500);
+
+  const adjustNameInputHeight = useCallback(() => {
+    const element = nameInputRef.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, []);
 
   useEffect(() => {
     setNameInput(exercise.name);
     setSetsCount(exercise.sets);
-  }, [exercise.id, exercise.name, exercise.sets]);
+    setRestSeconds(exercise.rest_seconds);
+  }, [exercise.id, exercise.name, exercise.sets, exercise.rest_seconds]);
+
+  useLayoutEffect(() => {
+    adjustNameInputHeight();
+  }, [adjustNameInputHeight, nameInput]);
+
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const element = nameInputRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      adjustNameInputHeight();
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [adjustNameInputHeight]);
 
   // Автосохранение имени упражнения (debounce)
   useEffect(() => {
@@ -42,6 +68,30 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
     saveName();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedName]);
+
+  useEffect(() => {
+    const saveRestSeconds = async () => {
+      if (debouncedRestSeconds === exercise.rest_seconds) return;
+      try {
+        await supabase
+          .from('workout_exercises')
+          .update({ rest_seconds: debouncedRestSeconds })
+          .eq('id', exercise.id);
+        const updated: WorkoutExerciseWithSets = {
+          ...exercise,
+          rest_seconds: debouncedRestSeconds,
+        };
+        onUpdateExercise(updated);
+      } catch (e) {
+        console.error('Failed to update rest seconds', e);
+      }
+    };
+    saveRestSeconds();
+  }, [debouncedRestSeconds, exercise, onUpdateExercise]);
+
+  const adjustRestSeconds = (delta: number) => {
+    setRestSeconds((prev) => Math.max(0, prev + delta));
+  };
 
   const applySetsChange = async (next: number) => {
     if (next < 1 || next === setsCount || busy) return;
@@ -114,14 +164,21 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
     <div className="glass card-dark p-4">
       <div className="mb-3 grid grid-cols-[1fr_auto] gap-2 items-start">
         <div className="pr-1">
-          <input
+          <textarea
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
-            className="w-full text-base sm:text-lg font-bold bg-transparent border-b border-white/20 focus:outline-none focus:border-white/50 truncate"
-            style={{color:'#fff'}}
+            ref={nameInputRef}
+            rows={1}
+            className="w-full text-base sm:text-lg font-bold text-white whitespace-pre-wrap bg-white/10 hover:bg-white/15 focus:bg-white/10 border border-white/20 hover:border-white/30 focus:border-white/50 focus:ring-2 focus:ring-white/25 focus:outline-none rounded-xl px-4 py-3 min-h-[3rem] resize-none overflow-y-hidden leading-relaxed transition-colors"
           />
         </div>
-        <div className="justify-self-end"><RestTimer restSeconds={exercise.rest_seconds} exerciseId={exercise.id} /></div>
+        <div className="justify-self-end">
+          <RestTimer
+            restSeconds={restSeconds}
+            exerciseId={exercise.id}
+            onAdjustRestSeconds={adjustRestSeconds}
+          />
+        </div>
         <div className="col-span-2 flex items-center justify-between text-xs sm:text-sm mt-1" style={{color:'#a1a1aa'}}>
           <div className="flex items-center gap-2">
             <span className="whitespace-nowrap">Подходы:</span>
