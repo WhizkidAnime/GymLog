@@ -1,0 +1,86 @@
+/* Цветовые переменные и фон с эффектом liquid glass (iOS 16 style) */
+:root {
+  --bg: #0a0a0b;          /* zinc-950 */
+  --fg: #fafafa;          /* near-white */
+  --glass-bg: rgba(24,24,27,0.55);
+  --glass-border: rgba(255,255,255,0.08);
+  --blob-a: #1d4ed8;      /* blue-700 */
+  --blob-b: #6d28d9;      /* violet-700 */
+  --blob-c: #059669;      /* emerald-600 */
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* Базовые элементы форм под тёмную тему */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
+  background-color: #18181b; /* zinc-900 */
+  color: #fafafa;            /* белый текст */
+  border: 1px solid #3f3f46; /* zinc-700 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #a1a1aa; /* zinc-400 */
+}
+
+/* Карточки/контейнеры */
+.card-dark {
+  background-color: #111113; /* близко к zinc-950 */
+  color: var(--fg);
+  border: 1px solid #27272a; /* zinc-800 */
+}
+
+/* Кнопка удаления внутри карточки упражнения */
+.exercise-card {
+  position: relative;
+}
+
+.exercise-card .delete-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+}
+
+/* Жидкие цветовые пятна на фоне */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -25% -25% -15% -25%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 40% at 20% 10%, color-mix(in oklab, var(--blob-a) 40%, transparent) 0%, transparent 60%),
+    radial-gradient(35% 35% at 80% 20%, color-mix(in oklab, var(--blob-b) 45%, transparent) 0%, transparent 60%),
+    radial-gradient(45% 45% at 50% 80%, color-mix(in oklab, var(--blob-c) 40%, transparent) 0%, transparent 65%);
+  filter: blur(60px) saturate(140%);
+  opacity: 0.45;
+}
+
+/* Универсальный класс стеклянной карточки */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
+  border-radius: 16px;
+}
+
+/* Полупрозрачная нижняя навигация */
+.glass-nav {
+  background: color-mix(in oklab, var(--glass-bg) 92%, transparent);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  border-top: 1px solid var(--glass-border);
+}
+
