@@ -199,7 +199,11 @@ const TemplateEditorPage = () => {
           </h1>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6"
+        style={{ paddingBottom: 'calc(3rem + env(safe-area-inset-bottom, 0px))' }}
+      >
         <div>
           <label htmlFor="template-name" className="block text-sm font-medium" style={{color:'#e4e4e7'}}>Название дня</label>
           <input

@@ -6,19 +6,11 @@ import './styles/tailwind.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => {
-        registration.unregister();
+    navigator.serviceWorker
+      .register('/sw.js')
+      .catch((error) => {
+        console.error('Service worker registration failed:', error);
       });
-    });
-
-    if ('caches' in window) {
-      caches.keys().then((keys) => {
-        keys.forEach((key) => {
-          caches.delete(key);
-        });
-      });
-    }
   });
 }
 

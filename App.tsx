@@ -1,6 +1,6 @@
 import React from 'react';
-import { HashRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from './hooks/useAuth';
+import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -12,19 +12,12 @@ import TemplateEditorPage from './pages/TemplateEditorPage';
 import ProfilePage from './pages/ProfilePage';
 
 const DefaultRedirect = () => {
-  const lastWorkout = localStorage.getItem('lastWorkoutPath');
-  const last = localStorage.getItem('lastPath');
-  const target = lastWorkout?.startsWith('/workout')
-    ? lastWorkout
-    : last && (last.startsWith('/calendar') || last.startsWith('/workout'))
-      ? last
-      : '/calendar';
-  return <Navigate to={target} replace />;
+    const lastPath = typeof window !== 'undefined' ? window.localStorage.getItem('lastPath') : null;
+    const target = lastPath && lastPath.startsWith('/') ? lastPath : '/calendar';
+    return <Navigate to={target} replace />;
 };
 
 const AppRoutes = () => {
-    const { session } = useAuth();
-    
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
