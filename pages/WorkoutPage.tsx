@@ -26,7 +26,7 @@ const WorkoutPage = () => {
 
     const { data: workoutData, error: workoutError } = await supabase
       .from('workouts')
-      .select('*')
+      .select('id, name, workout_date, template_id')
       .eq('user_id', user.id)
       .eq('workout_date', date)
       .single();
@@ -37,7 +37,8 @@ const WorkoutPage = () => {
       setWorkout(workoutData);
       const { data: exercisesData, error: exercisesError } = await supabase
         .from('workout_exercises')
-        .select('*, workout_sets (*)')
+        // выбираем только нужные поля и вложенные сеты
+        .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, updated_at )')
         .eq('workout_id', workoutData.id)
         .order('position');
         
@@ -57,16 +58,32 @@ const WorkoutPage = () => {
       setExercises([]); // Clear exercises if no workout is found
     }
 
-    // Загружаем список шаблонов всегда, чтобы можно было менять тренировку
-    const { data: templateData, error: templateError } = await supabase
-      .from('workout_templates')
-      .select('*')
-      .eq('user_id', user.id);
-    if (templateError) {
-      console.error('Error fetching templates:', templateError.message);
-    } else {
-      setTemplates(templateData || []);
+    // Загружаем список шаблонов фоном и минимальные поля с кешем
+    const cacheKey = user ? `templates-cache:${user.id}` : undefined;
+    if (cacheKey) {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as { ts: number; data: WorkoutTemplate[] };
+          setTemplates(parsed.data || []);
+        }
+      } catch {}
     }
+
+    supabase
+      .from('workout_templates')
+      .select('id, name')
+      .eq('user_id', user.id)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error fetching templates:', error.message);
+        } else {
+          setTemplates(data || []);
+          if (cacheKey) {
+            try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data })); } catch {}
+          }
+        }
+      });
     
     setLoading(false);
   }, [date, user]);
@@ -74,6 +91,34 @@ const WorkoutPage = () => {
   useEffect(() => {
     fetchWorkoutData();
   }, [fetchWorkoutData]);
+
+  // Сохраняем последний открытый workout и позицию скролла
+  useEffect(() => {
+    if (!date) return;
+    localStorage.setItem('lastWorkoutPath', `/workout/${date}`);
+  }, [date]);
+
+  useEffect(() => {
+    const key = `scroll:workout:${date ?? ''}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const y = parseInt(saved, 10);
+      if (!Number.isNaN(y)) {
+        // Восстановим после первого рендера данных
+        const id = window.setTimeout(() => window.scrollTo({ top: y, behavior: 'auto' }), 0);
+        return () => window.clearTimeout(id);
+      }
+    }
+  }, [date, exercises.length]);
+
+  useEffect(() => {
+    const key = `scroll:workout:${date ?? ''}`;
+    const onScroll = () => {
+      try { localStorage.setItem(key, String(window.scrollY)); } catch {}
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [date]);
   
   // Close menu on click outside
   useEffect(() => {
@@ -259,7 +304,7 @@ const WorkoutPage = () => {
   
   const BackButton = () => (
     <button
-      onClick={() => navigate(-1)}
+      onClick={() => navigate('/calendar')}
       className="absolute top-4 left-4 p-2 rounded-full border border-transparent text-white transition-colors z-10 bg-transparent hover:border-white active:border-white focus:outline-none"
     >
       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -345,6 +390,24 @@ const WorkoutPage = () => {
         <h1 className="text-3xl font-bold capitalize">{workout.name}</h1>
         <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {date ? formatDateForDisplay(date) : ''}</p>
       </div>
+      {/* Контейнер действий над тренировкой */}
+      <div className="glass card-dark p-3 rounded-md flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={handleOpenChangeTemplate}
+          className="px-4 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors"
+        >
+          Изменить тренировку
+        </button>
+        <button
+          type="button"
+          onClick={handleDeleteWorkout}
+          className="px-4 py-2 rounded-md border border-red-500 text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          Удалить
+        </button>
+      </div>
+
       <div className="space-y-4">
         {exercises.map(exercise => (
           <ExerciseCard 
@@ -355,25 +418,7 @@ const WorkoutPage = () => {
         ))}
       </div>
 
-      {/* Нижняя панель действий для наглядности */}
-      <div className="sticky bottom-24 z-10 mt-6">
-        <div className="flex gap-3 justify-center">
-          <button
-            type="button"
-            onClick={handleOpenChangeTemplate}
-            className="px-4 py-2 rounded-md border border-white text-white hover:bg-white/5 transition-colors"
-          >
-            Изменить тренировку
-          </button>
-          <button
-            type="button"
-            onClick={handleDeleteWorkout}
-            className="px-4 py-2 rounded-md border border-red-500 text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            Удалить
-          </button>
-        </div>
-      </div>
+      {/* Убрана нижняя панель с кнопками, чтобы не перекрывать контент */}
 
       {isSelectTemplateOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">

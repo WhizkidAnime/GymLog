@@ -52,10 +52,22 @@ const TemplatesPage = () => {
   useEffect(() => {
     const fetchTemplates = async () => {
       if (!user) return;
+
+      // быстрый рендер из кеша
+      try {
+        const cached = localStorage.getItem(`templates-cache:${user.id}`);
+        if (cached) {
+          const parsed = JSON.parse(cached) as { ts: number; data: WorkoutTemplate[] };
+          setTemplates(parsed.data || []);
+          setLoading(false);
+        }
+      } catch {}
+
       setLoading(true);
       const { data, error } = await supabase
         .from('workout_templates')
-        .select('*')
+        // для списка нужны только id и name
+        .select('id, name, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -63,6 +75,7 @@ const TemplatesPage = () => {
         console.error('Error fetching templates:', error);
       } else {
         setTemplates(data || []);
+        try { localStorage.setItem(`templates-cache:${user.id}` , JSON.stringify({ ts: Date.now(), data })); } catch {}
       }
       setLoading(false);
     };
@@ -74,16 +87,17 @@ const TemplatesPage = () => {
   useEffect(() => {
     const channel = supabase
       .channel('workout_templates_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'workout_templates' }, payload => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'workout_templates', filter: user ? `user_id=eq.${user.id}` : undefined }, payload => {
         // Простая повторная загрузка при любых изменениях текущего пользователя
         (async () => {
           if (!user) return;
           const { data } = await supabase
             .from('workout_templates')
-            .select('*')
+            .select('id, name, created_at')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
           setTemplates(data || []);
+          try { localStorage.setItem(`templates-cache:${user.id}`, JSON.stringify({ ts: Date.now(), data })); } catch {}
         })();
       })
       .subscribe();
@@ -94,7 +108,7 @@ const TemplatesPage = () => {
   }, [user]);
 
   return (
-    <div className="p-4 pb-28">
+    <div className="p-4 pb-40">
       <div className="relative flex justify-start items-center mb-4">
         <h1 className="text-3xl font-bold">Шаблоны</h1>
         {/* Подложка, чтобы ничего не налезало в хедере */}
@@ -123,13 +137,13 @@ const TemplatesPage = () => {
         </div>
       )}
 
-      {/* Плавающая кнопка создания внизу страницы, прозрачная с белой рамкой */}
-      <div className="fixed left-1/2 -translate-x-1/2 bottom-24 z-10">
+      {/* Плавающая стеклянная кнопка создания, не наезжает на док */}
+      <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+6.75rem)] z-30">
         <Link
           to="/templates/new"
-          className="px-5 py-2 rounded-md border border-white text-white bg-transparent hover:bg-white/5 transition-colors"
+          className="glass-button-create"
         >
-          + Создать
+          Создать
         </Link>
       </div>
     </div>

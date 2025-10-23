@@ -39,3 +39,9 @@ alter table if exists public.workout_sets alter column reps type text using reps
 -- where table_schema = 'public' and column_name = 'reps';
 
 
+-- Индексы для ускорения выборок по пользователю и дате
+create index if not exists workouts_user_date_idx on public.workouts (user_id, workout_date);
+create index if not exists workout_exercises_workout_id_idx on public.workout_exercises (workout_id);
+create index if not exists workout_sets_exercise_id_idx on public.workout_sets (workout_exercise_id);
+create index if not exists workout_templates_user_idx on public.workout_templates (user_id);
+create index if not exists template_exercises_template_idx on public.template_exercises (template_id);

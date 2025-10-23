@@ -22,7 +22,8 @@ const CalendarPage = () => {
 
       const { data, error } = await supabase
         .from('workouts')
-        .select('*')
+        // для календаря нужны только дата и id
+        .select('id, workout_date')
         .eq('user_id', user.id)
         .gte('workout_date', formatDate(firstDay))
         .lte('workout_date', formatDate(lastDay));

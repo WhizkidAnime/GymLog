@@ -5,49 +5,91 @@ import type { WorkoutSet } from '../types/database.types';
 
 interface SetRowProps {
   set: WorkoutSet;
+  onChange?: (updated: WorkoutSet) => void;
 }
 
-export const SetRow: React.FC<SetRowProps> = ({ set }) => {
-  const [weight, setWeight] = useState(set.weight ?? '');
-  const [reps, setRps] = useState(set.reps ?? '');
-  const [isDone, setIsDone] = useState(set.is_done);
+export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
+  const storageKey = `workout_set_draft:${set.id}`;
+
+  const [weight, setWeight] = useState<string | number>(set.weight ?? '');
+  const [reps, setRps] = useState<string>(set.reps ?? '');
+  const [isDone, setIsDone] = useState<boolean>(set.is_done);
   const [isSaving, setIsSaving] = useState(false);
 
   const debouncedWeight = useDebounce(weight, 500);
   const debouncedReps = useDebounce(reps, 500);
   
-  // Sync local state if the prop changes from the parent
+  // При маунте пробуем восстановиться из localStorage, если данные свежее, чем в БД
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { weight: number | '' ; reps: string | null; isDone: boolean; updatedAt: number };
+      const dbUpdatedAt = new Date(set.updated_at).getTime();
+      if (draft.updatedAt > dbUpdatedAt) {
+        setWeight(draft.weight === null ? '' : draft.weight);
+        setRps(draft.reps ?? '');
+        setIsDone(draft.isDone);
+      }
+    } catch {
+      // ignore
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Синхронизируем локальное состояние, если проп поменялся из БД
   useEffect(() => {
     setIsDone(set.is_done);
   }, [set.is_done]);
   
   useEffect(() => {
     const saveSet = async () => {
-        // Only save if there's an actual change from the initial debounced value
-        if (debouncedWeight !== (set.weight ?? '') || debouncedReps !== (set.reps ?? '')) {
-            setIsSaving(true);
-            const { error } = await supabase
-              .from('workout_sets')
-              .update({
-                weight: debouncedWeight === '' ? null : Number(debouncedWeight),
-                reps: debouncedReps === '' ? null : debouncedReps,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', set.id);
-      
-            if (error) {
-              console.error("Error saving set:", error);
-            }
-            setTimeout(() => setIsSaving(false), 500); // Visual feedback
+      // Только если действительно что-то изменилось
+      if (debouncedWeight !== (set.weight ?? '') || debouncedReps !== (set.reps ?? '')) {
+        const draft = { weight: debouncedWeight === '' ? '' : Number(debouncedWeight), reps: debouncedReps === '' ? null : debouncedReps, isDone, updatedAt: Date.now() };
+        try { localStorage.setItem(storageKey, JSON.stringify(draft)); } catch {}
+
+        setIsSaving(true);
+        const { error } = await supabase
+          .from('workout_sets')
+          .update({
+            weight: debouncedWeight === '' ? null : Number(debouncedWeight),
+            reps: debouncedReps === '' ? null : debouncedReps,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', set.id);
+
+        if (error) {
+          console.error('Error saving set:', error);
+        } else {
+          // Успешно сохранили — черновик больше не нужен
+          try { localStorage.removeItem(storageKey); } catch {}
+          // Сообщим вверх об изменении
+          onChange?.({
+            ...set,
+            weight: debouncedWeight === '' ? null : Number(debouncedWeight),
+            reps: debouncedReps === '' ? null : debouncedReps,
+            is_done: isDone,
+            updated_at: new Date().toISOString(),
+          });
         }
+        setTimeout(() => setIsSaving(false), 500);
+      }
     };
     saveSet();
-  }, [debouncedWeight, debouncedReps, set.id, set.weight, set.reps]);
+  }, [debouncedWeight, debouncedReps, set.id, set.weight, set.reps, isDone, storageKey]);
 
   const handleDoneToggle = async () => {
     const newDoneState = !isDone;
     setIsDone(newDoneState);
     setIsSaving(true);
+    // Обновим черновик сразу
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ weight: weight === '' ? '' : Number(weight), reps: reps === '' ? null : reps, isDone: newDoneState, updatedAt: Date.now() })
+      );
+    } catch {}
     const { error } = await supabase
       .from('workout_sets')
       .update({ is_done: newDoneState, updated_at: new Date().toISOString() })
@@ -56,12 +98,17 @@ export const SetRow: React.FC<SetRowProps> = ({ set }) => {
       console.error("Error updating done status:", error);
       setIsDone(!newDoneState); // Revert on error
     }
+    try { localStorage.removeItem(storageKey); } catch {}
     setTimeout(() => setIsSaving(false), 500);
+    onChange?.({ ...set, is_done: newDoneState, updated_at: new Date().toISOString() });
   };
   
+  const doneBg = isDone ? 'bg-green-500' : 'bg-transparent';
+  const textColor = isDone ? 'text-black' : 'text-inherit';
+
   return (
-    <div className={`relative grid grid-cols-5 gap-2 items-center p-2 rounded-md transition-colors duration-300 ${isDone ? 'bg-green-100' : 'bg-transparent'}`}>
-      <div className="col-span-1 text-center font-medium">{set.set_index}</div>
+    <div className={`relative grid grid-cols-5 gap-2 items-center p-2 rounded-md transition-colors duration-300 ${doneBg}`}>
+      <div className={`col-span-1 text-center font-medium ${textColor}`}>{set.set_index}</div>
       <div className="col-span-2">
         <input
           type="number"
@@ -69,8 +116,8 @@ export const SetRow: React.FC<SetRowProps> = ({ set }) => {
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
-          className="w-full p-1 text-center rounded-md border-gray-600 shadow-sm"
-          style={{backgroundColor:'#18181b', color:'#fafafa'}}
+          className={`w-full p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
+          style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
         />
       </div>
       <div className="col-span-1">
@@ -79,8 +126,8 @@ export const SetRow: React.FC<SetRowProps> = ({ set }) => {
           placeholder="0"
           value={reps}
           onChange={(e) => setRps(e.target.value)}
-          className="w-full p-1 text-center rounded-md border-gray-600 shadow-sm"
-          style={{backgroundColor:'#18181b', color:'#fafafa'}}
+          className={`w-full p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
+          style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
         />
       </div>
       <div className="col-span-1 flex justify-center">
@@ -88,7 +135,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set }) => {
           type="checkbox"
           checked={isDone}
           onChange={handleDoneToggle}
-          className="h-6 w-6 rounded-full text-blue-600 focus:ring-blue-500 border-gray-300"
+          className="h-6 w-6 rounded-sm text-blue-600 focus:ring-blue-500 border-gray-300 bg-white"
         />
       </div>
        {isSaving && <div className="absolute right-2 top-2 h-2 w-2 bg-blue-500 rounded-full animate-ping"></div>}

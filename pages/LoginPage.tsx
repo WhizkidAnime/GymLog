@@ -67,7 +67,7 @@ const LoginPage = () => {
           {isSignUp ? 'Создайте аккаунт' : 'Войдите в свой аккаунт'}
         </p>
         
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleAuth} className="space-y-4" autoComplete="off">
           <div>
             <label htmlFor="nickname" className="sr-only">Никнейм</label>
             <input
@@ -77,6 +77,8 @@ const LoginPage = () => {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               required
+              name="nickname"
+              autoComplete="off"
               className="w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{backgroundColor:'#18181b', color:'#0a0a0a', border:'1px solid #3f3f46'}}
             />
@@ -91,6 +93,8 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
+              name={isSignUp ? 'new-password' : 'current-password'}
+              autoComplete={isSignUp ? 'new-password' : 'off'}
               className="w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{backgroundColor:'#18181b', color:'#0a0a0a', border:'1px solid #3f3f46'}}
             />

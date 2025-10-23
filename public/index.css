@@ -33,6 +33,12 @@ textarea::placeholder {
   color: #a1a1aa; /* zinc-400 */
 }
 
+/* Прячем плейсхолдер при фокусе, чтобы текст не накладывался */
+input:focus::placeholder,
+textarea:focus::placeholder {
+  opacity: 0;
+}
+
 /* Карточки/контейнеры */
 .card-dark {
   background-color: #111113; /* близко к zinc-950 */
@@ -82,5 +88,123 @@ body::before {
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   backdrop-filter: saturate(160%) blur(14px);
   border-top: 1px solid var(--glass-border);
+}
+
+/* Стеклянная кнопка "Создать" в стиле дока */
+.glass-button-create {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: 14px;
+  color: #fff;
+  text-decoration: none;
+  background: color-mix(in oklab, var(--glass-bg) 90%, transparent);
+  -webkit-backdrop-filter: saturate(170%) blur(16px);
+  backdrop-filter: saturate(170%) blur(16px);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.glass-button-create:hover { transform: translateY(-1px); }
+.glass-button-create:active { transform: translateY(0) scale(0.98); }
+
+/* --- Bottom dock (скриншот‑стиль) --- */
+.bottom-dock-wrapper {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 40;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
+
+.glass-dock {
+  position: relative;
+  margin: 0 auto;
+  max-width: 720px;
+  border-radius: 22px;
+  background: color-mix(in oklab, var(--glass-bg) 90%, transparent);
+  -webkit-backdrop-filter: saturate(170%) blur(16px);
+  backdrop-filter: saturate(170%) blur(16px);
+  border: 1px solid color-mix(in oklab, var(--fg) 7%, transparent);
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -6px 10px rgba(0,0,0,0.15);
+}
+
+.glass-dock::after {
+  /* неоновые мягкие пятна под табами */
+  content: "";
+  position: absolute;
+  inset: 4px 20px;
+  pointer-events: none;
+  border-radius: 18px;
+  background:
+    radial-gradient(30% 60% at 20% 50%, rgba(34,197,94,0.18), transparent 70%),
+    radial-gradient(30% 60% at 80% 50%, rgba(34,197,94,0.14), transparent 70%);
+  filter: blur(22px);
+}
+
+.dock-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--tabs-count, 3), 1fr);
+  align-items: stretch;
+  height: 72px;
+}
+
+.dock-item {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: rgba(255,255,255,0.72);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color .25s ease, transform .15s ease;
+}
+
+.dock-item .icon { display: grid; place-items: center; }
+.dock-item .label { font-size: 12px; line-height: 1; }
+
+.dock-item:hover { color: rgba(255,255,255,0.9); }
+.dock-item:active { transform: scale(0.98); }
+.dock-item.active { color: #38bdf8; /* sky-400 */ }
+
+.dock-indicator {
+  position: absolute;
+  z-index: 1;
+  left: 0; top: 6px; bottom: 6px;
+  width: calc(100% / var(--tabs-count, 3));
+  transform: translateX(calc(var(--active-index, 0) * 100%));
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.32),
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -10px 20px rgba(0,0,0,0.18);
+}
+
+.dock-indicator::before {
+  /* глянцевый блик сверху */
+  content: "";
+  position: absolute;
+  left: 6px; right: 6px; top: 4px; height: 24px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.06));
+  opacity: .35;
+}
+
+/* Fallback без backdrop-filter */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass-dock {
+    background: rgba(24,24,27,0.9);
+  }
 }
 

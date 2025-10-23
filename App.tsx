@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { HashRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -10,6 +10,17 @@ import WorkoutPage from './pages/WorkoutPage';
 import TemplatesPage from './pages/TemplatesPage';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import ProfilePage from './pages/ProfilePage';
+
+const DefaultRedirect = () => {
+  const lastWorkout = localStorage.getItem('lastWorkoutPath');
+  const last = localStorage.getItem('lastPath');
+  const target = lastWorkout?.startsWith('/workout')
+    ? lastWorkout
+    : last && (last.startsWith('/calendar') || last.startsWith('/workout'))
+      ? last
+      : '/calendar';
+  return <Navigate to={target} replace />;
+};
 
 const AppRoutes = () => {
     const { session } = useAuth();
@@ -22,7 +33,7 @@ const AppRoutes = () => {
                     <Layout />
                 </ProtectedRoute>
             }>
-                <Route index element={<Navigate to="/calendar" replace />} />
+                <Route index element={<DefaultRedirect />} />
                 <Route path="calendar" element={<CalendarPage />} />
                 <Route path="workout/:date" element={<WorkoutPage />} />
                 <Route path="templates" element={<TemplatesPage />} />
