@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       // Relative base для GitHub Pages (работает при публикации в сабдиректории)
-      base: './',
+      base: '/GymLog/',
       server: {
         port: 3000,
         host: '0.0.0.0',
