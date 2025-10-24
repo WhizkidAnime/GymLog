@@ -1,15 +1,27 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import type { Workout, WorkoutTemplate, WorkoutExerciseWithSets } from '../types/database.types';
 import { ExerciseCard } from '../components/ExerciseCard';
-import { formatDateForDisplay } from '../utils/date-helpers';
+import { formatDateForDisplay, formatDate } from '../utils/date-helpers';
+
+const workoutCache = new Map<string, { workout: Workout | null; exercises: WorkoutExerciseWithSets[] }>();
+
+const normalizeDateParam = (value?: string): string | null => {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return formatDate(parsed);
+};
 
 const WorkoutPage = () => {
   const { date } = useParams<{ date: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const normalizedDate = useMemo(() => normalizeDateParam(date), [date]);
 
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exercises, setExercises] = useState<WorkoutExerciseWithSets[]>([]);
@@ -17,25 +29,47 @@ const WorkoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isSelectTemplateOpen, setIsSelectTemplateOpen] = useState(false);
+  const [hasInitialData, setHasInitialData] = useState(false);
 
-  const fetchWorkoutData = useCallback(async () => {
-    if (!user || !date) return;
+  const fetchWorkoutData = useCallback(async (fromCache = false) => {
+    if (!user || !normalizedDate) {
+      setWorkout(null);
+      setExercises([]);
+      setLoading(false);
+      setHasInitialData(true);
+      return;
+    }
+
+    const cacheKey = `${user.id}:${normalizedDate}`;
+    
+    // Если возвращаемся на вкладку и есть кеш — восстанавливаем из памяти
+    if (fromCache && workoutCache.has(cacheKey)) {
+      const cached = workoutCache.get(cacheKey)!;
+      setWorkout(cached.workout);
+      setExercises(cached.exercises);
+      setLoading(false);
+      setHasInitialData(true);
+      return;
+    }
+
     setLoading(true);
 
-    const { data: workoutData, error: workoutError } = await supabase
+    const { data: workoutsData, error: workoutError } = await supabase
       .from('workouts')
-      .select('id, name, workout_date, template_id')
+      .select('*')
       .eq('user_id', user.id)
-      .eq('workout_date', date)
-      .single();
+      .eq('workout_date', normalizedDate)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (workoutError && workoutError.code !== 'PGRST116') {
+    const workoutData = workoutsData?.[0] ?? null;
+
+    if (workoutError) {
       console.error('Error fetching workout:', workoutError);
     } else if (workoutData) {
       setWorkout(workoutData);
       const { data: exercisesData, error: exercisesError } = await supabase
         .from('workout_exercises')
-        // выбираем только нужные поля и вложенные сеты
         .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, updated_at )')
         .eq('workout_id', workoutData.id)
         .order('position');
@@ -50,17 +84,20 @@ const WorkoutPage = () => {
           }
         });
         setExercises(exercisesWithSets);
+        // Кешируем в памяти
+        workoutCache.set(cacheKey, { workout: workoutData, exercises: exercisesWithSets });
       }
     } else {
       setWorkout(null);
-      setExercises([]); // Clear exercises if no workout is found
+      setExercises([]);
+      workoutCache.set(cacheKey, { workout: null, exercises: [] });
     }
 
-    // Загружаем список шаблонов фоном и минимальные поля с кешем
-    const cacheKey = user ? `templates-cache:${user.id}` : undefined;
-    if (cacheKey) {
+    // Загружаем список шаблонов фоном
+    const templatesCacheKey = user ? `templates-cache:${user.id}` : undefined;
+    if (templatesCacheKey) {
       try {
-        const cached = localStorage.getItem(cacheKey);
+        const cached = localStorage.getItem(templatesCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached) as { ts: number; data: WorkoutTemplate[] };
           setTemplates(parsed.data || []);
@@ -77,27 +114,41 @@ const WorkoutPage = () => {
           console.error('Error fetching templates:', error.message);
         } else {
           setTemplates(data || []);
-          if (cacheKey) {
-            try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data })); } catch {}
+          if (templatesCacheKey) {
+            try { localStorage.setItem(templatesCacheKey, JSON.stringify({ ts: Date.now(), data })); } catch {}
           }
         }
       });
     
     setLoading(false);
-  }, [date, user]);
+    setHasInitialData(true);
+  }, [user, normalizedDate]);
 
   useEffect(() => {
     fetchWorkoutData();
   }, [fetchWorkoutData]);
 
+  // Обработка видимости страницы: восстанавливаем из кеша при возврате на вкладку
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Страница стала видимой — восстанавливаем из кеша если возможно
+        fetchWorkoutData(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchWorkoutData]);
+
   // Сохраняем последний открытый workout и позицию скролла
   useEffect(() => {
-    if (!date) return;
-    localStorage.setItem('lastWorkoutPath', `/workout/${date}`);
-  }, [date]);
+    if (!normalizedDate) return;
+    localStorage.setItem('lastWorkoutPath', `/workout/${normalizedDate}`);
+  }, [normalizedDate]);
 
   useEffect(() => {
-    const key = `scroll:workout:${date ?? ''}`;
+    const key = `scroll:workout:${normalizedDate ?? ''}`;
     const saved = localStorage.getItem(key);
     if (saved) {
       const y = parseInt(saved, 10);
@@ -107,17 +158,17 @@ const WorkoutPage = () => {
         return () => window.clearTimeout(id);
       }
     }
-  }, [date, exercises.length]);
+  }, [normalizedDate, exercises.length]);
 
   useEffect(() => {
-    const key = `scroll:workout:${date ?? ''}`;
+    const key = `scroll:workout:${normalizedDate ?? ''}`;
     const onScroll = () => {
       try { localStorage.setItem(key, String(window.scrollY)); } catch {}
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, [date]);
-  
+  }, [normalizedDate]);
+
   const handleUpdateExercise = (updatedExercise: WorkoutExerciseWithSets) => {
     setExercises(prevExercises =>
       prevExercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex))
@@ -125,7 +176,7 @@ const WorkoutPage = () => {
   };
 
   const handleCreateWorkout = async (template: WorkoutTemplate) => {
-    if (!user || !date) return;
+    if (!user || !normalizedDate) return;
     setIsCreating(true);
 
     try {
@@ -138,7 +189,7 @@ const WorkoutPage = () => {
         .from('workouts')
         .insert({
           user_id: user.id,
-          workout_date: date,
+          workout_date: normalizedDate,
           name: template.name,
           template_id: template.id,
         })
@@ -201,7 +252,7 @@ const WorkoutPage = () => {
   };
 
   const handleReplaceWithTemplate = async (template: WorkoutTemplate) => {
-    if (!user || !date || !workout) return;
+    if (!user || !normalizedDate || !workout) return;
     try {
       setIsCreating(true);
 
@@ -292,16 +343,20 @@ const WorkoutPage = () => {
     </button>
   );
 
-  if (loading) {
+  if (!hasInitialData) {
     return <div className="p-4 text-center">Загрузка...</div>;
   }
   
+  if (!normalizedDate) {
+    return null;
+  }
+
   if (!workout) {
     return (
       <div className="p-4 max-w-lg mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <BackButton />
-          <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {date ? formatDateForDisplay(date) : ''}</h1>
+          <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {formatDateForDisplay(normalizedDate)}</h1>
         </div>
         <div className="mt-4 p-6 text-center border-2 border-dashed rounded-lg">
           <p className="text-gray-500 mb-4">Тренировка не запланирована.</p>
@@ -342,11 +397,16 @@ const WorkoutPage = () => {
 
   return (
     <div className="relative p-4 space-y-4">
+      {loading && (
+        <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1 text-sm text-white shadow-lg">
+          Обновление данных...
+        </div>
+      )}
       <div className="glass card-dark p-4 flex items-center gap-4">
         <BackButton className="shrink-0" />
         <div className="flex-1 text-center">
           <h1 className="text-3xl font-bold capitalize">{workout.name}</h1>
-          <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {date ? formatDateForDisplay(date) : ''}</p>
+          <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {formatDateForDisplay(normalizedDate)}</p>
         </div>
       </div>
       {/* Контейнер действий над тренировкой */}

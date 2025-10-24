@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, getMonthYear } from '../utils/date-helpers';
 import type { Workout } from '../types/database.types';
+
+const calendarCache = new Map<string, any[]>();
 
 const CalendarPage = () => {
   const { user } = useAuth();
@@ -12,32 +14,55 @@ const CalendarPage = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchWorkouts = async () => {
-      if (!user) return;
-      setLoading(true);
+  const fetchWorkouts = useCallback(async (fromCache = false) => {
+    if (!user) return;
 
-      const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-      const { data, error } = await supabase
-        .from('workouts')
-        // для календаря нужны только дата и id
-        .select('id, workout_date')
-        .eq('user_id', user.id)
-        .gte('workout_date', formatDate(firstDay))
-        .lte('workout_date', formatDate(lastDay));
-
-      if (error) {
-        console.error('Error fetching workouts:', error);
-      } else {
-        setWorkouts(data || []);
-      }
+    const cacheKey = `${user.id}:${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    
+    // Если восстанавливаемся из кеша — используем его
+    if (fromCache && calendarCache.has(cacheKey)) {
+      setWorkouts(calendarCache.get(cacheKey)!);
       setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('id, workout_date')
+      .eq('user_id', user.id)
+      .gte('workout_date', formatDate(firstDay))
+      .lte('workout_date', formatDate(lastDay));
+
+    if (error) {
+      console.error('Error fetching workouts:', error);
+    } else {
+      const workoutsData = data || [];
+      setWorkouts(workoutsData);
+      calendarCache.set(cacheKey, workoutsData);
+    }
+    setLoading(false);
+  }, [user, currentDate]);
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, [fetchWorkouts]);
+
+  // Обработка видимости страницы: восстанавливаем из кеша при возврате на вкладку
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchWorkouts(true);
+      }
     };
 
-    fetchWorkouts();
-  }, [user, currentDate]);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchWorkouts]);
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayIndex = getFirstDayOfMonth(currentDate);

@@ -6,8 +6,10 @@ import './styles/tailwind.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+    const scope = import.meta.env.BASE_URL || '/';
     navigator.serviceWorker
-      .register('/sw.js')
+      .register(swUrl, { scope })
       .catch((error) => {
         console.error('Service worker registration failed:', error);
       });
@@ -20,8 +22,4 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+root.render(<App />);
