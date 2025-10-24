@@ -2,25 +2,48 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { usePageState } from '../hooks/usePageState';
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, getMonthYear } from '../utils/date-helpers';
 import type { Workout } from '../types/database.types';
 
-// Улучшенный кеш с timestamp
 const calendarCache = new Map<string, {
   workouts: Workout[];
   timestamp: number;
 }>();
 
-// TTL кеша в миллисекундах (30 секунд)
 const CACHE_TTL = 30000;
 
 const CalendarPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasInitialData, setHasInitialData] = useState(false);
+  const [pageState, setPageState] = usePageState({
+    key: 'calendar-page',
+    initialState: {
+      currentDate: new Date(),
+      workouts: [] as Workout[],
+      loading: true,
+      hasInitialData: false,
+    },
+    ttl: 30 * 60 * 1000,
+  });
+
+  const { currentDate, workouts, loading, hasInitialData } = pageState;
+
+  const setCurrentDate = (date: Date) => {
+    setPageState(prev => ({ ...prev, currentDate: date }));
+  };
+
+  const setWorkouts = (workouts: Workout[]) => {
+    setPageState(prev => ({ ...prev, workouts }));
+  };
+
+  const setLoading = (loading: boolean) => {
+    setPageState(prev => ({ ...prev, loading }));
+  };
+
+  const setHasInitialData = (hasInitialData: boolean) => {
+    setPageState(prev => ({ ...prev, hasInitialData }));
+  };
 
   const fetchWorkouts = useCallback(async (fromCache = false, silent = false) => {
     if (!user) return;
@@ -30,12 +53,10 @@ const CalendarPage = () => {
 
     let isSilent = silent;
 
-    // Проверяем актуальность кеша
     if (calendarCache.has(cacheKey)) {
       const cached = calendarCache.get(cacheKey)!;
       const cacheAge = now - cached.timestamp;
 
-      // Если кеш свежий и мы в режиме fromCache, используем кеш без запроса
       if (fromCache && cacheAge < CACHE_TTL) {
         if (!hasInitialData) {
           setWorkouts(cached.workouts);
@@ -45,7 +66,6 @@ const CalendarPage = () => {
         return;
       }
 
-      // Если кеш есть, но устарел, показываем старые данные и обновляем в фоне
       if (cacheAge >= CACHE_TTL) {
         if (!hasInitialData) {
           setWorkouts(cached.workouts);
@@ -55,7 +75,6 @@ const CalendarPage = () => {
       }
     }
 
-    // Показываем индикатор загрузки только если это не silent режим
     if (!isSilent) {
       setLoading(true);
     }
@@ -86,11 +105,11 @@ const CalendarPage = () => {
   }, [user, currentDate, hasInitialData]);
 
   useEffect(() => {
-    setHasInitialData(false);
-    fetchWorkouts();
+    if (!hasInitialData) {
+      fetchWorkouts();
+    }
   }, [currentDate.getFullYear(), currentDate.getMonth(), user]);
 
-  // Обработка видимости страницы
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -113,9 +132,11 @@ const CalendarPage = () => {
   };
 
   const changeMonth = (offset: number) => {
-    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
+    setCurrentDate(newDate);
+    setHasInitialData(false);
   };
-  
+
   const workoutDates = new Set(workouts.map(w => w.workout_date));
 
   return (
@@ -149,7 +170,7 @@ const CalendarPage = () => {
               onClick={() => handleDayClick(day)}
               className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 lg:h-14 lg:w-14 rounded-full cursor-pointer mx-auto overflow-visible"
             >
-              <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full border ${isToday ? 'bg-blue-600 text-white border-transparent' : 'text-gray-100 border-transparent hover:border-white active:border-white'} transition-colors` }>
+              <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full border ${isToday ? 'bg-blue-600 text-white border-transparent' : 'text-gray-100 border-transparent hover:border-white active:border-white'} transition-colors`}>
                 {day}
               </span>
               {hasWorkout && (

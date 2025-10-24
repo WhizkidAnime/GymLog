@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { usePageState } from '../hooks/usePageState';
 import type { Workout, WorkoutTemplate, WorkoutExerciseWithSets } from '../types/database.types';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { formatDateForDisplay, formatDate } from '../utils/date-helpers';
@@ -15,6 +16,16 @@ const workoutCache = new Map<string, {
 
 // TTL кеша в миллисекундах (30 секунд)
 const CACHE_TTL = 30000;
+
+type WorkoutPageState = {
+  workout: Workout | null;
+  exercises: WorkoutExerciseWithSets[];
+  templates: WorkoutTemplate[];
+  loading: boolean;
+  isCreating: boolean;
+  isSelectTemplateOpen: boolean;
+  hasInitialData: boolean;
+};
 
 const normalizeDateParam = (value?: string): string | null => {
   if (!value) return null;
@@ -30,14 +41,39 @@ const WorkoutPage = () => {
   const navigate = useNavigate();
 
   const normalizedDate = useMemo(() => normalizeDateParam(date), [date]);
+  const pageStateKey = normalizedDate ? `workout-page:${normalizedDate}` : 'workout-page';
 
-  const [workout, setWorkout] = useState<Workout | null>(null);
-  const [exercises, setExercises] = useState<WorkoutExerciseWithSets[]>([]);
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isSelectTemplateOpen, setIsSelectTemplateOpen] = useState(false);
-  const [hasInitialData, setHasInitialData] = useState(false);
+  const [pageState, setPageState] = usePageState<WorkoutPageState>({
+    key: pageStateKey,
+    initialState: {
+      workout: null,
+      exercises: [],
+      templates: [],
+      loading: true,
+      isCreating: false,
+      isSelectTemplateOpen: false,
+      hasInitialData: false,
+    },
+    ttl: 30 * 60 * 1000,
+  });
+
+  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData } = pageState;
+
+  const setWorkout = (next: Workout | null) => setPageState(prev => ({ ...prev, workout: next }));
+  const setExercises = (
+    next: WorkoutExerciseWithSets[] | ((prev: WorkoutExerciseWithSets[]) => WorkoutExerciseWithSets[])
+  ) => setPageState(prev => ({
+    ...prev,
+    exercises: typeof next === 'function' ? (next as (prev: WorkoutExerciseWithSets[]) => WorkoutExerciseWithSets[])(prev.exercises) : next,
+  }));
+  const setTemplates = (next: WorkoutTemplate[] | ((prev: WorkoutTemplate[]) => WorkoutTemplate[])) => setPageState(prev => ({
+    ...prev,
+    templates: typeof next === 'function' ? (next as (prev: WorkoutTemplate[]) => WorkoutTemplate[])(prev.templates) : next,
+  }));
+  const setLoading = (next: boolean) => setPageState(prev => ({ ...prev, loading: next }));
+  const setIsCreating = (next: boolean) => setPageState(prev => ({ ...prev, isCreating: next }));
+  const setIsSelectTemplateOpen = (next: boolean) => setPageState(prev => ({ ...prev, isSelectTemplateOpen: next }));
+  const setHasInitialData = (next: boolean) => setPageState(prev => ({ ...prev, hasInitialData: next }));
 
   const fetchWorkoutData = useCallback(async (fromCache = false, silent = false) => {
     if (!user || !normalizedDate) {
@@ -139,20 +175,22 @@ const WorkoutPage = () => {
         const cached = localStorage.getItem(templatesCacheKey);
         if (cached) {
           const parsed = JSON.parse(cached) as { ts: number; data: WorkoutTemplate[] };
-          setTemplates(parsed.data || []);
+          if (parsed.data) {
+            setTemplates(parsed.data as WorkoutTemplate[]);
+          }
         }
       } catch {}
     }
 
     supabase
       .from('workout_templates')
-      .select('id, name')
+      .select('id, name, created_at, user_id')
       .eq('user_id', user.id)
       .then(({ data, error }) => {
         if (error) {
           console.error('Error fetching templates:', error.message);
         } else {
-          setTemplates(data || []);
+          setTemplates((data as WorkoutTemplate[]) || []);
           if (templatesCacheKey) {
             try { localStorage.setItem(templatesCacheKey, JSON.stringify({ ts: Date.now(), data })); } catch {}
           }
@@ -210,22 +248,20 @@ const WorkoutPage = () => {
   }, [normalizedDate]);
 
   const handleUpdateExercise = (updatedExercise: WorkoutExerciseWithSets) => {
-    setExercises(prevExercises =>
-      prevExercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex))
-    );
-    
-    // Обновляем кеш с новыми данными и текущим timestamp
-    if (user && normalizedDate && workout) {
-      const cacheKey = `${user.id}:${normalizedDate}`;
-      const updatedExercises = exercises.map(ex => 
-        ex.id === updatedExercise.id ? updatedExercise : ex
-      );
-      workoutCache.set(cacheKey, {
-        workout,
-        exercises: updatedExercises,
-        timestamp: Date.now()
-      });
-    }
+    setPageState(prev => {
+      const updatedExercises = prev.exercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex));
+
+      if (user && normalizedDate && prev.workout) {
+        const cacheKey = `${user.id}:${normalizedDate}`;
+        workoutCache.set(cacheKey, {
+          workout: prev.workout,
+          exercises: updatedExercises,
+          timestamp: Date.now(),
+        });
+      }
+
+      return { ...prev, exercises: updatedExercises };
+    });
   };
 
   const handleCreateWorkout = async (template: WorkoutTemplate) => {

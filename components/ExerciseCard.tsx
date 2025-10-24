@@ -162,8 +162,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
 
   return (
     <div className="glass card-dark p-4">
-      <div className="mb-3 grid grid-cols-[1fr_auto] gap-2 items-start">
-        <div className="pr-1">
+      <div className="mb-3 space-y-3">
+        <div>
           <textarea
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
@@ -172,14 +172,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
             className="w-full text-base sm:text-lg font-bold text-white whitespace-pre-wrap bg-white/10 hover:bg-white/15 focus:bg-white/10 border border-white/20 hover:border-white/30 focus:border-white/50 focus:ring-2 focus:ring-white/25 focus:outline-none rounded-xl px-4 py-3 min-h-[3rem] resize-none overflow-y-hidden leading-relaxed transition-colors"
           />
         </div>
-        <div className="justify-self-end">
+        <div className="flex justify-center">
           <RestTimer
             restSeconds={restSeconds}
             exerciseId={exercise.id}
             onAdjustRestSeconds={adjustRestSeconds}
           />
         </div>
-        <div className="col-span-2 flex items-center justify-between text-xs sm:text-sm mt-1" style={{color:'#a1a1aa'}}>
+        <div className="flex items-center justify-between text-xs sm:text-sm" style={{color:'#a1a1aa'}}>
           <div className="flex items-center gap-2">
             <span className="whitespace-nowrap">Подходы:</span>
             <div className="inline-flex items-center gap-1">
@@ -220,7 +220,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
       <div className="mt-4">
         <button
           onClick={handleToggleCompleteExercise}
-          className={`w-full px-4 py-2 text-sm font-semibold text-white rounded-md transition-colors ${allSetsDone ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+          className={`w-full px-4 py-2 text-sm font-semibold rounded-md transition-colors ${allSetsDone ? 'bg-red-500 hover:bg-red-600 text-black' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
         >
           {allSetsDone ? 'Отменить завершение' : 'Завершить упражнение'}
         </button>

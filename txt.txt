@@ -1,0 +1,282 @@
+Отлично! Я помогу вам создать единую систему стилей для кнопок в liquid glass стиле.
+
+## Анализ текущих стилей
+
+Сейчас у вас есть:
+
+### 1. **Bottom Nav** (стиль для навигации) — `public/index.css`:
+```css
+.glass-dock {
+  background: color-mix(in oklab, var(--glass-bg) 90%, transparent);
+  backdrop-filter: saturate(170%) blur(16px);
+  border: 1px solid color-mix(in oklab, var(--fg) 7%, transparent);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+```
+
+### 2. **Кнопка "Создать"** — `public/index.css`:
+```css
+.glass-button-create {
+  background: color-mix(in oklab, var(--glass-bg) 90%, transparent);
+  backdrop-filter: saturate(170%) blur(16px);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+```
+
+## Решение: Создать универсальные классы кнопок
+
+### Добавьте в `public/index.css` (в самый конец файла):
+
+```css
+/* ========================================
+   LIQUID GLASS BUTTON SYSTEM
+   ======================================== */
+
+/* Базовый glass-стиль для всех кнопок */
+.btn-glass {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  background: color-mix(in oklab, var(--glass-bg) 90%, transparent);
+  -webkit-backdrop-filter: saturate(170%) blur(16px);
+  backdrop-filter: saturate(170%) blur(16px);
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 
+    0 10px 24px rgba(0,0,0,0.35), 
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-glass:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 14px 28px rgba(0,0,0,0.4), 
+    inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.btn-glass:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 
+    0 6px 16px rgba(0,0,0,0.3), 
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.btn-glass:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Размеры кнопок */
+.btn-glass-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  border-radius: 10px;
+}
+
+.btn-glass-md {
+  padding: 10px 18px;
+  font-size: 1rem;
+  border-radius: 14px;
+}
+
+.btn-glass-lg {
+  padding: 14px 24px;
+  font-size: 1.125rem;
+  border-radius: 16px;
+}
+
+/* Цветовые варианты */
+
+/* Акцентная синяя кнопка */
+.btn-glass-primary {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #3b82f6 50%, transparent),
+    color-mix(in oklab, #2563eb 60%, transparent)
+  );
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #fff;
+}
+
+.btn-glass-primary:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #3b82f6 60%, transparent),
+    color-mix(in oklab, #2563eb 70%, transparent)
+  );
+}
+
+/* Зелёная кнопка (успех) */
+.btn-glass-success {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #10b981 50%, transparent),
+    color-mix(in oklab, #059669 60%, transparent)
+  );
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #fff;
+}
+
+.btn-glass-success:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #10b981 60%, transparent),
+    color-mix(in oklab, #059669 70%, transparent)
+  );
+}
+
+/* Красная кнопка (опасность) */
+.btn-glass-danger {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #ef4444 50%, transparent),
+    color-mix(in oklab, #dc2626 60%, transparent)
+  );
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fff;
+}
+
+.btn-glass-danger:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, #ef4444 60%, transparent),
+    color-mix(in oklab, #dc2626 70%, transparent)
+  );
+}
+
+/* Серая кнопка (вторичная) */
+.btn-glass-secondary {
+  background: color-mix(in oklab, var(--glass-bg) 85%, transparent);
+  border-color: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.9);
+}
+
+.btn-glass-secondary:hover {
+  background: color-mix(in oklab, var(--glass-bg) 95%, transparent);
+  border-color: rgba(255,255,255,0.18);
+}
+
+/* Полная ширина */
+.btn-glass-full {
+  width: 100%;
+}
+
+/* Кнопка-иконка (квадратная) */
+.btn-glass-icon {
+  padding: 10px;
+  aspect-ratio: 1;
+}
+
+/* Кнопка с бордером (outline стиль) */
+.btn-glass-outline {
+  background: transparent;
+  border: 2px solid rgba(255,255,255,0.2);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.btn-glass-outline:hover {
+  background: color-mix(in oklab, var(--glass-bg) 40%, transparent);
+  border-color: rgba(255,255,255,0.3);
+}
+```
+
+## Инструкция для ИИ по замене кнопок
+
+**Скопируйте это в промпт для ИИ:**
+
+---
+
+### Задача: Заменить все кнопки в проекте на liquid glass стиль
+
+**Файлы для изменения:**
+
+1. **pages/LoginPage.tsx** — кнопки входа/регистрации
+2. **pages/CalendarPage.tsx** — кнопки навигации по месяцам
+3. **pages/WorkoutPage.tsx** — кнопки "Изменить тренировку" и "Удалить"
+4. **pages/TemplateEditorPage.tsx** — кнопки "Сохранить", "Добавить упражнение"
+5. **pages/TemplatesPage.tsx** — кнопка "Удалить" у шаблонов
+6. **pages/ProfilePage.tsx** — кнопки "Выйти" и "Удалить аккаунт"
+7. **components/ExerciseCard.tsx** — кнопка "Завершить упражнение"
+
+**Правила замены:**
+
+1. **НЕ ТРОГАТЬ** атрибуты `onClick`, `disabled`, `type` — только классы!
+2. Убрать из `className` старые Tailwind-классы цветов и стилей:
+   - Убрать: `bg-blue-600`, `hover:bg-blue-700`, `bg-red-600`, `bg-green-600`, `rounded-md`, `shadow`, `border`, `px-*`, `py-*`
+   - Оставить: классы размеров типа `w-full`, `flex`, `items-center`
+
+3. **Добавить** новые классы:
+   - Базовый: `btn-glass`
+   - Размер: `btn-glass-sm` / `btn-glass-md` / `btn-glass-lg`
+   - Цвет: `btn-glass-primary` / `btn-glass-success` / `btn-glass-danger` / `btn-glass-secondary`
+   - Полная ширина: `btn-glass-full` (если была `w-full`)
+
+**Примеры замены:**
+
+```jsx
+// ❌ Было:
+<button className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">
+  Войти
+</button>
+
+// ✅ Стало:
+<button className="btn-glass btn-glass-md btn-glass-primary btn-glass-full">
+  Войти
+</button>
+
+// ❌ Было:
+<button className="px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+  Удалить
+</button>
+
+// ✅ Стало:
+<button className="btn-glass btn-glass-sm btn-glass-danger">
+  Удалить
+</button>
+
+// ❌ Было:
+<button className="p-2 rounded-full border border-transparent text-white hover:border-white">
+  &lt;
+</button>
+
+// ✅ Стало:
+<button className="btn-glass btn-glass-icon btn-glass-outline">
+  &lt;
+</button>
+```
+
+**Соответствие цветов:**
+
+- `bg-blue-600` → `btn-glass-primary`
+- `bg-green-600` → `btn-glass-success`
+- `bg-red-600` → `btn-glass-danger`
+- `bg-zinc-500`, `bg-gray-300` → `btn-glass-secondary`
+- Белая кнопка с бордером → `btn-glass-outline`
+
+**Соответствие размеров:**
+
+- `text-sm`, `px-2 py-1`, `px-3 py-2` → `btn-glass-sm`
+- `px-4 py-2` → `btn-glass-md` (по умолчанию)
+- `px-6 py-3`, крупные → `btn-glass-lg`
+
+**ВАЖНО:**
+- Сохранить все иконки SVG внутри кнопок
+- Сохранить все `disabled` атрибуты
+- Сохранить все обработчики событий (`onClick`, `onSubmit`)
+- Проверить, что в кнопке "Создать" в TemplatesPage остался класс `glass-button-create` (или заменить на новые классы)
+
+---
+
+
+**Все классы уже в `public/index.css`, ИИ нужно только заменить классы в компонентах!**

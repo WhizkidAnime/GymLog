@@ -15,6 +15,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
   const [endAt, setEndAt] = useState<number | null>(null);
   // FIX: Changed type from NodeJS.Timeout to number for browser compatibility
   const intervalRef = useRef<number | null>(null);
+  const prevRestSecondsRef = useRef(restSeconds);
 
   useEffect(() => {
     if (isActive && endAt) {
@@ -66,9 +67,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
     }
   }, [storageKey, restSeconds]);
 
-  // Сброс при изменении длительности отдыха, если таймер не активен
+  // Обновляем базовое время только при изменении restSeconds извне
   useEffect(() => {
-    if (!isActive) setTime(restSeconds);
+    if (!isActive && restSeconds !== prevRestSecondsRef.current) {
+      setTime(restSeconds);
+    }
+    prevRestSecondsRef.current = restSeconds;
   }, [restSeconds, isActive]);
 
   const persist = (next: { endAt: number | null; isActive: boolean }) => {
@@ -135,25 +139,25 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
 
   return (
     <div className="text-center">
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-3">
         <button
           onClick={() => adjustTime(-30)}
           disabled={time <= 0 && !isActive}
-          className="w-7 h-7 flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10 disabled:opacity-50"
+          className="w-10 h-10 text-lg flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10 disabled:opacity-50"
         >-</button>
-        <div className={`text-2xl font-mono min-w-[4ch] text-center ${isActive ? 'text-blue-500' : ''}`}>
+        <div className={`text-4xl sm:text-5xl font-mono min-w-[5ch] text-center ${isActive ? 'text-blue-500' : ''}`}>
           {formatTime(time)}
         </div>
         <button
           onClick={() => adjustTime(30)}
-          className="w-7 h-7 flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10"
+          className="w-10 h-10 text-lg flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10"
         >+</button>
       </div>
       <div className="mt-1 flex items-center justify-center gap-2">
-        <button onClick={toggle} className="text-xs px-2 py-1 rounded bg-blue-500 text-white">
+        <button onClick={toggle} className="text-xs px-2 py-1 rounded bg-blue-500 text-black">
           {isActive ? 'Пауза' : 'Старт'}
         </button>
-        <button onClick={reset} className="text-xs px-2 py-1 rounded bg-gray-300">
+        <button onClick={reset} className="text-xs px-2 py-1 rounded bg-red-500 text-black hover:bg-red-600">
           Сброс
         </button>
       </div>

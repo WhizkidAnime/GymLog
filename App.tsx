@@ -11,10 +11,14 @@ import TemplatesPage from './pages/TemplatesPage';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import ProfilePage from './pages/ProfilePage';
 
+// const DefaultRedirect = () => {
+//     const lastPath = typeof window !== 'undefined' ? window.localStorage.getItem('lastPath') : null;
+//     const target = lastPath && lastPath.startsWith('/') ? lastPath : '/calendar';
+//     return <Navigate to={target} replace />;
+// };
+
 const DefaultRedirect = () => {
-    const lastPath = typeof window !== 'undefined' ? window.localStorage.getItem('lastPath') : null;
-    const target = lastPath && lastPath.startsWith('/') ? lastPath : '/calendar';
-    return <Navigate to={target} replace />;
+    return <Navigate to="/calendar" replace />;
 };
 
 const AppRoutes = () => {
