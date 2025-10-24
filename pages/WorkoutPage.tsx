@@ -6,7 +6,15 @@ import type { Workout, WorkoutTemplate, WorkoutExerciseWithSets } from '../types
 import { ExerciseCard } from '../components/ExerciseCard';
 import { formatDateForDisplay, formatDate } from '../utils/date-helpers';
 
-const workoutCache = new Map<string, { workout: Workout | null; exercises: WorkoutExerciseWithSets[] }>();
+// Улучшенный кеш с timestamp для отслеживания актуальности
+const workoutCache = new Map<string, { 
+  workout: Workout | null; 
+  exercises: WorkoutExerciseWithSets[];
+  timestamp: number;
+}>();
+
+// TTL кеша в миллисекундах (30 секунд)
+const CACHE_TTL = 30000;
 
 const normalizeDateParam = (value?: string): string | null => {
   if (!value) return null;
@@ -31,7 +39,7 @@ const WorkoutPage = () => {
   const [isSelectTemplateOpen, setIsSelectTemplateOpen] = useState(false);
   const [hasInitialData, setHasInitialData] = useState(false);
 
-  const fetchWorkoutData = useCallback(async (fromCache = false) => {
+  const fetchWorkoutData = useCallback(async (fromCache = false, silent = false) => {
     if (!user || !normalizedDate) {
       setWorkout(null);
       setExercises([]);
@@ -41,18 +49,41 @@ const WorkoutPage = () => {
     }
 
     const cacheKey = `${user.id}:${normalizedDate}`;
+    const now = Date.now();
     
-    // Если возвращаемся на вкладку и есть кеш — восстанавливаем из памяти
-    if (fromCache && workoutCache.has(cacheKey)) {
+    // Проверяем актуальность кеша
+    if (workoutCache.has(cacheKey)) {
       const cached = workoutCache.get(cacheKey)!;
-      setWorkout(cached.workout);
-      setExercises(cached.exercises);
-      setLoading(false);
-      setHasInitialData(true);
-      return;
+      const cacheAge = now - cached.timestamp;
+      
+      // Если кеш свежий и мы в режиме fromCache, используем кеш без запроса
+      if (fromCache && cacheAge < CACHE_TTL) {
+        // Данные актуальны, просто восстанавливаем без запроса
+        if (!hasInitialData) {
+          setWorkout(cached.workout);
+          setExercises(cached.exercises);
+          setLoading(false);
+          setHasInitialData(true);
+        }
+        return;
+      }
+      
+      // Если кеш есть, но устарел, показываем старые данные и обновляем в фоне
+      if (cacheAge >= CACHE_TTL) {
+        if (!hasInitialData) {
+          setWorkout(cached.workout);
+          setExercises(cached.exercises);
+          setHasInitialData(true);
+        }
+        // Продолжаем с silent=true для фонового обновления
+        silent = true;
+      }
     }
 
-    setLoading(true);
+    // Показываем индикатор загрузки только если это не silent режим
+    if (!silent) {
+      setLoading(true);
+    }
 
     const { data: workoutsData, error: workoutError } = await supabase
       .from('workouts')
@@ -84,13 +115,21 @@ const WorkoutPage = () => {
           }
         });
         setExercises(exercisesWithSets);
-        // Кешируем в памяти
-        workoutCache.set(cacheKey, { workout: workoutData, exercises: exercisesWithSets });
+        // Кешируем в памяти с текущим timestamp
+        workoutCache.set(cacheKey, { 
+          workout: workoutData, 
+          exercises: exercisesWithSets,
+          timestamp: now 
+        });
       }
     } else {
       setWorkout(null);
       setExercises([]);
-      workoutCache.set(cacheKey, { workout: null, exercises: [] });
+      workoutCache.set(cacheKey, { 
+        workout: null, 
+        exercises: [],
+        timestamp: now 
+      });
     }
 
     // Загружаем список шаблонов фоном
@@ -122,7 +161,7 @@ const WorkoutPage = () => {
     
     setLoading(false);
     setHasInitialData(true);
-  }, [user, normalizedDate]);
+  }, [user, normalizedDate, hasInitialData]);
 
   useEffect(() => {
     fetchWorkoutData();
@@ -132,7 +171,9 @@ const WorkoutPage = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Страница стала видимой — восстанавливаем из кеша если возможно
+        // Страница стала видимой — проверяем кеш и обновляем в фоне если нужно
+        // fromCache=true означает "используй кеш если он свежий"
+        // silent режим активируется автоматически если кеш устарел
         fetchWorkoutData(true);
       }
     };
@@ -153,7 +194,6 @@ const WorkoutPage = () => {
     if (saved) {
       const y = parseInt(saved, 10);
       if (!Number.isNaN(y)) {
-        // Восстановим после первого рендера данных
         const id = window.setTimeout(() => window.scrollTo({ top: y, behavior: 'auto' }), 0);
         return () => window.clearTimeout(id);
       }
@@ -173,6 +213,19 @@ const WorkoutPage = () => {
     setExercises(prevExercises =>
       prevExercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex))
     );
+    
+    // Обновляем кеш с новыми данными и текущим timestamp
+    if (user && normalizedDate && workout) {
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      const updatedExercises = exercises.map(ex => 
+        ex.id === updatedExercise.id ? updatedExercise : ex
+      );
+      workoutCache.set(cacheKey, {
+        workout,
+        exercises: updatedExercises,
+        timestamp: Date.now()
+      });
+    }
   };
 
   const handleCreateWorkout = async (template: WorkoutTemplate) => {
@@ -217,6 +270,11 @@ const WorkoutPage = () => {
       );
       
       await supabase.from('workout_sets').insert(newSets);
+      
+      // Инвалидируем кеш, чтобы загрузить свежие данные
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      workoutCache.delete(cacheKey);
+      
       await fetchWorkoutData();
 
     } catch (error: any) {
@@ -241,6 +299,11 @@ const WorkoutPage = () => {
         console.error('Error deleting workout:', error);
         alert('Не удалось удалить тренировку.');
       } else {
+        // Инвалидируем кеш
+        if (user && normalizedDate) {
+          const cacheKey = `${user.id}:${normalizedDate}`;
+          workoutCache.delete(cacheKey);
+        }
         alert('Тренировка удалена.');
         navigate('/calendar');
       }
@@ -256,14 +319,12 @@ const WorkoutPage = () => {
     try {
       setIsCreating(true);
 
-      // Загрузим упражнения выбранного шаблона
       const { data: templateExercises, error: tErr } = await supabase
         .from('template_exercises')
         .select('*')
         .eq('template_id', template.id);
       if (tErr) throw tErr;
 
-      // Найдём текущие упражнения тренировки
       const { data: existingExercises, error: exErr } = await supabase
         .from('workout_exercises')
         .select('id')
@@ -273,14 +334,12 @@ const WorkoutPage = () => {
       const existingExerciseIds = (existingExercises || []).map(e => e.id);
 
       if (existingExerciseIds.length > 0) {
-        // Сначала удаляем подходы
         const { error: setsDelErr } = await supabase
           .from('workout_sets')
           .delete()
           .in('workout_exercise_id', existingExerciseIds);
         if (setsDelErr) throw setsDelErr;
 
-        // Затем сами упражнения
         const { error: exDelErr } = await supabase
           .from('workout_exercises')
           .delete()
@@ -288,14 +347,12 @@ const WorkoutPage = () => {
         if (exDelErr) throw exDelErr;
       }
 
-      // Обновим саму тренировку (имя/ссылка на шаблон)
       const { error: updErr } = await supabase
         .from('workouts')
         .update({ name: template.name, template_id: template.id })
         .eq('id', workout.id);
       if (updErr) throw updErr;
 
-      // Вставим новые упражнения
       const newWorkoutExercises = (templateExercises || []).map(ex => ({
         workout_id: workout.id,
         name: ex.name,
@@ -321,6 +378,10 @@ const WorkoutPage = () => {
         const { error: setsInsErr } = await supabase.from('workout_sets').insert(newSets);
         if (setsInsErr) throw setsInsErr;
       }
+
+      // Инвалидируем кеш
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      workoutCache.delete(cacheKey);
 
       setIsSelectTemplateOpen(false);
       await fetchWorkoutData();
@@ -397,11 +458,13 @@ const WorkoutPage = () => {
 
   return (
     <div className="relative p-4 space-y-4">
-      {loading && (
+      {/* Показываем индикатор только при начальной загрузке или явной перезагрузке */}
+      {loading && !hasInitialData && (
         <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1 text-sm text-white shadow-lg">
-          Обновление данных...
+          Загрузка данных...
         </div>
       )}
+      
       <div className="glass card-dark p-4 flex items-center gap-4">
         <BackButton className="shrink-0" />
         <div className="flex-1 text-center">
@@ -409,7 +472,7 @@ const WorkoutPage = () => {
           <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {formatDateForDisplay(normalizedDate)}</p>
         </div>
       </div>
-      {/* Контейнер действий над тренировкой */}
+      
       <div className="glass card-dark p-3 rounded-md flex items-center justify-center gap-3">
         <button
           type="button"
@@ -436,8 +499,6 @@ const WorkoutPage = () => {
           />
         ))}
       </div>
-
-      {/* Убрана нижняя панель с кнопками, чтобы не перекрывать контент */}
 
       {isSelectTemplateOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">

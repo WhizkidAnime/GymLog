@@ -5,7 +5,14 @@ import { useAuth } from '../hooks/useAuth';
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, getMonthYear } from '../utils/date-helpers';
 import type { Workout } from '../types/database.types';
 
-const calendarCache = new Map<string, any[]>();
+// Улучшенный кеш с timestamp
+const calendarCache = new Map<string, {
+  workouts: Workout[];
+  timestamp: number;
+}>();
+
+// TTL кеша в миллисекундах (30 секунд)
+const CACHE_TTL = 30000;
 
 const CalendarPage = () => {
   const { user } = useAuth();
@@ -13,20 +20,45 @@ const CalendarPage = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasInitialData, setHasInitialData] = useState(false);
 
-  const fetchWorkouts = useCallback(async (fromCache = false) => {
+  const fetchWorkouts = useCallback(async (fromCache = false, silent = false) => {
     if (!user) return;
 
     const cacheKey = `${user.id}:${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-    
-    // Если восстанавливаемся из кеша — используем его
-    if (fromCache && calendarCache.has(cacheKey)) {
-      setWorkouts(calendarCache.get(cacheKey)!);
-      setLoading(false);
-      return;
+    const now = Date.now();
+
+    let isSilent = silent;
+
+    // Проверяем актуальность кеша
+    if (calendarCache.has(cacheKey)) {
+      const cached = calendarCache.get(cacheKey)!;
+      const cacheAge = now - cached.timestamp;
+
+      // Если кеш свежий и мы в режиме fromCache, используем кеш без запроса
+      if (fromCache && cacheAge < CACHE_TTL) {
+        if (!hasInitialData) {
+          setWorkouts(cached.workouts);
+          setLoading(false);
+          setHasInitialData(true);
+        }
+        return;
+      }
+
+      // Если кеш есть, но устарел, показываем старые данные и обновляем в фоне
+      if (cacheAge >= CACHE_TTL) {
+        if (!hasInitialData) {
+          setWorkouts(cached.workouts);
+          setHasInitialData(true);
+        }
+        isSilent = true;
+      }
     }
 
-    setLoading(true);
+    // Показываем индикатор загрузки только если это не silent режим
+    if (!isSilent) {
+      setLoading(true);
+    }
 
     const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -41,18 +73,24 @@ const CalendarPage = () => {
     if (error) {
       console.error('Error fetching workouts:', error);
     } else {
-      const workoutsData = data || [];
+      const workoutsData = (data as Workout[]) || [];
       setWorkouts(workoutsData);
-      calendarCache.set(cacheKey, workoutsData);
+      calendarCache.set(cacheKey, {
+        workouts: workoutsData,
+        timestamp: now,
+      });
     }
+
     setLoading(false);
-  }, [user, currentDate]);
+    setHasInitialData(true);
+  }, [user, currentDate, hasInitialData]);
 
   useEffect(() => {
+    setHasInitialData(false);
     fetchWorkouts();
-  }, [fetchWorkouts]);
+  }, [currentDate.getFullYear(), currentDate.getMonth(), user]);
 
-  // Обработка видимости страницы: восстанавливаем из кеша при возврате на вкладку
+  // Обработка видимости страницы
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -82,6 +120,12 @@ const CalendarPage = () => {
 
   return (
     <div className="px-4 pt-4 pb-6 w-full h-[calc(100svh-4rem)] max-w-5xl mx-auto flex flex-col items-center">
+      {loading && !hasInitialData && (
+        <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1 text-sm text-white shadow-lg">
+          Загрузка календаря...
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6 glass p-2 rounded-xl w-full max-w-xl">
         <button onClick={() => changeMonth(-1)} className="p-2 rounded-full border border-transparent text-white hover:border-white active:border-white transition-colors">&lt;</button>
         <h1 className="text-xl font-bold text-center capitalize">{getMonthYear(currentDate)}</h1>
