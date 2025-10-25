@@ -9,7 +9,6 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -17,6 +16,12 @@ self.addEventListener('install', event => {
         return cache.addAll(urlsToCache);
       })
   );
+});
+
+self.addEventListener('message', event => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', event => {

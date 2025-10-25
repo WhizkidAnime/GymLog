@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 // Глобальное хранилище состояний страниц
 const pageStates = new Map<string, any>();
@@ -37,20 +37,24 @@ export function usePageState<T>({
     return initialState;
   });
 
+  const saveState = useCallback(() => {
+    pageStates.set(key, {
+      data: state,
+      timestamp: Date.now(),
+    });
+  }, [key, state]);
+
   // Сохраняем состояние при размонтировании
   useEffect(() => {
     isMounted.current = true;
     
     return () => {
       isMounted.current = false;
-      pageStates.set(key, {
-        data: state,
-        timestamp: Date.now(),
-      });
+      saveState();
     };
-  }, [key, state]);
+  }, [saveState]);
 
-  return [state, setState] as const;
+  return [state, setState, saveState] as const;
 }
 
 // Функция для очистки всех состояний (при выходе)

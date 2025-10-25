@@ -12,9 +12,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: window.localStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    storageKey: 'sb-auth-whizkidanime',
   },
 });

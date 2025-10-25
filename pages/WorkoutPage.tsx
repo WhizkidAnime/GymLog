@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -74,6 +74,10 @@ const WorkoutPage = () => {
   const setIsCreating = (next: boolean) => setPageState(prev => ({ ...prev, isCreating: next }));
   const setIsSelectTemplateOpen = (next: boolean) => setPageState(prev => ({ ...prev, isSelectTemplateOpen: next }));
   const setHasInitialData = (next: boolean) => setPageState(prev => ({ ...prev, hasInitialData: next }));
+
+  const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
+  const isRestoringScroll = useRef(false);
+  const lastScrollPosition = useRef(0);
 
   const fetchWorkoutData = useCallback(async (fromCache = false, silent = false) => {
     if (!user || !normalizedDate) {
@@ -227,25 +231,71 @@ const WorkoutPage = () => {
   }, [normalizedDate]);
 
   useEffect(() => {
-    const key = `scroll:workout:${normalizedDate ?? ''}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const y = parseInt(saved, 10);
-      if (!Number.isNaN(y)) {
-        const id = window.setTimeout(() => window.scrollTo({ top: y, behavior: 'auto' }), 0);
-        return () => window.clearTimeout(id);
+    if (!normalizedDate || exercises.length === 0) return;
+
+    const restoreScroll = () => {
+      try {
+        const saved = localStorage.getItem(scrollKey);
+        if (saved) {
+          const y = parseInt(saved, 10);
+          if (!Number.isNaN(y)) {
+            isRestoringScroll.current = true;
+
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                window.scrollTo({ top: y, behavior: 'auto' });
+                lastScrollPosition.current = y;
+                setTimeout(() => {
+                  isRestoringScroll.current = false;
+                }, 100);
+              });
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Error restoring scroll:', e);
       }
-    }
-  }, [normalizedDate, exercises.length]);
+    };
+
+    restoreScroll();
+  }, [normalizedDate, exercises.length, scrollKey]);
 
   useEffect(() => {
-    const key = `scroll:workout:${normalizedDate ?? ''}`;
-    const onScroll = () => {
-      try { localStorage.setItem(key, String(window.scrollY)); } catch {}
+    if (!normalizedDate) return;
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      lastScrollPosition.current = window.scrollY;
+
+      if (!ticking && !isRestoringScroll.current) {
+        window.requestAnimationFrame(() => {
+          try {
+            localStorage.setItem(scrollKey, String(lastScrollPosition.current));
+          } catch (e) {
+            // Ignore quota errors
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [normalizedDate]);
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [normalizedDate, scrollKey]);
+
+  useEffect(() => {
+    return () => {
+      if (normalizedDate && lastScrollPosition.current > 0) {
+        try {
+          localStorage.setItem(scrollKey, String(lastScrollPosition.current));
+        } catch (e) {
+          // Ignore
+        }
+      }
+    };
+  }, [normalizedDate, scrollKey]);
 
   const handleUpdateExercise = (updatedExercise: WorkoutExerciseWithSets) => {
     setPageState(prev => {
