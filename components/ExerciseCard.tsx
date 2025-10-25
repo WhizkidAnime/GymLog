@@ -196,7 +196,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
               >+</button>
             </div>
           </div>
-          <div className="ml-3 flex-1 text-right whitespace-nowrap">Повторы: {exercise.reps}</div>
+          {exercise.reps?.trim() && (
+            <div className="ml-3 flex-1 text-right whitespace-nowrap">Повторы: {exercise.reps}</div>
+          )}
         </div>
       </div>
       

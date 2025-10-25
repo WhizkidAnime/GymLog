@@ -25,6 +25,9 @@ type WorkoutPageState = {
   isCreating: boolean;
   isSelectTemplateOpen: boolean;
   hasInitialData: boolean;
+  isAddingExercise: boolean;
+  workoutName: string;
+  isSavingWorkoutName: boolean;
 };
 
 const normalizeDateParam = (value?: string): string | null => {
@@ -53,13 +56,21 @@ const WorkoutPage = () => {
       isCreating: false,
       isSelectTemplateOpen: false,
       hasInitialData: false,
+      isAddingExercise: false,
+      workoutName: '',
+      isSavingWorkoutName: false,
     },
     ttl: 30 * 60 * 1000,
   });
 
-  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData } = pageState;
+  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName } = pageState;
 
-  const setWorkout = (next: Workout | null) => setPageState(prev => ({ ...prev, workout: next }));
+  const setWorkout = (next: Workout | null) => setPageState(prev => ({
+    ...prev,
+    workout: next,
+    workoutName: next?.name ?? '',
+    isSavingWorkoutName: false,
+  }));
   const setExercises = (
     next: WorkoutExerciseWithSets[] | ((prev: WorkoutExerciseWithSets[]) => WorkoutExerciseWithSets[])
   ) => setPageState(prev => ({
@@ -74,6 +85,9 @@ const WorkoutPage = () => {
   const setIsCreating = (next: boolean) => setPageState(prev => ({ ...prev, isCreating: next }));
   const setIsSelectTemplateOpen = (next: boolean) => setPageState(prev => ({ ...prev, isSelectTemplateOpen: next }));
   const setHasInitialData = (next: boolean) => setPageState(prev => ({ ...prev, hasInitialData: next }));
+  const setIsAddingExercise = (next: boolean) => setPageState(prev => ({ ...prev, isAddingExercise: next }));
+  const setWorkoutName = (next: string) => setPageState(prev => ({ ...prev, workoutName: next }));
+  const setIsSavingWorkoutName = (next: boolean) => setPageState(prev => ({ ...prev, isSavingWorkoutName: next }));
 
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
   const isRestoringScroll = useRef(false);
@@ -314,6 +328,133 @@ const WorkoutPage = () => {
     });
   };
 
+  const handleAddExercise = async () => {
+    if (!user || !normalizedDate || !workout || isAddingExercise) return;
+    setIsAddingExercise(true);
+
+    try {
+      const nextPosition = exercises.length > 0
+        ? Math.max(...exercises.map(ex => (typeof ex.position === 'number' ? ex.position : 0))) + 1
+        : 1;
+
+      const { data: insertedExercises, error: insertExerciseError } = await supabase
+        .from('workout_exercises')
+        .insert({
+          workout_id: workout.id,
+          name: '',
+          sets: 1,
+          reps: '',
+          rest_seconds: 150,
+          position: nextPosition,
+        })
+        .select('id, name, sets, reps, rest_seconds, position, workout_id');
+
+      if (insertExerciseError) {
+        throw insertExerciseError;
+      }
+
+      const insertedExercise = insertedExercises?.[0];
+      if (!insertedExercise) {
+        throw new Error('Не удалось создать упражнение');
+      }
+
+      const { data: insertedSets, error: insertSetError } = await supabase
+        .from('workout_sets')
+        .insert({
+          workout_exercise_id: insertedExercise.id,
+          set_index: 1,
+          weight: null,
+          reps: null,
+          is_done: false,
+          updated_at: new Date().toISOString(),
+        })
+        .select('id, workout_exercise_id, set_index, weight, reps, is_done, updated_at');
+
+      if (insertSetError) {
+        throw insertSetError;
+      }
+
+      const insertedSet = insertedSets?.[0];
+      if (!insertedSet) {
+        throw new Error('Не удалось создать подход');
+      }
+
+      const newExerciseWithSets: WorkoutExerciseWithSets = {
+        ...insertedExercise,
+        workout_sets: [insertedSet],
+      };
+
+      setPageState(prev => {
+        if (!prev.workout) {
+          return prev;
+        }
+
+        const updatedExercises = [...prev.exercises, newExerciseWithSets].sort((a, b) => a.position - b.position);
+
+        if (user && normalizedDate) {
+          const cacheKey = `${user.id}:${normalizedDate}`;
+          const cached = workoutCache.get(cacheKey);
+          if (cached) {
+            workoutCache.set(cacheKey, {
+              workout: cached.workout,
+              exercises: updatedExercises,
+              timestamp: Date.now(),
+            });
+          }
+        }
+
+        return { ...prev, exercises: updatedExercises };
+      });
+    } catch (error: any) {
+      console.error('Failed to add exercise:', error);
+      alert('Не удалось добавить упражнение. Попробуйте снова.');
+    } finally {
+      setIsAddingExercise(false);
+    }
+  };
+
+  const handleCreateCustomWorkout = async () => {
+    if (!user || !normalizedDate) return;
+    setIsCreating(true);
+
+    try {
+      const { data: newWorkout, error } = await supabase
+        .from('workouts')
+        .insert({
+          user_id: user.id,
+          workout_date: normalizedDate,
+          name: 'Новая тренировка',
+          template_id: null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!newWorkout) {
+        throw new Error('Не удалось создать тренировку');
+      }
+
+      setWorkout(newWorkout as Workout);
+      setExercises([]);
+      setWorkoutName((newWorkout as Workout).name);
+
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      workoutCache.set(cacheKey, {
+        workout: newWorkout as Workout,
+        exercises: [],
+        timestamp: Date.now(),
+      });
+    } catch (error: any) {
+      console.error('Failed to create custom workout:', error);
+      alert('Не удалось создать тренировку. Попробуйте снова.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const handleCreateWorkout = async (template: WorkoutTemplate) => {
     if (!user || !normalizedDate) return;
     setIsCreating(true);
@@ -368,6 +509,60 @@ const WorkoutPage = () => {
       alert(`Не удалось создать тренировку: ${error.message}`);
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleSaveWorkoutName = async () => {
+    if (!user || !normalizedDate || !workout) return;
+    const trimmedName = workoutName.trim();
+
+    if (trimmedName.length === 0) {
+      setWorkoutName(workout.name);
+      return;
+    }
+
+    if (trimmedName === workout.name) {
+      return;
+    }
+
+    setIsSavingWorkoutName(true);
+
+    try {
+      const { data: updatedWorkout, error } = await supabase
+        .from('workouts')
+        .update({ name: trimmedName })
+        .eq('id', workout.id)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!updatedWorkout) {
+        throw new Error('Не удалось обновить название тренировки');
+      }
+
+      setWorkout(updatedWorkout as Workout);
+
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      workoutCache.set(cacheKey, {
+        workout: updatedWorkout as Workout,
+        exercises,
+        timestamp: Date.now(),
+      });
+    } catch (error: any) {
+      console.error('Failed to update workout name:', error);
+      alert('Не удалось сохранить название. Попробуйте снова.');
+      setWorkoutName(workout.name);
+    } finally {
+      setIsSavingWorkoutName(false);
+    }
+  };
+
+  const handleWorkoutNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.currentTarget.blur();
     }
   };
 
@@ -537,13 +732,23 @@ const WorkoutPage = () => {
                 </Link>
             </div>
           )}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={handleCreateCustomWorkout}
+              disabled={isCreating}
+              className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {isCreating ? 'Создание...' : 'Создать свой день'}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative px-4 space-y-4 pt-safe">
+    <div className="relative px-4 space-y-4 pt-safe pb-24">
       {/* Показываем индикатор только при начальной загрузке или явной перезагрузке */}
       {loading && !hasInitialData && (
         <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1 text-sm text-white shadow-lg">
@@ -554,7 +759,16 @@ const WorkoutPage = () => {
       <div className="glass card-dark p-4 flex items-center gap-4">
         <BackButton className="shrink-0" />
         <div className="flex-1 text-center">
-          <h1 className="text-3xl font-bold capitalize">{workout.name}</h1>
+          <input
+            type="text"
+            value={workoutName}
+            onChange={event => setWorkoutName(event.target.value)}
+            onBlur={handleSaveWorkoutName}
+            onKeyDown={handleWorkoutNameKeyDown}
+            disabled={isSavingWorkoutName}
+            className="w-full bg-transparent text-3xl font-bold text-center text-white placeholder:text-gray-500 focus:outline-none disabled:opacity-70"
+            placeholder="Название тренировки"
+          />
           <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {formatDateForDisplay(normalizedDate)}</p>
         </div>
       </div>
@@ -584,6 +798,17 @@ const WorkoutPage = () => {
             onUpdateExercise={handleUpdateExercise}
           />
         ))}
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={handleAddExercise}
+          disabled={isAddingExercise}
+          className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {isAddingExercise ? 'Добавление...' : 'Добавить упражнение'}
+        </button>
       </div>
 
       {isSelectTemplateOpen && (
