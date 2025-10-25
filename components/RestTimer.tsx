@@ -215,25 +215,31 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
 
   return (
     <div className="text-center">
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-4">
         <button
           onClick={() => adjustTime(-30)}
           disabled={time <= 0 && !isActive}
-          className="w-7 h-7 flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10 disabled:opacity-50"
+          className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 text-white text-lg font-medium hover:bg-white/10 disabled:opacity-50"
         >-</button>
-        <div className={`text-2xl font-mono min-w-[4ch] text-center ${isActive ? 'text-blue-500' : ''}`}>
+        <div className={`text-6xl font-mono font-semibold leading-none min-w-[4ch] text-center ${isActive ? 'text-blue-500' : ''}`}>
           {formatTime(time)}
         </div>
         <button
           onClick={() => adjustTime(30)}
-          className="w-7 h-7 flex items-center justify-center rounded border border-white/30 text-white hover:bg-white/10"
+          className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 text-white text-lg font-medium hover:bg-white/10"
         >+</button>
       </div>
-      <div className="mt-1 flex items-center justify-center gap-2">
-        <button onClick={toggle} className="text-xs px-2 py-1 rounded bg-blue-500 text-white">
-          {isActive ? 'Пауза' : 'Старт'}
+      <div className="mt-4 flex items-center justify-center gap-3">
+        <button
+          onClick={toggle}
+          className={`text-2xl font-semibold px-6 py-3 rounded-xl transition-colors ${isActive ? 'bg-red-400 text-black' : 'bg-green-400 text-black'}`}
+        >
+          {isActive ? 'Стоп' : 'Старт'}
         </button>
-        <button onClick={reset} className="text-xs px-2 py-1 rounded bg-gray-300">
+        <button
+          onClick={reset}
+          className="text-2xl font-semibold px-6 py-3 rounded-xl bg-gray-200 text-black"
+        >
           Сброс
         </button>
       </div>
