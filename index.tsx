@@ -8,21 +8,34 @@ import { waitAuthReady } from './lib/waitAuthReady';
 if ('serviceWorker' in navigator) {
   const registerServiceWorker = () => {
     navigator.serviceWorker
-      .register('./sw.js', { scope: './' })
+      .register('/sw.js', { scope: '/', updateViaCache: 'none' })
       .then((registration) => {
+        let refreshing = false;
+
+        const reloadOnce = () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        };
+
+        const forceActivation = () => {
+          registration.waiting?.postMessage('SKIP_WAITING');
+        };
+
+        navigator.serviceWorker.addEventListener('controllerchange', reloadOnce);
+
+        if (registration.waiting) {
+          forceActivation();
+          return;
+        }
+
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (!newWorker) return;
           newWorker.addEventListener('statechange', () => {
-            if (newWorker.state !== 'installed' || !navigator.serviceWorker.controller) return;
-            const acceptUpdate = window.confirm('Вышло обновление. Обновить сейчас?');
-            if (!acceptUpdate) return;
-            registration.waiting?.postMessage('SKIP_WAITING');
-            const onControllerChange = () => {
-              navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
-              window.location.reload();
-            };
-            navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+            if (newWorker.state === 'installed') {
+              forceActivation();
+            }
           });
         });
       })

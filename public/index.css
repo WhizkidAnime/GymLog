@@ -7,14 +7,35 @@
   --blob-a: #1d4ed8;      /* blue-700 */
   --blob-b: #6d28d9;      /* violet-700 */
   --blob-c: #059669;      /* emerald-600 */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  --sal: env(safe-area-inset-left);
+  --sar: env(safe-area-inset-right);
+  --dock-total-h: 96px;
 }
 
 html, body, #root { height: 100%; }
 
 body {
+  margin: 0;
+  min-height: 100svh;
   background: var(--bg);
   color: var(--fg);
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
 }
+
+#root {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--sat);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+.pt-safe { padding-top: calc(16px + var(--sat)); }
+.pb-safe { padding-bottom: calc(16px + var(--sab)); }
 
 /* Базовые элементы форм под тёмную тему */
 input[type="text"],
@@ -44,6 +65,7 @@ textarea:focus::placeholder {
   background-color: #111113; /* близко к zinc-950 */
   color: var(--fg);
   border: 1px solid #27272a; /* zinc-800 */
+  overflow: visible;
 }
 
 /* Кнопка удаления внутри карточки упражнения */
@@ -80,6 +102,7 @@ body::before {
   border: 1px solid var(--glass-border);
   box-shadow: 0 10px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
   border-radius: 16px;
+  overflow: visible;
 }
 
 /* Полупрозрачная нижняя навигация */

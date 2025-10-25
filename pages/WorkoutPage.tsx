@@ -500,7 +500,7 @@ const WorkoutPage = () => {
 
   if (!workout) {
     return (
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto px-4 pt-safe">
         <div className="flex items-center gap-3 mb-6">
           <BackButton />
           <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {formatDateForDisplay(normalizedDate)}</h1>
@@ -543,7 +543,7 @@ const WorkoutPage = () => {
   }
 
   return (
-    <div className="relative p-4 space-y-4">
+    <div className="relative px-4 space-y-4 pt-safe">
       {/* Показываем индикатор только при начальной загрузке или явной перезагрузке */}
       {loading && !hasInitialData && (
         <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1 text-sm text-white shadow-lg">

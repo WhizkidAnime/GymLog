@@ -6,10 +6,10 @@ const Layout = () => {
   return (
     <div className="flex flex-col h-screen">
       <main
-        className="flex-1 overflow-y-auto pb-28"
+        className="flex-1"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(var(--dock-total-h, 96px) + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <Outlet />

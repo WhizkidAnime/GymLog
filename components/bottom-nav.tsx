@@ -1,4 +1,4 @@
-import React, { KeyboardEvent, useMemo } from 'react';
+import React, { KeyboardEvent, useLayoutEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTabNavigation } from '../hooks/useTabNavigation';
 
@@ -7,6 +7,7 @@ type CssVars = React.CSSProperties & Record<string, string | number>;
 const BottomNav = () => {
   const location = useLocation();
   const { navigateToTab } = useTabNavigation();
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   const tabs = [
     { key: 'calendar' as const, label: 'Календарь', icon: (
@@ -38,8 +39,32 @@ const BottomNav = () => {
 
   const cssVars: CssVars = { ['--tabs-count' as any]: tabs.length, ['--active-index' as any]: activeIndex };
 
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const updateHeight = () => {
+      const height = el.offsetHeight;
+      document.documentElement.style.setProperty('--dock-total-h', `${height}px`);
+    };
+
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+
+    window.addEventListener('resize', updateHeight);
+    window.addEventListener('orientationchange', updateHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateHeight);
+      window.removeEventListener('orientationchange', updateHeight);
+    };
+  }, []);
+
   return (
-    <nav className="bottom-dock-wrapper" aria-label="Нижняя навигация">
+    <nav ref={wrapperRef} className="bottom-dock-wrapper" aria-label="Нижняя навигация">
       <div className="bottom-dock glass-dock" role="tablist" aria-orientation="horizontal" onKeyDown={onKeyDown} style={cssVars}>
         <div className="dock-track">
           <div className="dock-indicator" aria-hidden="true" />
