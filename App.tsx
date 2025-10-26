@@ -46,7 +46,7 @@ const App = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <div className="min-h-screen">
+        <div style={{ minHeight: '100svh' }}>
           <AppRoutes />
         </div>
       </AuthProvider>

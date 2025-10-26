@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import ConfirmDialog from '../components/confirm-dialog';
 import type { TemplateExercise, TemplateExerciseInsert } from '../types/database.types';
 
 type EditableExercise = Partial<TemplateExercise> & {
@@ -26,6 +27,23 @@ const TemplateEditorPage = () => {
   const [exercises, setExercises] = useState<EditableExercise[]>([newExerciseFactory()]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; tempId?: number }>({ open: false });
+  const textareaRefs = React.useRef<{ [key: number]: HTMLTextAreaElement | null }>({});
+
+  const adjustTextareaHeight = React.useCallback((element: HTMLTextAreaElement | null) => {
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, []);
+
+  React.useLayoutEffect(() => {
+    exercises.forEach(ex => {
+      const element = textareaRefs.current[ex._tempId];
+      if (element) {
+        adjustTextareaHeight(element);
+      }
+    });
+  }, [exercises, adjustTextareaHeight]);
 
   const BackButton = ({ className = '' }: { className?: string }) => (
     <button
@@ -93,6 +111,10 @@ const TemplateEditorPage = () => {
   
   const addExercise = () => {
     setExercises([...exercises, newExerciseFactory()]);
+  };
+
+  const confirmDeleteExercise = (tempId: number) => {
+    setDeleteConfirm({ open: true, tempId });
   };
 
   const removeExercise = (tempId: number) => {
@@ -223,64 +245,88 @@ const TemplateEditorPage = () => {
           {exercises.map((ex) => (
             <div 
               key={ex._tempId} 
-              className={`exercise-card relative transition-all duration-300 ease-in-out overflow-hidden ${
+              className={`exercise-card relative transition-all duration-300 ease-in-out ${
                 ex._state === 'deleting'
                 ? 'opacity-0 max-h-0 p-0 border-0 m-0'
-                : 'p-4 glass card-dark space-y-3'
+                : 'glass card-dark'
               }`}
             >
-               <button 
-                  type="button" 
-                  onClick={() => removeExercise(ex._tempId)} 
-                  className="delete-btn z-10 p-1 text-gray-300 hover:text-red-500 transition-colors"
-                  aria-label="Удалить упражнение"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              <div className="flex items-center gap-2">
-                <input
-                    type="text"
-                    placeholder="Название упражнения"
-                    value={ex.name || ''}
-                    onChange={(e) => handleExerciseChange(ex._tempId, 'name', e.target.value)}
-                    className="w-full px-3 py-2 rounded-md"
-                    style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <label className="text-xs" style={{color:'#e4e4e7'}}>Подходы</label>
-                  <input type="number" placeholder="3" value={ex.sets ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'sets', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+              <div className={`${ex._state === 'deleting' ? 'hidden' : 'p-4 space-y-3'}`}>
+                <div className="exercise-card-header mb-3">
+                  <div className="name-wrap">
+                    <textarea
+                        ref={el => textareaRefs.current[ex._tempId] = el}
+                        placeholder="Название упражнения"
+                        value={ex.name || ''}
+                        onChange={(e) => {
+                          handleExerciseChange(ex._tempId, 'name', e.target.value);
+                          adjustTextareaHeight(e.currentTarget);
+                        }}
+                        rows={1}
+                        className="w-full px-3 py-2 rounded-md resize-none overflow-y-hidden min-h-[2.5rem] leading-relaxed"
+                        style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46', fontFamily: 'inherit'}}
+                    />
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => confirmDeleteExercise(ex._tempId)} 
+                    className="delete-btn btn-glass btn-glass-icon btn-glass-outline"
+                    aria-label="Удалить упражнение"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                 </div>
-                <div>
-                  <label className="text-xs" style={{color:'#e4e4e7'}}>Повторы</label>
-                  <input 
-                    type="text" 
-                    placeholder="10-12"
-                    value={ex.reps || ''} 
-                    onChange={e => handleExerciseChange(ex._tempId, 'reps', e.target.value)} 
-                    className="w-full p-1 text-center rounded-md"
-                    style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
-                  />
-                </div>
-                <div>
-                   <label className="text-xs" style={{color:'#e4e4e7'}}>Отдых (сек)</label>
-                  <input type="number" placeholder="60" value={ex.rest_seconds ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'rest_seconds', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <label className="text-xs" style={{color:'#e4e4e7'}}>Подходы</label>
+                    <input type="number" placeholder="3" value={ex.sets ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'sets', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+                  </div>
+                  <div>
+                    <label className="text-xs" style={{color:'#e4e4e7'}}>Повторы</label>
+                    <input 
+                      type="text" 
+                      placeholder="10-12"
+                      value={ex.reps || ''} 
+                      onChange={e => handleExerciseChange(ex._tempId, 'reps', e.target.value)} 
+                      className="w-full p-1 text-center rounded-md"
+                      style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
+                    />
+                  </div>
+                  <div>
+                     <label className="text-xs" style={{color:'#e4e4e7'}}>Отдых (сек)</label>
+                    <input type="number" placeholder="60" value={ex.rest_seconds ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'rest_seconds', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+                  </div>
                 </div>
               </div>
             </div>
           ))}
-          <button type="button" onClick={addExercise} className="w-full py-2 text-sm font-medium rounded-lg border-2 border-dashed border-white/40 text-gray-200 bg-transparent hover:bg-white/5 active:scale-[.98] transition duration-100 ease-out">
+          <button type="button" onClick={addExercise} className="btn-dashed">
             + Добавить упражнение
           </button>
         </div>
         
-        <button type="submit" disabled={isSaving} className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors">
+        <button type="submit" disabled={isSaving} className="btn-glass btn-glass-full btn-glass-md btn-glass-primary">
           {isSaving ? 'Сохранение...' : 'Сохранить шаблон'}
         </button>
       </form>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ open })}
+        title="Удалить упражнение?"
+        description="Это упражнение будет удалено из шаблона. Действие необратимо."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        variant="danger"
+        onConfirm={async () => {
+          if (deleteConfirm.tempId !== undefined) {
+            removeExercise(deleteConfirm.tempId);
+          }
+        }}
+      />
     </div>
   );
 };

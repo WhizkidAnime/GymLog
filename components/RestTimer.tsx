@@ -219,26 +219,26 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
         <button
           onClick={() => adjustTime(-30)}
           disabled={time <= 0 && !isActive}
-          className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 text-white text-lg font-medium hover:bg-white/10 disabled:opacity-50"
+          className="btn-glass btn-glass-icon-round btn-glass-secondary"
         >-</button>
         <div className={`text-6xl font-mono font-semibold leading-none min-w-[4ch] text-center ${isActive ? 'text-blue-500' : ''}`}>
           {formatTime(time)}
         </div>
         <button
           onClick={() => adjustTime(30)}
-          className="w-9 h-9 flex items-center justify-center rounded-full border border-white/30 text-white text-lg font-medium hover:bg-white/10"
+          className="btn-glass btn-glass-icon-round btn-glass-secondary"
         >+</button>
       </div>
       <div className="mt-4 flex items-center justify-center gap-3">
         <button
           onClick={toggle}
-          className={`text-2xl font-semibold px-6 py-3 rounded-xl transition-colors ${isActive ? 'bg-red-400 text-black' : 'bg-green-400 text-black'}`}
+          className={`btn-glass btn-glass-icon-sm ${isActive ? 'btn-glass-danger' : 'btn-glass-primary'}`}
         >
           {isActive ? 'Стоп' : 'Старт'}
         </button>
         <button
           onClick={reset}
-          className="text-2xl font-semibold px-6 py-3 rounded-xl bg-gray-200 text-black"
+          className="btn-glass btn-glass-icon-sm btn-glass-secondary"
         >
           Сброс
         </button>

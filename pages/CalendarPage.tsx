@@ -140,7 +140,7 @@ const CalendarPage = () => {
   const workoutDates = new Set(workouts.map(w => w.workout_date));
 
   return (
-    <div className="px-4 pt-4 pb-6 w-full h-[calc(100svh-4rem)] max-w-5xl mx-auto flex flex-col items-center">
+    <div className="px-4 pt-4 pb-4 w-full max-w-5xl mx-auto flex flex-col items-center">
       {loading && !hasInitialData && (
         <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1 text-sm text-white shadow-lg">
           Загрузка календаря...

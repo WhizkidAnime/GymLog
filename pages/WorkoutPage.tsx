@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -6,6 +6,7 @@ import { usePageState } from '../hooks/usePageState';
 import type { Workout, WorkoutTemplate, WorkoutExerciseWithSets } from '../types/database.types';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { formatDateForDisplay, formatDate } from '../utils/date-helpers';
+import ConfirmDialog from '../components/confirm-dialog';
 
 // Улучшенный кеш с timestamp для отслеживания актуальности
 const workoutCache = new Map<string, { 
@@ -88,6 +89,8 @@ const WorkoutPage = () => {
   const setIsAddingExercise = (next: boolean) => setPageState(prev => ({ ...prev, isAddingExercise: next }));
   const setWorkoutName = (next: string) => setPageState(prev => ({ ...prev, workoutName: next }));
   const setIsSavingWorkoutName = (next: boolean) => setPageState(prev => ({ ...prev, isSavingWorkoutName: next }));
+
+  const [isDeleteWorkoutOpen, setIsDeleteWorkoutOpen] = useState(false);
 
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
   const isRestoringScroll = useRef(false);
@@ -566,29 +569,29 @@ const WorkoutPage = () => {
     }
   };
 
-  const handleDeleteWorkout = async () => {
+  const handleDeleteWorkout = () => {
     if (!workout) return;
+    setIsDeleteWorkoutOpen(true);
+  };
 
-    const isConfirmed = window.confirm('Вы уверены, что хотите удалить эту тренировку? Это действие необратимо.');
-    if (isConfirmed) {
-      const { error } = await supabase
-        .from('workouts')
-        .delete()
-        .eq('id', workout.id);
-      
-      if (error) {
-        console.error('Error deleting workout:', error);
-        alert('Не удалось удалить тренировку.');
-      } else {
-        // Инвалидируем кеш
-        if (user && normalizedDate) {
-          const cacheKey = `${user.id}:${normalizedDate}`;
-          workoutCache.delete(cacheKey);
-        }
-        alert('Тренировка удалена.');
-        navigate('/calendar');
-      }
+  const confirmDeleteWorkout = async () => {
+    if (!workout) return;
+    const { error } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('id', workout.id);
+
+    if (error) {
+      console.error('Error deleting workout:', error);
+      alert('Не удалось удалить тренировку.');
+      return;
     }
+
+    if (user && normalizedDate) {
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      workoutCache.delete(cacheKey);
+    }
+    navigate('/calendar');
   };
 
   const handleOpenChangeTemplate = () => {
@@ -700,7 +703,7 @@ const WorkoutPage = () => {
           <BackButton />
           <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {formatDateForDisplay(normalizedDate)}</h1>
         </div>
-        <div className="mt-4 p-6 text-center border-2 border-dashed rounded-lg">
+        <div className="mt-4 p-6 text-center">
           <p className="text-gray-500 mb-4">Тренировка не запланирована.</p>
           {templates.length > 0 ? (
             <>
@@ -711,7 +714,7 @@ const WorkoutPage = () => {
                     key={t.id}
                     onClick={() => handleCreateWorkout(t)}
                     disabled={isCreating}
-                    className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="btn-glass btn-glass-primary btn-glass-full btn-glass-md disabled:opacity-50"
                   >
                     {isCreating ? 'Создание...' : t.name}
                   </button>
@@ -723,7 +726,7 @@ const WorkoutPage = () => {
                 <p className="text-gray-400">Сначала создайте шаблон.</p>
                 <Link 
                     to="/templates/new"
-                    className="flex items-center justify-center w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+                    className="btn-glass btn-glass-primary btn-glass-full btn-glass-md"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -737,7 +740,7 @@ const WorkoutPage = () => {
               type="button"
               onClick={handleCreateCustomWorkout}
               disabled={isCreating}
-              className="w-full px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="btn-dashed"
             >
               {isCreating ? 'Создание...' : 'Создать свой день'}
             </button>
@@ -777,14 +780,14 @@ const WorkoutPage = () => {
         <button
           type="button"
           onClick={handleOpenChangeTemplate}
-          className="px-4 py-2 rounded-md border border-white text-white hover:bg-white/10 transition-colors"
+          className="glass-button-create"
         >
           Изменить тренировку
         </button>
         <button
           type="button"
           onClick={handleDeleteWorkout}
-          className="px-4 py-2 rounded-md border border-red-500 text-red-400 hover:bg-red-500/10 transition-colors"
+          className="glass-button-danger"
         >
           Удалить
         </button>
@@ -796,6 +799,20 @@ const WorkoutPage = () => {
             key={exercise.id} 
             exercise={exercise}
             onUpdateExercise={handleUpdateExercise}
+            onDeleteExercise={(exerciseId) => {
+              setPageState(prev => {
+                const filtered = prev.exercises.filter(ex => ex.id !== exerciseId);
+                if (user && normalizedDate && prev.workout) {
+                  const cacheKey = `${user.id}:${normalizedDate}`;
+                  workoutCache.set(cacheKey, {
+                    workout: prev.workout,
+                    exercises: filtered,
+                    timestamp: Date.now(),
+                  });
+                }
+                return { ...prev, exercises: filtered };
+              });
+            }}
           />
         ))}
       </div>
@@ -805,7 +822,7 @@ const WorkoutPage = () => {
           type="button"
           onClick={handleAddExercise}
           disabled={isAddingExercise}
-          className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="btn-glass btn-glass-full btn-glass-md btn-glass-primary disabled:opacity-50"
         >
           {isAddingExercise ? 'Добавление...' : 'Добавить упражнение'}
         </button>
@@ -813,7 +830,7 @@ const WorkoutPage = () => {
 
       {isSelectTemplateOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md card-dark rounded-lg shadow-lg p-4">
+          <div className="w-full max-w-md glass card-dark rounded-xl shadow-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">Выберите шаблон</h2>
               <button onClick={() => setIsSelectTemplateOpen(false)} className="px-2 py-1 text-sm text-gray-300 hover:text-white">✕</button>
@@ -837,6 +854,17 @@ const WorkoutPage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={isDeleteWorkoutOpen}
+        onOpenChange={setIsDeleteWorkoutOpen}
+        title="Удалить тренировку?"
+        description={`Вы собираетесь удалить тренировку на ${formatDateForDisplay(normalizedDate!)}. Действие необратимо.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        variant="danger"
+        onConfirm={confirmDeleteWorkout}
+      />
     </div>
   );
 };
