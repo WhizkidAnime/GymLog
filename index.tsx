@@ -7,8 +7,9 @@ import { waitAuthReady } from './lib/waitAuthReady';
 
 if ('serviceWorker' in navigator) {
   const registerServiceWorker = () => {
+    const swPath = `${import.meta.env.BASE_URL}sw.js`;
     navigator.serviceWorker
-      .register('/sw.js', { scope: '/', updateViaCache: 'none' })
+      .register(swPath, { scope: import.meta.env.BASE_URL, updateViaCache: 'none' })
       .then((registration) => {
         let refreshing = false;
 
