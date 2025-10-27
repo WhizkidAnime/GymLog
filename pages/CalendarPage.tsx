@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePageState } from '../hooks/usePageState';
@@ -16,6 +16,7 @@ const CACHE_TTL = 30000;
 const CalendarPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation() as { state?: { removedDate?: string; refreshDate?: string } };
   const [pageState, setPageState] = usePageState({
     key: 'calendar-page',
     initialState: {
@@ -109,6 +110,28 @@ const CalendarPage = () => {
       fetchWorkouts();
     }
   }, [currentDate.getFullYear(), currentDate.getMonth(), user]);
+
+  // Если пришли со страницы тренировки после удаления — инвалидируем кеш и рефетчим
+  useEffect(() => {
+    if (!user) return;
+    const removedDate = location.state?.removedDate;
+    if (!removedDate) return;
+
+    const cacheKey = `${user.id}:${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    calendarCache.delete(cacheKey);
+    fetchWorkouts(false, false);
+  }, [location.state?.removedDate, user, currentDate, fetchWorkouts]);
+
+  // Если вернулись со страницы тренировки (BackButton) — обновляем месяц
+  useEffect(() => {
+    if (!user) return;
+    const refreshDate = location.state?.refreshDate;
+    if (!refreshDate) return;
+
+    const cacheKey = `${user.id}:${currentDate.getFullYear()}-${currentDate.getMonth()}`;
+    calendarCache.delete(cacheKey);
+    fetchWorkouts(false, false);
+  }, [location.state?.refreshDate, user, currentDate, fetchWorkouts]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

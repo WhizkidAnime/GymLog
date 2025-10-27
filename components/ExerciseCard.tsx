@@ -13,8 +13,6 @@ interface ExerciseCardProps {
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateExercise, onDeleteExercise }) => {
-  const allSetsDone = exercise.workout_sets.every(set => set.is_done);
-
   const [nameInput, setNameInput] = useState(exercise.name);
   const [setsCount, setSetsCount] = useState<number>(exercise.sets);
   const [restSeconds, setRestSeconds] = useState<number>(exercise.rest_seconds);
@@ -146,29 +144,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
     }
   };
 
-  const handleToggleCompleteExercise = async () => {
-    if (!exercise.workout_sets || exercise.workout_sets.length === 0) return;
-
-    const nextDone = !exercise.workout_sets.every(s => s.is_done);
-    const setIds = exercise.workout_sets.map(set => set.id);
-    const { error } = await supabase
-      .from('workout_sets')
-      .update({ is_done: nextDone, updated_at: new Date().toISOString() })
-      .in('id', setIds);
-
-    if (error) {
-      console.error('Error toggling all sets:', error);
-      alert('Не удалось изменить состояние упражнения. Попробуйте снова.');
-      return;
-    }
-
-    const updatedExercise: WorkoutExerciseWithSets = {
-      ...exercise,
-      workout_sets: exercise.workout_sets.map(s => ({ ...s, is_done: nextDone, updated_at: new Date().toISOString() })),
-    };
-    onUpdateExercise(updatedExercise);
-  };
-
   const handleConfirmDelete = async () => {
     // Сначала удаляем подходы, затем упражнение
     const { error: setsDelErr } = await supabase
@@ -267,14 +242,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
             }} />
           ))}
         </div>
-      </div>
-      <div className="mt-6 pt-2">
-        <button
-          onClick={handleToggleCompleteExercise}
-          className={`btn-glass btn-glass-full btn-glass-md ${allSetsDone ? "btn-glass-danger" : "btn-glass-primary"}`}
-        >
-          {allSetsDone ? 'Отменить завершение' : 'Завершить упражнение'}
-        </button>
       </div>
       <ConfirmDialog
         open={isDeleteOpen}
