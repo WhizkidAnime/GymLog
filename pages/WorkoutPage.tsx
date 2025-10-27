@@ -66,6 +66,8 @@ const WorkoutPage = () => {
 
   const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName } = pageState;
 
+  const [isScrolling, setIsScrolling] = useState(false);
+
   const setWorkout = (next: Workout | null) => setPageState(prev => ({
     ...prev,
     workout: next,
@@ -91,6 +93,9 @@ const WorkoutPage = () => {
   const setIsSavingWorkoutName = (next: boolean) => setPageState(prev => ({ ...prev, isSavingWorkoutName: next }));
 
   const [isDeleteWorkoutOpen, setIsDeleteWorkoutOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState(workoutName);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
   const isRestoringScroll = useRef(false);
@@ -248,6 +253,13 @@ const WorkoutPage = () => {
   }, [normalizedDate]);
 
   useEffect(() => {
+    if (isEditingName && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditingName]);
+
+  useEffect(() => {
     if (!normalizedDate || exercises.length === 0) return;
 
     const restoreScroll = () => {
@@ -284,6 +296,7 @@ const WorkoutPage = () => {
 
     const handleScroll = () => {
       lastScrollPosition.current = window.scrollY;
+      setIsScrolling(window.scrollY > 0);
 
       if (!ticking && !isRestoringScroll.current) {
         window.requestAnimationFrame(() => {
@@ -569,6 +582,67 @@ const WorkoutPage = () => {
     }
   };
 
+  const handleStartEditName = () => {
+    setEditNameValue(workoutName);
+    setIsEditingName(true);
+  };
+
+  const handleSaveEditName = async () => {
+    if (!user || !normalizedDate || !workout) return;
+    const trimmedName = editNameValue.trim();
+
+    if (trimmedName.length === 0) {
+      setEditNameValue(workoutName);
+      setIsEditingName(false);
+      return;
+    }
+
+    if (trimmedName === workout.name) {
+      setIsEditingName(false);
+      return;
+    }
+
+    setIsSavingWorkoutName(true);
+
+    try {
+      const { data: updatedWorkout, error } = await supabase
+        .from('workouts')
+        .update({ name: trimmedName })
+        .eq('id', workout.id)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!updatedWorkout) {
+        throw new Error('Не удалось обновить название тренировки');
+      }
+
+      setWorkout(updatedWorkout as Workout);
+      setEditNameValue(trimmedName);
+      setIsEditingName(false);
+
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      workoutCache.set(cacheKey, {
+        workout: updatedWorkout as Workout,
+        exercises,
+        timestamp: Date.now(),
+      });
+    } catch (error: any) {
+      console.error('Failed to update workout name:', error);
+      alert('Не удалось сохранить название. Попробуйте снова.');
+    } finally {
+      setIsSavingWorkoutName(false);
+    }
+  };
+
+  const handleCancelEditName = () => {
+    setEditNameValue(workoutName);
+    setIsEditingName(false);
+  };
+
   const handleDeleteWorkout = () => {
     if (!workout) return;
     setIsDeleteWorkoutOpen(true);
@@ -755,25 +829,99 @@ const WorkoutPage = () => {
     <div className="relative px-4 space-y-4 pt-safe pb-24">
       {/* Показываем индикатор только при начальной загрузке или явной перезагрузке */}
       {loading && !hasInitialData && (
-        <div className="fixed top-4 left-1/2 z-40 -translate-x-1/2 rounded-full bg-black/60 px-4 py-1 text-sm text-white shadow-lg">
-          Загрузка данных...
+        <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+            </div>
+            <p className="text-white text-center">Загрузка данных...</p>
+          </div>
         </div>
       )}
       
-      <div className="glass card-dark p-4 flex items-center gap-4">
+      <style>{`
+        @keyframes slideDown {
+          from {
+            transform: translateY(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .header-container {
+          transition: all 0.3s ease-out;
+          position: sticky;
+          top: 1rem;
+          z-index: 30;
+        }
+        .header-container.scrolling {
+          padding: 0.5rem 1rem;
+        }
+        .header-container.scrolling input {
+          font-size: 1.25rem;
+          pointer-events: none;
+          cursor: default;
+        }
+        .header-container.scrolling p {
+          font-size: 0.875rem;
+        }
+      `}</style>
+      <div className={`glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <BackButton className="shrink-0" />
         <div className="flex-1 text-center">
-          <input
-            type="text"
-            value={workoutName}
-            onChange={event => setWorkoutName(event.target.value)}
-            onBlur={handleSaveWorkoutName}
-            onKeyDown={handleWorkoutNameKeyDown}
-            disabled={isSavingWorkoutName}
-            className="w-full bg-transparent text-2xl font-bold text-center text-white placeholder:text-gray-500 focus:outline-none disabled:opacity-70"
-            placeholder="Название тренировки"
-          />
-          <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {formatDateForDisplay(normalizedDate)}</p>
+          {!isEditingName ? (
+            <div className="flex items-center justify-center gap-2">
+              <div>
+                <h1 className="text-2xl font-bold text-white">{workoutName}</h1>
+                <p className="text-lg transition-all duration-300" style={{color:'#a1a1aa'}}>Дата: {formatDateForDisplay(normalizedDate)}</p>
+              </div>
+              <button
+                onClick={handleStartEditName}
+                className="shrink-0 p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                title="Редактировать название"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 w-full">
+              <input
+                ref={inputRef}
+                type="text"
+                value={editNameValue}
+                onChange={event => setEditNameValue(event.target.value)}
+                disabled={isSavingWorkoutName}
+                className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 py-2 transition-colors disabled:opacity-70"
+                placeholder="Название тренировки"
+              />
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={handleSaveEditName}
+                  disabled={isSavingWorkoutName}
+                  className="shrink-0 p-1.5 rounded-full hover:bg-green-500/20 transition-colors disabled:opacity-50"
+                  title="Сохранить"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleCancelEditName}
+                  disabled={isSavingWorkoutName}
+                  className="shrink-0 p-1.5 rounded-full hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                  title="Отмена"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
