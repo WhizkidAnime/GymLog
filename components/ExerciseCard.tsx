@@ -24,6 +24,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
   const debouncedName = useDebounce(nameInput, 500);
   const debouncedRestSeconds = useDebounce(restSeconds, 500);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const prevExerciseNameRef = useRef(exercise.name);
 
   const adjustNameInputHeight = useCallback(() => {
     const element = nameInputRef.current;
@@ -33,10 +34,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
   }, []);
 
   useEffect(() => {
-    setNameInput(exercise.name);
+    // Обновляем состояние только если имя упражнения изменилось из-за внешних причин (не из-за нашего ввода)
+    if (exercise.name !== prevExerciseNameRef.current) {
+      setNameInput(exercise.name);
+      prevExerciseNameRef.current = exercise.name;
+    }
     setSetsCount(exercise.sets);
     setRestSeconds(exercise.rest_seconds);
-  }, [exercise.id, exercise.name, exercise.sets, exercise.rest_seconds]);
+  }, [exercise.id, exercise.sets, exercise.rest_seconds]);
 
   useLayoutEffect(() => {
     adjustNameInputHeight();
@@ -63,6 +68,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
           .update({ name: debouncedName })
           .eq('id', exercise.id);
         const updated: WorkoutExerciseWithSets = { ...exercise, name: debouncedName };
+        prevExerciseNameRef.current = debouncedName;
         onUpdateExercise(updated);
       } catch (e) {
         console.error('Failed to update exercise name', e);

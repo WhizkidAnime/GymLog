@@ -769,7 +769,7 @@ const WorkoutPage = () => {
             onBlur={handleSaveWorkoutName}
             onKeyDown={handleWorkoutNameKeyDown}
             disabled={isSavingWorkoutName}
-            className="w-full bg-transparent text-3xl font-bold text-center text-white placeholder:text-gray-500 focus:outline-none disabled:opacity-70"
+            className="w-full bg-transparent text-2xl font-bold text-center text-white placeholder:text-gray-500 focus:outline-none disabled:opacity-70"
             placeholder="Название тренировки"
           />
           <p className="text-lg" style={{color:'#a1a1aa'}}>Дата: {formatDateForDisplay(normalizedDate)}</p>

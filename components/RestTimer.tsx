@@ -108,7 +108,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
 
       if (remaining <= 0) {
         cancelled = true;
-        setState(prev => ({ ...prev, isActive: false, endAt: null, time: 0 }));
+        setState(prev => ({ ...prev, isActive: false, endAt: null, time: restSeconds }));
         if (intervalRef.current) {
           window.clearInterval(intervalRef.current);
           intervalRef.current = null;
@@ -130,7 +130,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
         intervalRef.current = null;
       }
     };
-  }, [isActive, endAt, storageKey]);
+  }, [isActive, endAt, storageKey, restSeconds]);
 
   useEffect(() => {
     if (!isActive && restSeconds !== prevRestSecondsRef.current) {

@@ -79,6 +79,19 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
     saveSet();
   }, [debouncedWeight, debouncedReps, set.id, set.weight, set.reps, isDone, storageKey]);
 
+  // Автоматическое выставление/отключение галочки при изменении веса или повторов
+  useEffect(() => {
+    const hasWeight = debouncedWeight !== '' && debouncedWeight !== 0 && debouncedWeight !== '0';
+    const hasReps = debouncedReps !== '' && debouncedReps !== null;
+    const shouldBeDone = hasWeight && hasReps;
+
+    if (shouldBeDone && !isDone) {
+      setIsDone(true);
+    } else if (!shouldBeDone && isDone) {
+      setIsDone(false);
+    }
+  }, [debouncedWeight, debouncedReps, isDone]);
+
   const handleDoneToggle = async () => {
     const newDoneState = !isDone;
     setIsDone(newDoneState);
