@@ -125,6 +125,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
       <div className="col-span-2">
         <input
           type="number"
+          inputMode="decimal"
           step="0.25"
           placeholder="0"
           value={weight}
@@ -136,6 +137,8 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
       <div className="col-span-1">
         <input
           type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           placeholder="0"
           value={reps}
           onChange={(e) => setRps(e.target.value)}

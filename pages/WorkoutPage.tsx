@@ -29,6 +29,8 @@ type WorkoutPageState = {
   isAddingExercise: boolean;
   workoutName: string;
   isSavingWorkoutName: boolean;
+  isCardio: boolean;
+  isSavingCardio: boolean;
 };
 
 const normalizeDateParam = (value?: string): string | null => {
@@ -60,11 +62,13 @@ const WorkoutPage = () => {
       isAddingExercise: false,
       workoutName: '',
       isSavingWorkoutName: false,
+      isCardio: false,
+      isSavingCardio: false,
     },
     ttl: 30 * 60 * 1000,
   });
 
-  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName } = pageState;
+  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName, isCardio, isSavingCardio } = pageState;
 
   const [isScrolling, setIsScrolling] = useState(false);
 
@@ -73,6 +77,8 @@ const WorkoutPage = () => {
     workout: next,
     workoutName: next?.name ?? '',
     isSavingWorkoutName: false,
+    isCardio: next?.is_cardio ?? false,
+    isSavingCardio: false,
   }));
   const setExercises = (
     next: WorkoutExerciseWithSets[] | ((prev: WorkoutExerciseWithSets[]) => WorkoutExerciseWithSets[])
@@ -91,6 +97,8 @@ const WorkoutPage = () => {
   const setIsAddingExercise = (next: boolean) => setPageState(prev => ({ ...prev, isAddingExercise: next }));
   const setWorkoutName = (next: string) => setPageState(prev => ({ ...prev, workoutName: next }));
   const setIsSavingWorkoutName = (next: boolean) => setPageState(prev => ({ ...prev, isSavingWorkoutName: next }));
+  const setIsCardio = (next: boolean) => setPageState(prev => ({ ...prev, isCardio: next }));
+  const setIsSavingCardio = (next: boolean) => setPageState(prev => ({ ...prev, isSavingCardio: next }));
 
   const [isDeleteWorkoutOpen, setIsDeleteWorkoutOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -643,6 +651,45 @@ const WorkoutPage = () => {
     setIsEditingName(false);
   };
 
+  const handleToggleCardio = async () => {
+    if (!user || !normalizedDate || !workout) return;
+    const newCardioState = !isCardio;
+    setIsCardio(newCardioState);
+    setIsSavingCardio(true);
+
+    try {
+      const { data: updatedWorkout, error } = await supabase
+        .from('workouts')
+        .update({ is_cardio: newCardioState })
+        .eq('id', workout.id)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!updatedWorkout) {
+        throw new Error('Не удалось обновить статус кардио');
+      }
+
+      setWorkout(updatedWorkout as Workout);
+
+      const cacheKey = `${user.id}:${normalizedDate}`;
+      workoutCache.set(cacheKey, {
+        workout: updatedWorkout as Workout,
+        exercises,
+        timestamp: Date.now(),
+      });
+    } catch (error: any) {
+      console.error('Failed to update cardio status:', error);
+      alert('Не удалось сохранить статус кардио.');
+      setIsCardio(!newCardioState);
+    } finally {
+      setIsSavingCardio(false);
+    }
+  };
+  
   const handleDeleteWorkout = () => {
     if (!workout) return;
     setIsDeleteWorkoutOpen(true);
@@ -826,7 +873,7 @@ const WorkoutPage = () => {
   }
 
   return (
-    <div className="relative px-4 space-y-4 pt-safe pb-24">
+    <div className="relative px-4 space-y-4 pt-safe pb-10">
       {/* Показываем индикатор только при начальной загрузке или явной перезагрузке */}
       {loading && !hasInitialData && (
         <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
@@ -964,6 +1011,44 @@ const WorkoutPage = () => {
             }}
           />
         ))}
+      </div>
+
+      <div className="glass card-dark p-4 rounded-md">
+        <p className="text-white text-lg font-bold mb-3 text-center">Было кардио?</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (isCardio) {
+                setIsCardio(false);
+                handleToggleCardio();
+              }
+            }}
+            disabled={isSavingCardio}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ease-out ${
+              !isCardio
+                ? 'bg-white/20 text-white shadow-lg scale-100'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10 scale-95'
+            } disabled:opacity-50`}
+          >
+            Нет
+          </button>
+          <button
+            onClick={() => {
+              if (!isCardio) {
+                setIsCardio(true);
+                handleToggleCardio();
+              }
+            }}
+            disabled={isSavingCardio}
+            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ease-out ${
+              isCardio
+                ? 'bg-white/20 text-white shadow-lg scale-100'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10 scale-95'
+            } disabled:opacity-50`}
+          >
+            Да
+          </button>
+        </div>
       </div>
 
       <div>

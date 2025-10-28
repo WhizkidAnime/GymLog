@@ -160,6 +160,7 @@ export type Database = {
           template_id: string | null
           user_id: string
           workout_date: string
+          is_cardio: boolean
         }
         Insert: {
           created_at?: string
@@ -168,6 +169,7 @@ export type Database = {
           template_id?: string | null
           user_id: string
           workout_date: string
+          is_cardio?: boolean
         }
         Update: {
           created_at?: string
@@ -176,6 +178,7 @@ export type Database = {
           template_id?: string | null
           user_id?: string
           workout_date?: string
+          is_cardio?: boolean
         }
         Relationships: [
           {

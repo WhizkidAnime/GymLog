@@ -45,3 +45,6 @@ create index if not exists workout_exercises_workout_id_idx on public.workout_ex
 create index if not exists workout_sets_exercise_id_idx on public.workout_sets (workout_exercise_id);
 create index if not exists workout_templates_user_idx on public.workout_templates (user_id);
 create index if not exists template_exercises_template_idx on public.template_exercises (template_id);
+
+-- Добавляем поле is_cardio для отметки о выполнении кардио
+alter table if exists public.workouts add column if not exists is_cardio boolean default false;
