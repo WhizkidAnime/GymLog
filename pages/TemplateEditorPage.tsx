@@ -291,7 +291,7 @@ const TemplateEditorPage = () => {
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
                     <label className="text-xs" style={{color:'#e4e4e7'}}>Подходы</label>
-                    <input type="number" placeholder="3" value={ex.sets ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'sets', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+                    <input type="number" inputMode="numeric" placeholder="3" value={ex.sets ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'sets', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
                   </div>
                   <div>
                     <label className="text-xs" style={{color:'#e4e4e7'}}>Повторы</label>
@@ -306,7 +306,7 @@ const TemplateEditorPage = () => {
                   </div>
                   <div>
                      <label className="text-xs" style={{color:'#e4e4e7'}}>Отдых (сек)</label>
-                    <input type="number" placeholder="60" value={ex.rest_seconds ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'rest_seconds', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+                    <input type="number" inputMode="numeric" placeholder="60" value={ex.rest_seconds ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'rest_seconds', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
                   </div>
                 </div>
               </div>
