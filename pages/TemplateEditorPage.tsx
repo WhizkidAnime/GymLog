@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import ConfirmDialog from '../components/confirm-dialog';
+import TemplateSavedDialog from '../components/template-saved-dialog';
 import type { TemplateExercise, TemplateExerciseInsert } from '../types/database.types';
 
 type EditableExercise = Partial<TemplateExercise> & {
@@ -28,6 +29,7 @@ const TemplateEditorPage = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; tempId?: number }>({ open: false });
+  const [savedDialogOpen, setSavedDialogOpen] = useState(false);
   const textareaRefs = React.useRef<{ [key: number]: HTMLTextAreaElement | null }>({});
 
   const adjustTextareaHeight = React.useCallback((element: HTMLTextAreaElement | null) => {
@@ -176,8 +178,7 @@ const TemplateEditorPage = () => {
         if (exercisesError) throw exercisesError;
       }
 
-      alert('Шаблон сохранен!');
-      navigate('/templates');
+      setSavedDialogOpen(true);
     } catch (error: any) {
       console.error('Error saving template:', error);
 
@@ -194,8 +195,7 @@ const TemplateEditorPage = () => {
             .select('id', { count: 'exact', head: true })
             .eq('template_id', verifyTemplate.id);
           // Если шаблон существует — считаем сохранение успешным
-          alert('Шаблон сохранен!');
-          navigate('/templates');
+          setSavedDialogOpen(true);
           return;
         }
       } catch {}
@@ -335,6 +335,12 @@ const TemplateEditorPage = () => {
             removeExercise(deleteConfirm.tempId);
           }
         }}
+      />
+
+      <TemplateSavedDialog
+        open={savedDialogOpen}
+        onOpenChange={setSavedDialogOpen}
+        onClose={() => navigate('/templates')}
       />
     </div>
   );
