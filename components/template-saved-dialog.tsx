@@ -3,14 +3,16 @@ import { createPortal } from 'react-dom';
 
 type TemplateSavedDialogProps = {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange: (open: boolean | null) => void;
   onClose?: () => void;
+  templateName?: string;
 };
 
 export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   open,
   onOpenChange,
   onClose,
+  templateName,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -18,9 +20,9 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
     if (open) {
       setIsVisible(true);
       const timer = setTimeout(() => {
-        onOpenChange(false);
+        onOpenChange(null);
         onClose?.();
-      }, 1000);
+      }, 1500);
       return () => clearTimeout(timer);
     } else {
       setIsVisible(false);
@@ -30,7 +32,7 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (!open) return;
-      if (e.key === 'Escape') onOpenChange(false);
+      if (e.key === 'Escape') onOpenChange(null);
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -40,7 +42,7 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="alert" aria-live="polite">
-      <div className="absolute inset-0 bg-black/60" onClick={() => onOpenChange(false)} />
+      <div className="absolute inset-0 bg-black/60" onClick={() => onOpenChange(null)} />
       <div className={`relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-6 text-center transition-all duration-300 ${
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}>
@@ -49,7 +51,9 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-white">Шаблон сохранен!</h2>
+        <h2 className="text-xl font-semibold text-white">
+          {templateName ? `Ссылка на "${templateName}" скопирована в буфер обмена` : 'Шаблон сохранен!'}
+        </h2>
       </div>
     </div>,
     document.body

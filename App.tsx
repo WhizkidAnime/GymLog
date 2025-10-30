@@ -10,6 +10,7 @@ import WorkoutPage from './pages/WorkoutPage';
 import TemplatesPage from './pages/TemplatesPage';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import ProfilePage from './pages/ProfilePage';
+import TemplateImportPage from './pages/TemplateImportPage';
 
 // const DefaultRedirect = () => {
 //     const lastPath = typeof window !== 'undefined' ? window.localStorage.getItem('lastPath') : null;
@@ -36,6 +37,7 @@ const AppRoutes = () => {
                 <Route path="templates" element={<TemplatesPage />} />
                 <Route path="templates/new" element={<TemplateEditorPage />} />
                 <Route path="templates/:id" element={<TemplateEditorPage />} />
+                <Route path="templates/import" element={<TemplateImportPage />} />
                 <Route path="profile" element={<ProfilePage />} />
             </Route>
         </Routes>
