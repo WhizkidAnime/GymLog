@@ -84,6 +84,9 @@ const TemplatesPage = () => {
   const navigate = useNavigate();
   const [sharing, setSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
+  const [shareLinkModalOpen, setShareLinkModalOpen] = useState(false);
+  const [currentShareLink, setCurrentShareLink] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
 
   const [pageState, setPageState] = usePageState({
     key: 'templates-page',
@@ -131,6 +134,34 @@ const TemplatesPage = () => {
     fetchTemplates();
   };
 
+  // Копирование с fallback для iOS/Safari
+  const copyToClipboardWithFallback = async (text: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return { ok: true } as const;
+      }
+    } catch (err) {
+      // fallthrough к execCommand
+      console.warn('clipboard writeText failed:', err);
+    }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'absolute';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (successful) return { ok: true } as const;
+      return { ok: false, reason: 'execCommand returned false' } as const;
+    } catch (err: any) {
+      return { ok: false, reason: String(err) } as const;
+    }
+  };
+
   const handleShare = async (templateId: string, templateName: string) => {
     setSharing(true);
     try {
@@ -152,13 +183,12 @@ const TemplatesPage = () => {
         exercises: exercises,
       });
 
-      await navigator.clipboard.writeText(shareLink);
-      setShareSuccess(templateName);
-      setTimeout(() => setShareSuccess(null), 3000);
+      // Не копируем автоматически — откроем модал с кнопкой копирования
+      setCurrentShareLink(shareLink);
+      setShareLinkModalOpen(true);
     } catch (error: any) {
-      // eslint-disable-next-line no-console
       console.error('Error sharing template:', error);
-      alert('Не удалось скопировать ссылку: ' + error.message);
+      alert('Не удалось сгенерировать ссылку: ' + (error?.message || String(error)));
     } finally {
       setSharing(false);
     }
@@ -272,6 +302,44 @@ const TemplatesPage = () => {
               </div>
               <p className="text-white">Генерация ссылки...</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {shareLinkModalOpen && currentShareLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="glass card-dark p-6 rounded-xl max-w-lg w-[92%]">
+            <h3 className="text-lg font-semibold mb-2">Ссылка для шаринга</h3>
+            <p className="break-words mb-4">{currentShareLink}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  if (!currentShareLink) return;
+                  setCopying(true);
+                  const res = await copyToClipboardWithFallback(currentShareLink);
+                  setCopying(false);
+                  if (res.ok) {
+                    setShareSuccess('Ссылка скопирована');
+                    setTimeout(() => setShareSuccess(null), 2000);
+                    setShareLinkModalOpen(false);
+                  } else {
+                    alert('Автокопирование не сработало. Скопируйте ссылку вручную: долгий тап → Копировать.\n\nОшибка: ' + (res as any).reason);
+                  }
+                }}
+                className="glass-button-create"
+              >
+                {copying ? 'Копирование...' : 'Копировать'}
+              </button>
+              <button
+                onClick={() => setShareLinkModalOpen(false)}
+                className="glass-button-danger"
+              >
+                Закрыть
+              </button>
+            </div>
+            <p className="text-xs mt-3 text-gray-400">
+              Если копирование не сработает на iPhone: удерживайте ссылку и выберите «Копировать».
+            </p>
           </div>
         </div>
       )}
