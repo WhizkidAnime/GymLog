@@ -43,6 +43,9 @@ const TemplateImportPage = () => {
   const checkClipboard = async () => {
     setCheckingClipboard(true);
     try {
+      if (!navigator.clipboard || !navigator.clipboard.readText) {
+        throw new Error('Clipboard API недоступен в этом окружении');
+      }
       const clipboardText = await navigator.clipboard.readText();
       
       if (isValidTemplateLink(clipboardText)) {
@@ -118,24 +121,19 @@ const TemplateImportPage = () => {
     }
   };
 
-  const handleManualPaste = async () => {
-    try {
-      const clipboardText = await navigator.clipboard.readText();
-      
-      if (!isValidTemplateLink(clipboardText)) {
-        setError('Вставленный текст не является ссылкой на шаблон');
-        return;
-      }
-
-      const extracted = extractTemplateFromLink(clipboardText);
-      if (extracted) {
-        setTemplate(extracted);
-        setError(null);
-      } else {
-        setError('Не удалось извлечь шаблон из ссылки');
-      }
-    } catch (err: any) {
-      setError('Не удалось прочитать буфер обмена: ' + err.message);
+  const handleManualInput = () => {
+    const pasted = window.prompt('Вставьте ссылку на шаблон из буфера обмена');
+    if (!pasted) return;
+    if (!isValidTemplateLink(pasted)) {
+      setError('Вставленный текст не является валидной ссылкой на шаблон');
+      return;
+    }
+    const extracted = extractTemplateFromLink(pasted);
+    if (extracted) {
+      setTemplate(extracted);
+      setError(null);
+    } else {
+      setError('Не удалось извлечь шаблон из ссылки');
     }
   };
 
@@ -196,10 +194,10 @@ const TemplateImportPage = () => {
               Проверить буфер снова
             </button>
             <button
-              onClick={handleManualPaste}
+              onClick={handleManualInput}
               className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary"
             >
-              Вставить из буфера вручную
+              Вставить ссылку вручную
             </button>
           </div>
         </div>
@@ -260,6 +258,14 @@ const TemplateImportPage = () => {
           >
             Импортировать из буфера
           </button>
+          <div className="mt-2">
+            <button
+              onClick={handleManualInput}
+              className="btn-glass btn-glass-md btn-glass-secondary"
+            >
+              Вставить ссылку вручную
+            </button>
+          </div>
         </div>
       )}
     </div>
