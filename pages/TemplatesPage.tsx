@@ -87,6 +87,7 @@ const TemplatesPage = () => {
   const [shareLinkModalOpen, setShareLinkModalOpen] = useState(false);
   const [currentShareLink, setCurrentShareLink] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
+  const [currentTemplateName, setCurrentTemplateName] = useState<string | null>(null);
 
   const [pageState, setPageState] = usePageState({
     key: 'templates-page',
@@ -186,6 +187,7 @@ const TemplatesPage = () => {
       // Не копируем автоматически — откроем модал с кнопкой копирования
       setCurrentShareLink(shareLink);
       setShareLinkModalOpen(true);
+      setCurrentTemplateName(templateName);
     } catch (error: any) {
       console.error('Error sharing template:', error);
       alert('Не удалось сгенерировать ссылку: ' + (error?.message || String(error)));
@@ -308,10 +310,16 @@ const TemplatesPage = () => {
 
       {shareLinkModalOpen && currentShareLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="glass card-dark p-6 rounded-xl max-w-lg w-[92%]">
-            <h3 className="text-lg font-semibold mb-2">Ссылка для шаринга</h3>
-            <p className="break-words mb-4">{currentShareLink}</p>
-            <div className="flex gap-2">
+          <div className="glass card-dark p-6 rounded-xl max-w-lg w-[92%] max-h-[85vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-2">Скопировать ссылку, чтобы поделиться шаблоном</h3>
+            <textarea
+              readOnly
+              value={currentShareLink}
+              rows={3}
+              onFocus={(e) => e.currentTarget.select()}
+              className="mb-4 w-full resize-none bg-black/30 text-gray-100 rounded-md p-3 font-mono text-xs leading-relaxed break-all max-h-[40vh] overflow-y-auto"
+            />
+            <div className="flex gap-2 justify-center">
               <button
                 onClick={async () => {
                   if (!currentShareLink) return;
@@ -319,7 +327,7 @@ const TemplatesPage = () => {
                   const res = await copyToClipboardWithFallback(currentShareLink);
                   setCopying(false);
                   if (res.ok) {
-                    setShareSuccess('Ссылка скопирована');
+                    setShareSuccess(`${currentTemplateName}`);
                     setTimeout(() => setShareSuccess(null), 2000);
                     setShareLinkModalOpen(false);
                   } else {
@@ -337,9 +345,6 @@ const TemplatesPage = () => {
                 Закрыть
               </button>
             </div>
-            <p className="text-xs mt-3 text-gray-400">
-              Если копирование не сработает на iPhone: удерживайте ссылку и выберите «Копировать».
-            </p>
           </div>
         </div>
       )}
