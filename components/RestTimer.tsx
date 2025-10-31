@@ -221,7 +221,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
           disabled={time <= 0 && !isActive}
           className="btn-glass btn-glass-icon-round btn-glass-secondary"
         >-</button>
-        <div className={`text-6xl font-mono font-semibold leading-none min-w-[4ch] text-center ${isActive ? 'text-blue-500' : ''}`}>
+        <div className={`text-6xl font-mono font-semibold leading-none min-w-[4ch] text-center ${isActive ? 'text-white' : ''}`}>
           {formatTime(time)}
         </div>
         <button

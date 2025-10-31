@@ -1026,8 +1026,8 @@ const WorkoutPage = () => {
             disabled={isSavingCardio}
             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ease-out ${
               !isCardio
-                ? 'bg-white/20 text-white shadow-lg scale-100'
-                : 'bg-white/5 text-gray-400 hover:bg-white/10 scale-95'
+                ? 'bg-red-500/80 text-white shadow-lg scale-100'
+                : 'bg-red-500/20 text-red-300 hover:bg-red-500/30 scale-95'
             } disabled:opacity-50`}
           >
             Нет
@@ -1042,8 +1042,8 @@ const WorkoutPage = () => {
             disabled={isSavingCardio}
             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ease-out ${
               isCardio
-                ? 'bg-white/20 text-white shadow-lg scale-100'
-                : 'bg-white/5 text-gray-400 hover:bg-white/10 scale-95'
+                ? 'bg-green-500/80 text-white shadow-lg scale-100'
+                : 'bg-green-500/20 text-green-300 hover:bg-green-500/30 scale-95'
             } disabled:opacity-50`}
           >
             Да
