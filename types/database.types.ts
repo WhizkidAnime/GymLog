@@ -303,9 +303,9 @@ export type TemplateExercise = Database['public']['Tables']['template_exercises'
 export type TemplateExerciseInsert = Database['public']['Tables']['template_exercises']['Insert'];
 export type Workout = Database['public']['Tables']['workouts']['Row'];
 export type WorkoutExercise = Database['public']['Tables']['workout_exercises']['Row'];
+export type WorkoutExerciseUpdate = Database['public']['Tables']['workout_exercises']['Update'];
 export type WorkoutSet = Database['public']['Tables']['workout_sets']['Row'];
-
-// Custom composite type for fetching an exercise with its sets
 export type WorkoutExerciseWithSets = WorkoutExercise & {
   workout_sets: WorkoutSet[];
 };
+export type WorkoutExercisePositionUpdate = Pick<WorkoutExercise, 'id' | 'position'>;

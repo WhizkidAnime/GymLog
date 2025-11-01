@@ -3,10 +3,16 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePageState } from '../hooks/usePageState';
-import type { Workout, WorkoutTemplate, WorkoutExerciseWithSets } from '../types/database.types';
+import type {
+  Workout,
+  WorkoutTemplate,
+  WorkoutExerciseWithSets,
+  WorkoutExercisePositionUpdate,
+} from '../types/database.types';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { formatDateForDisplay, formatDate } from '../utils/date-helpers';
 import ConfirmDialog from '../components/confirm-dialog';
+import ReorderExercisesModal, { ReorderItem } from '../components/ReorderExercisesModal';
 
 // Улучшенный кеш с timestamp для отслеживания актуальности
 const workoutCache = new Map<string, { 
@@ -104,6 +110,9 @@ const WorkoutPage = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(workoutName);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const [isReorderOpen, setIsReorderOpen] = useState(false);
 
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
   const isRestoringScroll = useRef(false);
@@ -266,6 +275,15 @@ const WorkoutPage = () => {
       inputRef.current.select();
     }
   }, [isEditingName]);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (!actionsRef.current) return;
+      if (!actionsRef.current.contains(e.target as Node)) setIsActionsOpen(false);
+    };
+    document.addEventListener('click', fn);
+    return () => document.removeEventListener('click', fn);
+  }, []);
 
   useEffect(() => {
     if (!normalizedDate || exercises.length === 0) return;
@@ -695,6 +713,56 @@ const WorkoutPage = () => {
     setIsDeleteWorkoutOpen(true);
   };
 
+  const handleSaveNewOrder = async (ordered: ReorderItem[]) => {
+    if (!user || !workout) return;
+
+    const posById = new Map<string, number>(ordered.map((it, idx) => [it.id, idx + 1]));
+    setExercises(prev => {
+      const next = prev.map(ex => ({ ...ex, position: posById.get(ex.id) ?? ex.position }));
+      next.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+      return next;
+    });
+
+    const payload: WorkoutExercisePositionUpdate[] = ordered.map((it, idx) => ({
+      id: it.id,
+      position: idx + 1,
+    }));
+
+    try {
+      await Promise.all(
+        payload.map(async p => {
+          const { error } = await supabase
+            .from('workout_exercises')
+            .update({ position: p.position })
+            .eq('id', p.id);
+
+          if (error) {
+            throw error;
+          }
+        })
+      );
+
+      if (user && normalizedDate) {
+        const cacheKey = `${user.id}:${normalizedDate}`;
+        const cached = workoutCache.get(cacheKey);
+        if (cached) {
+          const reordered = [...cached.exercises]
+            .map(e => ({ ...e, position: posById.get(e.id) ?? e.position }))
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+          workoutCache.set(cacheKey, {
+            workout: cached.workout,
+            exercises: reordered,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Failed to save new order:', e);
+      alert('Не удалось сохранить порядок. Я вернул предыдущие данные.');
+      await fetchWorkoutData();
+    }
+  };
+
   const confirmDeleteWorkout = async () => {
     if (!workout) return;
     const { error } = await supabase
@@ -811,7 +879,16 @@ const WorkoutPage = () => {
   );
 
   if (!hasInitialData) {
-    return <div className="p-4 text-center">Загрузка...</div>;
+    return (
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+          </div>
+          <p className="text-white text-center">Загрузка тренировки...</p>
+        </div>
+      </div>
+    );
   }
   
   if (!normalizedDate) {
@@ -819,6 +896,20 @@ const WorkoutPage = () => {
   }
 
   if (!workout) {
+    if (isCreating) {
+      return (
+        <div className="px-4 pt-safe">
+          <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+              </div>
+              <p className="text-white text-center">Создание...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="max-w-lg mx-auto px-4 pt-safe">
         <div className="flex items-center gap-3 mb-6">
@@ -837,7 +928,7 @@ const WorkoutPage = () => {
                     disabled={isCreating}
                     className="btn-glass btn-glass-primary btn-glass-full btn-glass-md disabled:opacity-50"
                   >
-                    {isCreating ? 'Создание...' : t.name}
+                    {t.name}
                   </button>
                 ))}
               </div>
@@ -863,7 +954,7 @@ const WorkoutPage = () => {
               disabled={isCreating}
               className="btn-dashed"
             >
-              {isCreating ? 'Создание...' : 'Создать свой день'}
+              {'Создать свой день'}
             </button>
           </div>
         </div>
@@ -873,14 +964,14 @@ const WorkoutPage = () => {
 
   return (
     <div className="relative px-4 space-y-4 pt-safe pb-10">
-      {/* Показываем индикатор только при начальной загрузке или явной перезагрузке */}
-      {loading && !hasInitialData && (
+      {/* Показываем индикатор при начальной загрузке или при обновлении страницы */}
+      {loading && (
         <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
           <div className="flex flex-col items-center gap-4">
             <div className="relative w-12 h-12">
               <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
             </div>
-            <p className="text-white text-center">Загрузка данных...</p>
+            <p className="text-white text-center">Загрузка тренировки...</p>
           </div>
         </div>
       )}
@@ -966,6 +1057,32 @@ const WorkoutPage = () => {
                   </svg>
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+        <div className="relative" ref={actionsRef}>
+          <button
+            type="button"
+            aria-label="Меню действий"
+            className="inline-flex items-center justify-center p-2 rounded-full hover:bg-white/10"
+            onClick={() => setIsActionsOpen(v => !v)}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" />
+            </svg>
+          </button>
+
+          {isActionsOpen && (
+            <div className="absolute right-0 mt-2 w-48 glass card-dark rounded-lg shadow-lg z-50">
+              <button
+                onClick={() => {
+                  setIsActionsOpen(false);
+                  setIsReorderOpen(true);
+                }}
+                className="btn-glass btn-glass-sm btn-glass-secondary w-full text-left"
+              >
+                Поменять порядок упражнений
+              </button>
             </div>
           )}
         </div>
@@ -1087,6 +1204,17 @@ const WorkoutPage = () => {
           </div>
         </div>
       )}
+
+      <ReorderExercisesModal
+        open={isReorderOpen}
+        onClose={() => setIsReorderOpen(false)}
+        items={exercises.map(exercise => ({
+          id: exercise.id,
+          name: exercise.name,
+          position: exercise.position ?? 0,
+        }))}
+        onSave={handleSaveNewOrder}
+      />
 
       <ConfirmDialog
         open={isDeleteWorkoutOpen}
