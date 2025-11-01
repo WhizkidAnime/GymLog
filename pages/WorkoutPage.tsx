@@ -826,7 +826,6 @@ const WorkoutPage = () => {
           <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {formatDateForDisplay(normalizedDate)}</h1>
         </div>
         <div className="mt-4 p-6 text-center">
-          <p className="text-gray-500 mb-4">Тренировка не запланирована.</p>
           {templates.length > 0 ? (
             <>
               <h2 className="text-lg font-semibold mb-3">Выбрать шаблон</h2>
