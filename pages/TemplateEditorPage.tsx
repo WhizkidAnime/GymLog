@@ -30,6 +30,7 @@ const TemplateEditorPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; tempId?: number }>({ open: false });
   const [savedDialogOpen, setSavedDialogOpen] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
   const textareaRefs = React.useRef<{ [key: number]: HTMLTextAreaElement | null }>({});
 
   const adjustTextareaHeight = React.useCallback((element: HTMLTextAreaElement | null) => {
@@ -92,6 +93,15 @@ const TemplateEditorPage = () => {
       setLoading(false);
     }
   }, [id, navigate]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolling(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleExerciseChange = (tempId: number, field: keyof TemplateExercise, value: string) => {
     setExercises(prevExercises =>
@@ -222,7 +232,22 @@ const TemplateEditorPage = () => {
   
   return (
     <div className="relative p-4 max-w-lg mx-auto">
-      <div className="mb-4 glass card-dark p-4 flex items-center gap-4">
+      <style>{`
+        .header-container {
+          transition: all 0.3s ease-out;
+          position: sticky;
+          top: 1rem;
+          z-index: 30;
+        }
+        .header-container.scrolling {
+          padding: 0.5rem 1rem;
+        }
+        .header-container.scrolling h1 {
+          font-size: 1.5rem;
+          transition: font-size 0.3s ease-out;
+        }
+      `}</style>
+      <div className={`mb-4 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <BackButton className="shrink-0" />
         <div className="flex-1 text-center">
           <h1 className="text-3xl font-bold">
