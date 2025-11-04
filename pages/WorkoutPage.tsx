@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePageState } from '../hooks/usePageState';
@@ -51,6 +51,7 @@ const WorkoutPage = () => {
   const { date } = useParams<{ date: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const normalizedDate = useMemo(() => normalizeDateParam(date), [date]);
   const pageStateKey = normalizedDate ? `workout-page:${normalizedDate}` : 'workout-page';
@@ -117,6 +118,7 @@ const WorkoutPage = () => {
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
   const isRestoringScroll = useRef(false);
   const lastScrollPosition = useRef(0);
+  const focusAppliedRef = useRef(false);
 
   const fetchWorkoutData = useCallback(async (fromCache = false, silent = false) => {
     if (!user || !normalizedDate) {
@@ -286,7 +288,39 @@ const WorkoutPage = () => {
   }, []);
 
   useEffect(() => {
+    // Сбрасываем флаг применения фокуса при смене даты или переходе на новую history-запись
+    focusAppliedRef.current = false;
+  }, [normalizedDate, location.key]);
+
+  useEffect(() => {
     if (!normalizedDate || exercises.length === 0) return;
+
+    const tryFocusExercise = () => {
+      const focusExerciseId = (location.state as any)?.focusExerciseId as string | undefined;
+      if (!focusExerciseId || focusAppliedRef.current) return false;
+      const el = document.getElementById(`exercise-${focusExerciseId}`);
+      if (!el) return false;
+      focusAppliedRef.current = true;
+      isRestoringScroll.current = true;
+      const header = document.querySelector('.header-container') as HTMLElement | null;
+      const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+      const spacing = 12;
+      const rect = el.getBoundingClientRect();
+      const targetTop = Math.max(0, window.scrollY + rect.top - headerBottom - spacing);
+      window.scrollTo({ top: targetTop, behavior: 'smooth' });
+      if ((el as any).animate) {
+        (el as any).animate(
+          [
+            { boxShadow: '0 0 0 rgba(59,130,246,0)' },
+            { boxShadow: '0 0 0 4px rgba(59,130,246,0.6)' },
+            { boxShadow: '0 0 0 rgba(59,130,246,0)' },
+          ],
+          { duration: 1200, easing: 'ease-in-out' }
+        );
+      }
+      setTimeout(() => { isRestoringScroll.current = false; }, 600);
+      return true;
+    };
 
     const restoreScroll = () => {
       try {
@@ -312,8 +346,11 @@ const WorkoutPage = () => {
       }
     };
 
-    restoreScroll();
-  }, [normalizedDate, exercises.length, scrollKey]);
+    if (!tryFocusExercise()) {
+      // Если нечего фокусировать — восстанавливаем обычный скролл
+      restoreScroll();
+    }
+  }, [normalizedDate, exercises.length, scrollKey, location.state]);
 
   useEffect(() => {
     if (!normalizedDate) return;

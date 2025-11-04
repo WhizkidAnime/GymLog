@@ -11,6 +11,7 @@ import TemplatesPage from './pages/TemplatesPage';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import ProfilePage from './pages/ProfilePage';
 import TemplateImportPage from './pages/TemplateImportPage';
+import ExerciseHistoryPage from './pages/ExerciseHistoryPage';
 
 // const DefaultRedirect = () => {
 //     const lastPath = typeof window !== 'undefined' ? window.localStorage.getItem('lastPath') : null;
@@ -39,6 +40,7 @@ const AppRoutes = () => {
                 <Route path="templates/:id" element={<TemplateEditorPage />} />
                 <Route path="templates/import" element={<TemplateImportPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+                <Route path="exercise-history" element={<ExerciseHistoryPage />} />
             </Route>
         </Routes>
     );

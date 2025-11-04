@@ -7,6 +7,7 @@ const NAVIGATION_TIMEOUT = 30 * 60 * 1000; // 30 минут
 
 type TabPaths = {
   calendar: string;
+  search: string;
   templates: string;
   profile: string;
   lastUpdated: number;
@@ -14,6 +15,7 @@ type TabPaths = {
 
 const DEFAULT_PATHS: TabPaths = {
   calendar: '/calendar',
+  search: '/exercise-history',
   templates: '/templates',
   profile: '/profile',
   lastUpdated: Date.now(),
@@ -24,14 +26,23 @@ const getStoredPaths = (): TabPaths => {
     const stored = localStorage.getItem(TAB_PATHS_KEY);
     if (!stored) return DEFAULT_PATHS;
 
-    const parsed = JSON.parse(stored) as TabPaths;
+    const parsed = JSON.parse(stored) as Partial<TabPaths>;
 
     // Проверяем, не устарели ли данные (более 30 минут)
-    if (Date.now() - parsed.lastUpdated > NAVIGATION_TIMEOUT) {
+    if (typeof parsed.lastUpdated !== 'number' || Date.now() - parsed.lastUpdated > NAVIGATION_TIMEOUT) {
       return DEFAULT_PATHS;
     }
 
-    return parsed;
+    // Гарантируем наличие всех ключей (в т.ч. нового search)
+    const merged: TabPaths = {
+      calendar: parsed.calendar ?? DEFAULT_PATHS.calendar,
+      search: (parsed as any).search ?? DEFAULT_PATHS.search,
+      templates: parsed.templates ?? DEFAULT_PATHS.templates,
+      profile: parsed.profile ?? DEFAULT_PATHS.profile,
+      lastUpdated: parsed.lastUpdated ?? Date.now(),
+    };
+
+    return merged;
   } catch {
     return DEFAULT_PATHS;
   }
@@ -53,6 +64,7 @@ const saveTabPath = (tab: keyof Omit<TabPaths, 'lastUpdated'>, path: string) => 
 
 const getTabFromPath = (path: string): keyof Omit<TabPaths, 'lastUpdated'> | null => {
   if (path.startsWith('/calendar') || path.startsWith('/workout')) return 'calendar';
+  if (path.startsWith('/exercise-history')) return 'search';
   if (path.startsWith('/templates')) return 'templates';
   if (path.startsWith('/profile')) return 'profile';
   return null;
@@ -71,9 +83,10 @@ export const useTabNavigation = () => {
   }, [location.pathname]);
 
   // Функция для навигации к вкладке с восстановлением последнего пути
-  const navigateToTab = (targetTab: 'calendar' | 'templates' | 'profile') => {
+  const navigateToTab = (targetTab: 'calendar' | 'search' | 'templates' | 'profile') => {
     const storedPaths = getStoredPaths();
-    const targetPath = storedPaths[targetTab];
+    const fallback = DEFAULT_PATHS[targetTab];
+    const targetPath = storedPaths[targetTab] || fallback;
 
     // Если мы уже на этой вкладке, не делаем ничего
     const currentTab = getTabFromPath(location.pathname);

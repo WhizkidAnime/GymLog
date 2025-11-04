@@ -170,7 +170,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
   };
 
   return (
-    <div className="glass card-dark p-4 exercise-card">
+    <div id={`exercise-${exercise.id}`} className="glass card-dark p-4 exercise-card">
       <div className="exercise-card-header mb-3">
         <div className="name-wrap">
           <textarea
