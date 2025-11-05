@@ -31,6 +31,18 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
     if (open) setList(initial);
   }, [open, initial]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscrollY = (document.body.style as any).overscrollBehaviorY;
+    document.body.style.overflow = 'hidden';
+    (document.body.style as any).overscrollBehaviorY = 'contain';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      (document.body.style as any).overscrollBehaviorY = prevOverscrollY;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const move = (i: number, j: number) => {
@@ -71,7 +83,7 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overscroll-contain">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-4">
         <h2 className="text-lg font-semibold mb-3">Порядок упражнений</h2>
@@ -91,11 +103,14 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
                 type="button"
                 aria-label="Перетащить"
                 className="cursor-grab px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 active:cursor-grabbing"
-                onMouseDown={e => e.preventDefault()}
+                draggable
+                onDragStart={onDragStart(it.id)}
               >
                 ⋮⋮
               </button>
-              <div className="flex-1 truncate">{it.name || 'Без названия'}</div>
+              <div className="flex-1 whitespace-normal break-words leading-snug">
+                {it.name || 'Без названия'}
+              </div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"

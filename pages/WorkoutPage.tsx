@@ -396,6 +396,18 @@ const WorkoutPage = () => {
     };
   }, [normalizedDate, scrollKey]);
 
+  useEffect(() => {
+    if (!isSelectTemplateOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscrollY = (document.body.style as any).overscrollBehaviorY;
+    document.body.style.overflow = 'hidden';
+    (document.body.style as any).overscrollBehaviorY = 'contain';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      (document.body.style as any).overscrollBehaviorY = prevOverscrollY;
+    };
+  }, [isSelectTemplateOpen]);
+
   const handleUpdateExercise = (updatedExercise: WorkoutExerciseWithSets) => {
     setPageState(prev => {
       const updatedExercises = prev.exercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex));
@@ -1039,6 +1051,20 @@ const WorkoutPage = () => {
         .header-container.scrolling {
           padding: 0.35rem 1rem;
           gap: 0.7rem;
+          /* При скролле прилипает ближе к верху на устройствах без выреза */
+          top: 0.25rem;
+        }
+        /* На устройствах с вырезом (iOS) ограничиваемся челкой */
+        @supports (top: calc(env(safe-area-inset-top) + 1px)) {
+          .header-container.scrolling {
+            top: calc(env(safe-area-inset-top) + 4px);
+          }
+        }
+        /* Старый синтаксис для ранних iOS */
+        @supports (top: constant(safe-area-inset-top)) {
+          .header-container.scrolling {
+            top: calc(constant(safe-area-inset-top) + 4px);
+          }
         }
         .header-container.scrolling h1 {
           font-size: 1.25rem;
@@ -1219,9 +1245,10 @@ const WorkoutPage = () => {
         </button>
       </div>
 
-      {isSelectTemplateOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md glass card-dark rounded-xl shadow-xl p-5">
+      {isSelectTemplateOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overscroll-contain">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setIsSelectTemplateOpen(false)} />
+          <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">Выберите шаблон</h2>
               <button onClick={() => setIsSelectTemplateOpen(false)} className="px-2 py-1 text-sm text-gray-300 hover:text-white">✕</button>
@@ -1229,7 +1256,7 @@ const WorkoutPage = () => {
             {templates.length === 0 ? (
               <p className="text-gray-400">Нет доступных шаблонов.</p>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto">
+              <div className="space-y-2 max-h-[70vh] overflow-y-auto overscroll-contain pr-1">
                 {templates.map(t => (
                   <button
                     key={t.id}
@@ -1243,7 +1270,8 @@ const WorkoutPage = () => {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ReorderExercisesModal
