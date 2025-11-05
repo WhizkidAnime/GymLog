@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -113,6 +114,8 @@ const WorkoutPage = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const actionsBtnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{top: number; left: number} | null>(null);
   const [isReorderOpen, setIsReorderOpen] = useState(false);
 
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
@@ -280,8 +283,11 @@ const WorkoutPage = () => {
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
-      if (!actionsRef.current) return;
-      if (!actionsRef.current.contains(e.target as Node)) setIsActionsOpen(false);
+      if (!actionsRef.current && !actionsBtnRef.current) return;
+      const target = e.target as Node;
+      const isClickOnButton = actionsBtnRef.current?.contains(target);
+      const isClickOnRef = actionsRef.current?.contains(target);
+      if (!isClickOnButton && !isClickOnRef) setIsActionsOpen(false);
     };
     document.addEventListener('click', fn);
     return () => document.removeEventListener('click', fn);
@@ -1031,15 +1037,21 @@ const WorkoutPage = () => {
           z-index: 30;
         }
         .header-container.scrolling {
-          padding: 0.5rem 1rem;
+          padding: 0.35rem 1rem;
+          gap: 0.7rem;
+        }
+        .header-container.scrolling h1 {
+          font-size: 1.25rem;
+          line-height: 1.2;
         }
         .header-container.scrolling input {
-          font-size: 1.25rem;
+          font-size: 1.1rem;
           pointer-events: none;
           cursor: default;
         }
         .header-container.scrolling p {
-          font-size: 0.875rem;
+          font-size: 0.8rem;
+          line-height: 1.15;
         }
       `}</style>
       <div className={`glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
@@ -1063,15 +1075,30 @@ const WorkoutPage = () => {
             </div>
           ) : (
             <div className="flex flex-col gap-2 w-full">
-              <input
-                ref={inputRef}
-                type="text"
-                value={editNameValue}
-                onChange={event => setEditNameValue(event.target.value)}
-                disabled={isSavingWorkoutName}
-                className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 py-2 transition-colors disabled:opacity-70"
-                placeholder="Название тренировки"
-              />
+              <div className="relative">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={editNameValue}
+                  onChange={event => setEditNameValue(event.target.value)}
+                  disabled={isSavingWorkoutName}
+                  className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 pr-9 py-2 transition-colors disabled:opacity-70"
+                  placeholder="Название тренировки"
+                />
+                {editNameValue && (
+                  <button
+                    type="button"
+                    onClick={() => setEditNameValue('')}
+                    aria-label="Очистить"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                )}
+              </div>
               <div className="flex items-center justify-center gap-2">
                 <button
                   onClick={handleSaveEditName}
@@ -1099,48 +1126,25 @@ const WorkoutPage = () => {
         </div>
         <div className="relative" ref={actionsRef}>
           <button
+            ref={actionsBtnRef}
             type="button"
             aria-label="Меню действий"
             className="inline-flex items-center justify-center p-2 rounded-full hover:bg-white/10"
-            onClick={() => setIsActionsOpen(v => !v)}
+            onClick={() => {
+              if (!isActionsOpen && actionsBtnRef.current) {
+                const r = actionsBtnRef.current.getBoundingClientRect();
+                setMenuPos({ top: r.bottom + 8, left: r.right - 192 });
+              }
+              setIsActionsOpen(v => !v);
+            }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" />
             </svg>
           </button>
-
-          {isActionsOpen && (
-            <div className="absolute right-0 mt-2 w-48 glass card-dark rounded-lg shadow-lg z-50">
-              <button
-                onClick={() => {
-                  setIsActionsOpen(false);
-                  setIsReorderOpen(true);
-                }}
-                className="btn-glass btn-glass-sm btn-glass-secondary w-full text-left"
-              >
-                Поменять порядок упражнений
-              </button>
-            </div>
-          )}
         </div>
       </div>
       
-      <div className="glass card-dark p-3 rounded-md flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={handleOpenChangeTemplate}
-          className="glass-button-create"
-        >
-          Изменить тренировку
-        </button>
-        <button
-          type="button"
-          onClick={handleDeleteWorkout}
-          className="glass-button-danger"
-        >
-          Удалить
-        </button>
-      </div>
 
       <div className="space-y-4">
         {exercises.map(exercise => (
@@ -1263,6 +1267,43 @@ const WorkoutPage = () => {
         variant="danger"
         onConfirm={confirmDeleteWorkout}
       />
+
+      {isActionsOpen && menuPos && createPortal(
+        <div
+          className="fixed menu-popover"
+          style={{ top: menuPos.top, left: menuPos.left, width: 192 }}
+          role="menu"
+        >
+          <button
+            onClick={() => {
+              setIsActionsOpen(false);
+              setIsReorderOpen(true);
+            }}
+            className="w-full text-left px-4 py-2 hover:bg-white/10 text-gray-100 transition-colors rounded-lg"
+          >
+            Поменять порядок упражнений
+          </button>
+          <button
+            onClick={() => {
+              setIsActionsOpen(false);
+              handleOpenChangeTemplate();
+            }}
+            className="w-full text-left px-4 py-2 hover:bg-white/10 text-gray-100 transition-colors rounded-lg"
+          >
+            Изменить тренировку
+          </button>
+          <button
+            onClick={() => {
+              setIsActionsOpen(false);
+              handleDeleteWorkout();
+            }}
+            className="w-full text-left px-4 py-2 text-red-400 hover:bg-red-500/10 transition-colors rounded-lg"
+          >
+            Удалить
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

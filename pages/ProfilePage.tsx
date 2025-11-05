@@ -76,7 +76,7 @@ const ProfilePage = () => {
           </button>
           
           {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 glass card-dark rounded-lg shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-48 menu-popover">
               <button
                 onClick={() => {
                   setIsMenuOpen(false);

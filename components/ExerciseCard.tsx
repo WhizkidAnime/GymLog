@@ -172,14 +172,31 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
   return (
     <div id={`exercise-${exercise.id}`} className="glass card-dark p-4 exercise-card">
       <div className="exercise-card-header mb-3">
-        <div className="name-wrap">
+        <div className="name-wrap relative">
           <textarea
             value={nameInput}
             onChange={(e) => setNameInput(e.target.value)}
             ref={nameInputRef}
             rows={1}
-            className="w-full text-base sm:text-lg font-bold text-white whitespace-pre-wrap bg-white/10 hover:bg-white/15 focus:bg-white/10 border border-white/20 hover:border-white/30 focus:border-white/50 focus:ring-2 focus:ring-white/25 focus:outline-none rounded-xl px-4 py-3 min-h-[3rem] resize-none overflow-y-hidden leading-relaxed transition-colors"
+            className="w-full text-base sm:text-lg font-bold text-white whitespace-pre-wrap bg-white/10 hover:bg-white/15 focus:bg-white/10 border border-white/20 hover:border-white/30 focus:border-white/50 focus:ring-2 focus:ring-white/25 focus:outline-none rounded-xl px-4 pr-9 py-3 min-h-[3rem] resize-none overflow-y-hidden leading-relaxed transition-colors"
           />
+          {nameInput && nameInput.trim() !== '' && (
+            <button
+              type="button"
+              onClick={() => {
+                setNameInput('');
+                // после очистки пересчитать высоту
+                requestAnimationFrame(() => adjustNameInputHeight());
+              }}
+              aria-label="Очистить"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          )}
         </div>
         <button
           aria-label="Удалить упражнение"
@@ -188,8 +205,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
           type="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <path d="M3 6h18" />
+            <path d="M8 6l1-2h6l1 2" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
           </svg>
         </button>
       </div>

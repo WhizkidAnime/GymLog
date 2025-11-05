@@ -81,7 +81,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
 
   // Автоматическое выставление/отключение галочки при изменении веса или повторов
   useEffect(() => {
-    const hasWeight = debouncedWeight !== '' && debouncedWeight !== 0 && debouncedWeight !== '0';
+    const hasWeight = debouncedWeight !== '';
     const hasReps = debouncedReps !== '' && debouncedReps !== null;
     const shouldBeDone = hasWeight && hasReps;
 

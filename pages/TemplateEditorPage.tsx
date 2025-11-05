@@ -231,7 +231,7 @@ const TemplateEditorPage = () => {
   );
   
   return (
-    <div className="relative p-4 max-w-lg mx-auto">
+    <div className="relative p-4 max-w-lg mx-auto template-editor">
       <style>{`
         .header-container {
           transition: all 0.3s ease-out;
@@ -240,16 +240,48 @@ const TemplateEditorPage = () => {
           z-index: 30;
         }
         .header-container.scrolling {
-          padding: 0.5rem 1rem;
+          padding: 0.35rem 1rem;
+          gap: 0.7rem;
+        }
+        .header-container h1 {
+          overflow: visible;
+          transition: font-size 0.3s ease-out, line-height 0.3s ease-out, max-height 0.3s ease-out;
+          font-size: 1.25rem;
+          line-height: 1.2;
+          max-height: 10rem;
         }
         .header-container.scrolling h1 {
-          font-size: 1.5rem;
-          transition: font-size 0.3s ease-out;
+          font-size: 1.1rem;
+          line-height: 1.2;
+          max-height: 1.25em; /* 1 строка */
+          overflow: hidden;
         }
+        .header-container.scrolling input {
+          font-size: 1.1rem;
+          pointer-events: none;
+          cursor: default;
+        }
+        .header-container.scrolling p {
+          font-size: 0.8rem;
+          line-height: 1.15;
+        }
+        /* Отключаем браузерные outline/подсветку на hover/focus только в редакторе шаблона */
+        .template-editor input,
+        .template-editor textarea,
+        .template-editor select { outline: none !important; box-shadow: none !important; }
+        .template-editor input:hover,
+        .template-editor textarea:hover,
+        .template-editor select:hover { outline: none !important; box-shadow: none !important; border-color: #3f3f46 !important; }
+        .template-editor input:focus,
+        .template-editor textarea:focus,
+        .template-editor select:focus,
+        .template-editor input:focus-visible,
+        .template-editor textarea:focus-visible,
+        .template-editor select:focus-visible { outline: none !important; box-shadow: none !important; border-color: #3f3f46 !important; }
       `}</style>
       <div className={`mb-4 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <BackButton className="shrink-0" />
-        <div className="flex-1 text-center">
+        <div className="flex-1 min-w-0 text-center">
           <h1 className="text-3xl font-bold">
             {id ? 'Редактировать шаблон' : 'Новый шаблон'}
           </h1>
@@ -262,16 +294,31 @@ const TemplateEditorPage = () => {
       >
         <div>
           <label htmlFor="template-name" className="block text-sm font-medium" style={{color:'#e4e4e7'}}>Название дня</label>
-          <input
-            id="template-name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Например, Push Day"
-            required
-            className="mt-1 block w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
-          />
+          <div className="relative">
+            <input
+              id="template-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Например, Push Day"
+              required
+              className="mt-1 block w-full px-3 pr-9 py-2 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
+            />
+            {name && (
+              <button
+                type="button"
+                onClick={() => setName('')}
+                aria-label="Очистить"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -287,7 +334,7 @@ const TemplateEditorPage = () => {
             >
               <div className={`${ex._state === 'deleting' ? 'hidden' : 'p-4 space-y-3'}`}>
                 <div className="exercise-card-header mb-3">
-                  <div className="name-wrap">
+                  <div className="name-wrap relative">
                     <textarea
                         ref={el => textareaRefs.current[ex._tempId] = el}
                         placeholder="Название упражнения"
@@ -297,9 +344,26 @@ const TemplateEditorPage = () => {
                           adjustTextareaHeight(e.currentTarget);
                         }}
                         rows={1}
-                        className="w-full px-3 py-2 rounded-md resize-none overflow-y-hidden min-h-[2.5rem] leading-relaxed"
+                        className="w-full px-3 pr-9 py-2 rounded-md resize-none overflow-y-hidden min-h-[2.5rem] leading-relaxed"
                         style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46', fontFamily: 'inherit'}}
                     />
+                    {ex.name && ex.name.trim() !== '' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleExerciseChange(ex._tempId, 'name', '');
+                          const el = textareaRefs.current[ex._tempId];
+                          if (el) adjustTextareaHeight(el);
+                        }}
+                        aria-label="Очистить"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    )}
                   </div>
                   <button 
                     type="button" 
@@ -308,8 +372,11 @@ const TemplateEditorPage = () => {
                     aria-label="Удалить упражнение"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                      <path d="M3 6h18" />
+                      <path d="M8 6l1-2h6l1 2" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
                     </svg>
                   </button>
                 </div>
