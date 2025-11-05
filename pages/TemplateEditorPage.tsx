@@ -32,6 +32,7 @@ const TemplateEditorPage = () => {
   const [savedDialogOpen, setSavedDialogOpen] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const textareaRefs = React.useRef<{ [key: number]: HTMLTextAreaElement | null }>({});
+  const topSentinelRef = React.useRef<HTMLDivElement | null>(null);
 
   const adjustTextareaHeight = React.useCallback((element: HTMLTextAreaElement | null) => {
     if (!element) return;
@@ -95,19 +96,13 @@ const TemplateEditorPage = () => {
   }, [id, navigate]);
 
   useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setIsScrolling(window.scrollY > 0);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    const el = topSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsScrolling(!entry.isIntersecting);
+    }, { root: null, threshold: 0 });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   const handleExerciseChange = (tempId: number, field: keyof TemplateExercise, value: string) => {
@@ -241,10 +236,13 @@ const TemplateEditorPage = () => {
     <div className="relative p-4 max-w-lg mx-auto template-editor">
       <style>{`
         .header-container {
-          transition: all 0.3s ease-out;
+          transition: padding 0.3s ease-out, gap 0.3s ease-out;
           position: sticky;
           top: 1rem;
           z-index: 30;
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+          will-change: transform;
         }
         .header-container.scrolling {
           padding: 0.35rem 1rem;
@@ -285,7 +283,10 @@ const TemplateEditorPage = () => {
         .template-editor input:focus-visible,
         .template-editor textarea:focus-visible,
         .template-editor select:focus-visible { outline: none !important; box-shadow: none !important; border-color: #3f3f46 !important; }
+        .top-sentinel { height: 1px; }
+        .template-editor { overscroll-behavior-y: contain; }
       `}</style>
+      <div ref={topSentinelRef} className="top-sentinel" aria-hidden="true"></div>
       <div className={`mb-4 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <BackButton className="shrink-0" />
         <div className="flex-1 min-w-0 text-center">
