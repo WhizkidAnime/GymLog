@@ -10,8 +10,24 @@ interface SetRowProps {
 
 export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   const storageKey = `workout_set_draft:${set.id}`;
+  // Внутреннее представление веса — всегда строка с запятой в качестве разделителя
+  const toDisplay = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', ','));
+  const toNumber = (s: string) => {
+    if (s === '') return null;
+    const n = Number(s.replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  };
+  const normalizeInput = (v: string) => {
+    let s = v.replace('.', ',');
+    s = s.replace(/[^\d,]/g, '');
+    const idx = s.indexOf(',');
+    if (idx !== -1) {
+      s = s.slice(0, idx + 1) + s.slice(idx + 1).replace(/,/g, '');
+    }
+    return s;
+  };
 
-  const [weight, setWeight] = useState<string | number>(set.weight ?? '');
+  const [weight, setWeight] = useState<string>(toDisplay(set.weight));
   const [reps, setRps] = useState<string>(set.reps ?? '');
   const [isDone, setIsDone] = useState<boolean>(set.is_done);
   const [isSaving, setIsSaving] = useState(false);
@@ -24,10 +40,10 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return;
-      const draft = JSON.parse(raw) as { weight: number | '' ; reps: string | null; isDone: boolean; updatedAt: number };
+      const draft = JSON.parse(raw) as { weight: number | ''; reps: string | null; isDone: boolean; updatedAt: number };
       const dbUpdatedAt = new Date(set.updated_at).getTime();
       if (draft.updatedAt > dbUpdatedAt) {
-        setWeight(draft.weight === null ? '' : draft.weight);
+        setWeight(draft.weight === '' ? '' : toDisplay(draft.weight as number));
         setRps(draft.reps ?? '');
         setIsDone(draft.isDone);
       }
@@ -45,15 +61,16 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   useEffect(() => {
     const saveSet = async () => {
       // Только если действительно что-то изменилось
-      if (debouncedWeight !== (set.weight ?? '') || debouncedReps !== (set.reps ?? '')) {
-        const draft = { weight: debouncedWeight === '' ? '' : Number(debouncedWeight), reps: debouncedReps === '' ? null : debouncedReps, isDone, updatedAt: Date.now() };
+      const weightNum = toNumber(debouncedWeight as string);
+      if (weightNum !== (set.weight ?? null) || debouncedReps !== (set.reps ?? '')) {
+        const draft = { weight: weightNum === null ? '' : weightNum, reps: debouncedReps === '' ? null : debouncedReps, isDone, updatedAt: Date.now() };
         try { localStorage.setItem(storageKey, JSON.stringify(draft)); } catch {}
 
         setIsSaving(true);
         const { error } = await supabase
           .from('workout_sets')
           .update({
-            weight: debouncedWeight === '' ? null : Number(debouncedWeight),
+            weight: weightNum,
             reps: debouncedReps === '' ? null : debouncedReps,
             updated_at: new Date().toISOString(),
           })
@@ -67,7 +84,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           // Сообщим вверх об изменении
           onChange?.({
             ...set,
-            weight: debouncedWeight === '' ? null : Number(debouncedWeight),
+            weight: weightNum,
             reps: debouncedReps === '' ? null : debouncedReps,
             is_done: isDone,
             updated_at: new Date().toISOString(),
@@ -81,7 +98,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
 
   // Автоматическое выставление/отключение галочки при изменении веса или повторов
   useEffect(() => {
-    const hasWeight = debouncedWeight !== '';
+    const hasWeight = toNumber(debouncedWeight as string) !== null;
     const hasReps = debouncedReps !== '' && debouncedReps !== null;
     const shouldBeDone = hasWeight && hasReps;
 
@@ -100,7 +117,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ weight: weight === '' ? '' : Number(weight), reps: reps === '' ? null : reps, isDone: newDoneState, updatedAt: Date.now() })
+        JSON.stringify({ weight: toNumber(weight) === null ? '' : (toNumber(weight) as number), reps: reps === '' ? null : reps, isDone: newDoneState, updatedAt: Date.now() })
       );
     } catch {}
     const { error } = await supabase
@@ -124,12 +141,11 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
       <div className={`col-span-1 text-center font-medium ${textColor}`}>{set.set_index}</div>
       <div className="col-span-2">
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.25"
           placeholder="0"
           value={weight}
-          onChange={(e) => setWeight(e.target.value)}
+          onChange={(e) => setWeight(normalizeInput(e.target.value))}
           className={`w-full p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
           style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
         />

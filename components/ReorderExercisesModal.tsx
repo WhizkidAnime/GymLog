@@ -21,6 +21,9 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
   const [list, setList] = useState<ReorderItem[]>([]);
   const draggingId = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [touchDragId, setTouchDragId] = useState<string | null>(null);
+  const touchStartY = useRef<number>(0);
+  const scrollContainerRef = useRef<HTMLOListElement>(null);
 
   const initial = useMemo(
     () => items.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0)),
@@ -72,6 +75,38 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
     setList(prev => reorder(prev, from, to));
   };
 
+  const handleTouchStart = (id: string) => (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartY.current = touch.clientY;
+    setTouchDragId(id);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchDragId) return;
+    
+    const touch = e.touches[0];
+    const currentY = touch.clientY;
+    const deltaY = currentY - touchStartY.current;
+    
+    const draggedIdx = list.findIndex(i => i.id === touchDragId);
+    if (draggedIdx === -1) return;
+
+    const itemHeight = 60;
+    const steps = Math.round(deltaY / itemHeight);
+    
+    if (Math.abs(steps) >= 1) {
+      const newIdx = draggedIdx + steps;
+      if (newIdx >= 0 && newIdx < list.length && newIdx !== draggedIdx) {
+        setList(prev => reorder(prev, draggedIdx, newIdx));
+        touchStartY.current = currentY;
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setTouchDragId(null);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -88,7 +123,12 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-4">
         <h2 className="text-lg font-semibold mb-3">Порядок упражнений</h2>
 
-        <ol className="space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+        <ol 
+          ref={scrollContainerRef}
+          className="space-y-2 max-h-[55vh] overflow-y-auto pr-1"
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {list.map((it, idx) => (
             <li
               key={it.id}
@@ -96,15 +136,18 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
               onDragStart={onDragStart(it.id)}
               onDragOver={onDragOver}
               onDrop={onDrop(it.id)}
-              className="rounded-lg p-2 flex items-center gap-2 hover:bg-white/5 transition-colors"
+              className={`rounded-lg p-2 flex items-center gap-2 hover:bg-white/5 transition-colors ${
+                touchDragId === it.id ? 'bg-white/20 scale-105' : ''
+              }`}
             >
               <span className="select-none w-6 text-center opacity-70">{idx + 1}.</span>
               <button
                 type="button"
                 aria-label="Перетащить"
-                className="cursor-grab px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 active:cursor-grabbing"
+                className="cursor-grab px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 active:cursor-grabbing touch-none"
                 draggable
                 onDragStart={onDragStart(it.id)}
+                onTouchStart={handleTouchStart(it.id)}
               >
                 ⋮⋮
               </button>

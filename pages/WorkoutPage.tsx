@@ -1043,10 +1043,15 @@ const WorkoutPage = () => {
           }
         }
         .header-container {
-          transition: all 0.3s ease-out;
           position: sticky;
           top: 1rem;
           z-index: 30;
+          will-change: transform, padding, gap;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .header-container.scrolling {
           padding: 0.35rem 1rem;
@@ -1066,14 +1071,31 @@ const WorkoutPage = () => {
             top: calc(constant(safe-area-inset-top) + 4px);
           }
         }
+        .header-container h1 {
+          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: font-size;
+        }
         .header-container.scrolling h1 {
           font-size: 1.25rem;
           line-height: 1.2;
+        }
+        .header-container input {
+          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      pointer-events 0s 0.3s;
+          will-change: font-size;
         }
         .header-container.scrolling input {
           font-size: 1.1rem;
           pointer-events: none;
           cursor: default;
+          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      pointer-events 0s;
+        }
+        .header-container p {
+          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: font-size;
         }
         .header-container.scrolling p {
           font-size: 0.8rem;

@@ -232,7 +232,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
       <div className="mt-4 flex items-center justify-center gap-3">
         <button
           onClick={toggle}
-          className={`btn-glass btn-glass-icon-sm ${isActive ? 'btn-glass-danger' : 'btn-glass-primary'}`}
+          className={`btn-glass btn-glass-icon-lg ${isActive ? 'btn-glass-danger' : 'btn-glass-primary'}`}
         >
           {isActive ? 'Стоп' : 'Старт'}
         </button>

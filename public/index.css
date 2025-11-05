@@ -169,7 +169,7 @@ body::before {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 40;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  padding: 8px 10px calc(max(6px, env(safe-area-inset-bottom) - 26px));
   display: flex;
   justify-content: center;
 }
@@ -177,9 +177,9 @@ body::before {
 .glass-dock {
   position: relative;
   width: fit-content;
-  min-width: 280px;
-  max-width: 520px;
-  border-radius: 50px;
+  min-width: 240px;
+  max-width: 460px;
+  border-radius: 42px;
   background: color-mix(in oklab, var(--glass-bg) 60%, transparent);
   -webkit-backdrop-filter: saturate(200%) blur(24px);
   backdrop-filter: saturate(200%) blur(24px);
@@ -194,13 +194,13 @@ body::before {
   /* неоновые мягкие пятна под табами */
   content: "";
   position: absolute;
-  inset: 8px 24px;
+  inset: 6px 20px;
   pointer-events: none;
-  border-radius: 24px;
+  border-radius: 20px;
   background:
     radial-gradient(35% 50% at 25% 50%, rgba(56,189,248,0.12), transparent 65%),
     radial-gradient(35% 50% at 75% 50%, rgba(56,189,248,0.08), transparent 65%);
-  filter: blur(18px);
+  filter: blur(16px);
 }
 
 .dock-track {
@@ -208,9 +208,9 @@ body::before {
   display: grid;
   grid-template-columns: repeat(var(--tabs-count, 3), 1fr);
   align-items: stretch;
-  height: 72px;
-  padding: 8px;
-  gap: 4px;
+  height: 60px;
+  padding: 7px;
+  gap: 3px;
 }
 
 .dock-item {
@@ -220,18 +220,19 @@ body::before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   color: rgba(255,255,255,0.65);
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
   transition: color .3s cubic-bezier(0.4, 0, 0.2, 1), transform .15s ease, background .35s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 40px;
-  padding: 8px 12px;
+  border-radius: 34px;
+  padding: 5px 10px 9px;
   background: transparent;
 }
 
-.dock-item .icon { display: grid; place-items: center; font-size: 28px; }
-.dock-item .label { font-size: 11px; line-height: 1; font-weight: 500; }
+.dock-item .icon { display: grid; place-items: center; font-size: 22px; transform: translateY(-1px); }
+.dock-item .icon svg { width: 20px; height: 20px; }
+.dock-item .label { font-size: 10px; line-height: 1; font-weight: 500; }
 
 .dock-item:hover { color: rgba(255,255,255,0.85); transform: scale(1.05); }
 .dock-item:active { transform: scale(0.98); }
@@ -441,6 +442,19 @@ body::before {
   border-radius: 12px;
   font-size: 1.125rem;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Увеличенная иконка-кнопка (x1.5 от sm) */
+.btn-glass-icon-lg {
+  padding: 12px;
+  min-width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  font-size: 1.6875rem; /* 1.125rem * 1.5 */
+  font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
