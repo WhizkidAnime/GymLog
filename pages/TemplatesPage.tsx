@@ -277,7 +277,7 @@ const TemplatesPage = () => {
         </div>
       )}
 
-      <div className="fixed left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30 flex gap-3">
+      <div className="fixed left-0 right-0 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-30 flex justify-center gap-3">
         <Link
           to="/templates/new"
           className="glass-button-create"
