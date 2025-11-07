@@ -62,7 +62,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
     const saveSet = async () => {
       // Только если действительно что-то изменилось
       const weightNum = toNumber(debouncedWeight as string);
-      if (weightNum !== (set.weight ?? null) || debouncedReps !== (set.reps ?? '')) {
+      if (weightNum !== (set.weight ?? null) || debouncedReps !== (set.reps ?? '') || isDone !== set.is_done) {
         const draft = { weight: weightNum === null ? '' : weightNum, reps: debouncedReps === '' ? null : debouncedReps, isDone, updatedAt: Date.now() };
         try { localStorage.setItem(storageKey, JSON.stringify(draft)); } catch {}
 
@@ -72,6 +72,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           .update({
             weight: weightNum,
             reps: debouncedReps === '' ? null : debouncedReps,
+            is_done: isDone,
             updated_at: new Date().toISOString(),
           })
           .eq('id', set.id);
@@ -94,7 +95,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
       }
     };
     saveSet();
-  }, [debouncedWeight, debouncedReps, set.id, set.weight, set.reps, isDone, storageKey]);
+  }, [debouncedWeight, debouncedReps, set.id, set.weight, set.reps, set.is_done, isDone, storageKey]);
 
   // Автоматическое выставление/отключение галочки при изменении веса или повторов
   useEffect(() => {

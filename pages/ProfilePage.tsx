@@ -97,6 +97,13 @@ const ProfilePage = () => {
       </div>
       <div className="space-y-2">
         <button
+          onClick={() => navigate('/progress')}
+          className="btn-glass btn-glass-full btn-glass-md btn-glass-primary"
+        >
+          Узнать прогресс
+        </button>
+        
+        <button
           onClick={handleLogout}
           className="btn-glass btn-glass-logout btn-glass-full btn-glass-md"
         >
