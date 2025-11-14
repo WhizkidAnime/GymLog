@@ -953,7 +953,7 @@ const WorkoutPage = () => {
   if (!workout) {
     if (isCreating) {
       return (
-        <div className="px-4 pt-safe">
+        <div className="px-4 pt-4">
           <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
             <div className="flex flex-col items-center gap-4">
               <div className="relative w-12 h-12">
@@ -966,7 +966,7 @@ const WorkoutPage = () => {
       );
     }
     return (
-      <div className="max-w-lg mx-auto px-4 pt-safe">
+      <div className="max-w-lg mx-auto px-4 pt-4">
         <div className="flex items-center gap-3 mb-6">
           <BackButton />
           <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {formatDateForDisplay(normalizedDate)}</h1>
@@ -1018,7 +1018,7 @@ const WorkoutPage = () => {
   }
 
   return (
-    <div className="relative px-4 space-y-4 pt-safe pb-10">
+    <div className="relative px-4 space-y-4 pt-4 pb-10">
       {/* Показываем индикатор при начальной загрузке или при обновлении страницы */}
       {loading && (
         <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
