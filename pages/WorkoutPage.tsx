@@ -1199,6 +1199,7 @@ const WorkoutPage = () => {
           <ExerciseCard 
             key={exercise.id} 
             exercise={exercise}
+            workoutDate={normalizedDate}
             onUpdateExercise={handleUpdateExercise}
             onDeleteExercise={(exerciseId) => {
               setPageState(prev => {

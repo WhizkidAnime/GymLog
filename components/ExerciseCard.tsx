@@ -1,24 +1,48 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { WorkoutExerciseWithSets } from '../types/database.types';
+import type { WorkoutExerciseWithSets, WorkoutSet } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 import { SetRow } from './SetRow';
 import { RestTimer } from './RestTimer';
 import { useDebounce } from '../hooks/useDebounce';
 import ConfirmDialog from './confirm-dialog';
+import { useAuth } from '../hooks/useAuth';
+import { formatDateForDisplay } from '../utils/date-helpers';
+import { processProgressData } from '../utils/progress-helpers';
+
+const normalizeExerciseName = (value: string) =>
+  (value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ')
+    .replace(/[-–—]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 interface ExerciseCardProps {
   exercise: WorkoutExerciseWithSets;
+  workoutDate?: string | null;
   onUpdateExercise: (updatedExercise: WorkoutExerciseWithSets) => void;
   onDeleteExercise?: (exerciseId: number) => void;
 }
 
-export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateExercise, onDeleteExercise }) => {
+type LastPerformance = {
+  weight: number | null;
+  reps: string | null;
+  workoutDate: string | null;
+};
+
+export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDate, onUpdateExercise, onDeleteExercise }) => {
+
   const [nameInput, setNameInput] = useState(exercise.name);
   const [setsCount, setSetsCount] = useState<number>(exercise.sets);
   const [restSeconds, setRestSeconds] = useState<number>(exercise.rest_seconds);
   const [busy, setBusy] = useState(false);
+  const [lastPerformance, setLastPerformance] = useState<LastPerformance | null>(null);
+  const [lastPerformanceStatus, setLastPerformanceStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
   const nameInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const { user } = useAuth();
   const debouncedName = useDebounce(nameInput, 500);
   const debouncedRestSeconds = useDebounce(restSeconds, 500);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -40,6 +64,113 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
     setSetsCount(exercise.sets);
     setRestSeconds(exercise.rest_seconds);
   }, [exercise.id, exercise.sets, exercise.rest_seconds]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const rawName = debouncedName.trim();
+    const normalizedTarget = normalizeExerciseName(rawName);
+    if (!normalizedTarget) {
+      setLastPerformance(null);
+      setLastPerformanceStatus('idle');
+      return;
+    }
+
+    let cancelled = false;
+    setLastPerformanceStatus('loading');
+
+    const fetchLastPerformance = async () => {
+      try {
+        let query = supabase
+          .from('workouts')
+          .select('id, workout_date, name, user_id')
+          .eq('user_id', user.id);
+
+        if (workoutDate) {
+          query = query.lt('workout_date', workoutDate);
+        }
+
+        const { data: workouts, error: wErr } = await query.order('workout_date', { ascending: true });
+
+        if (cancelled) return;
+        if (wErr) throw wErr;
+
+        const workoutMap = new Map<string, { date: string; name: string }>();
+        const workoutIds = (workouts || []).map((w: any) => {
+          workoutMap.set(w.id as string, { date: w.workout_date as string, name: w.name as string });
+          return w.id as string;
+        });
+
+        if (workoutIds.length === 0) {
+          setLastPerformance(null);
+          setLastPerformanceStatus('ready');
+          return;
+        }
+
+        const { data: exData, error: exErr } = await supabase
+          .from('workout_exercises')
+          .select('id, name, workout_id, workout_sets ( weight, reps, is_done )')
+          .in('workout_id', workoutIds);
+
+        if (cancelled) return;
+        if (exErr) throw exErr;
+
+        const normalizeLocal = (s: string) => normalizeExerciseName(s);
+        const filtered = (exData || []).filter((ex: any) => normalizeLocal(ex.name as string) === normalizedTarget);
+
+        const rawData = filtered
+          .map((ex: any) => {
+            const w = workoutMap.get(ex.workout_id as string);
+            if (!w) return null;
+            return {
+              workout_date: w.date,
+              workout_name: w.name,
+              workout_id: ex.workout_id as string,
+              exercise_id: ex.id as string,
+              sets: (ex.workout_sets || []) as WorkoutSet[],
+            };
+          })
+          .filter(Boolean) as {
+            workout_date: string;
+            workout_name: string;
+            workout_id: string;
+            exercise_id: string;
+            sets: WorkoutSet[];
+          }[];
+
+        if (rawData.length === 0) {
+          setLastPerformance(null);
+          setLastPerformanceStatus('ready');
+          return;
+        }
+
+        const processed = processProgressData(rawName, rawData);
+        const lastPoint = processed.dataPoints[processed.dataPoints.length - 1];
+
+        if (!lastPoint) {
+          setLastPerformance(null);
+          setLastPerformanceStatus('ready');
+          return;
+        }
+
+        setLastPerformance({
+          weight: lastPoint.weight,
+          reps: lastPoint.reps,
+          workoutDate: lastPoint.date,
+        });
+        setLastPerformanceStatus('ready');
+      } catch (err) {
+        console.error('Failed to fetch last exercise performance', err);
+        setLastPerformanceStatus('error');
+      }
+    };
+
+    fetchLastPerformance();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedName, user, workoutDate]);
 
   useLayoutEffect(() => {
     adjustNameInputHeight();
@@ -169,6 +300,35 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
     if (onDeleteExercise) onDeleteExercise(exercise.id);
   };
 
+  const formatWeight = (value: number | null) => {
+    if (value === null || value === undefined) return '—';
+    return String(value).replace('.', ',');
+  };
+
+  const renderLastPerformance = () => {
+    if (!nameInput.trim()) {
+      return <span className="text-gray-500">Введите название, чтобы увидеть прошлый результат</span>;
+    }
+
+    if (lastPerformanceStatus === 'loading') {
+      return <span className="text-gray-400">Поиск последнего результата…</span>;
+    }
+
+    if (lastPerformanceStatus === 'error') {
+      return <span className="text-red-300">Не удалось загрузить данные</span>;
+    }
+
+    if (lastPerformance) {
+      return (
+        <span className="text-white text-base font-semibold">
+          {formatWeight(lastPerformance.weight)} кг × {lastPerformance.reps ?? '—'}
+        </span>
+      );
+    }
+
+    return <span className="text-gray-500">До этой даты нет данных по этому упражнению</span>;
+  };
+
   return (
     <div id={`exercise-${exercise.id}`} className="glass card-dark p-4 exercise-card">
       <div className="exercise-card-header mb-3">
@@ -214,6 +374,17 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, onUpdateEx
         </button>
       </div>
       <div className="space-y-3">
+        <div className="rounded-2xl bg-white/5 px-4 py-3 text-xs sm:text-sm text-gray-300">
+          <div className="mb-1 flex items-center justify-between gap-3">
+            <span className="font-semibold text-white">Последний рабочий вес</span>
+            {lastPerformance?.workoutDate && (
+              <span className="text-[0.7rem] uppercase tracking-wide text-gray-400">
+                {formatDateForDisplay(lastPerformance.workoutDate)}
+              </span>
+            )}
+          </div>
+          {renderLastPerformance()}
+        </div>
         <div className="flex justify-center">
           <RestTimer
             restSeconds={restSeconds}
