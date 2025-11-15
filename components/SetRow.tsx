@@ -10,6 +10,7 @@ interface SetRowProps {
 
 export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   const storageKey = `workout_set_draft:${set.id}`;
+  const lastNonMaxKey = `workout_set_last_non_max_reps:${set.id}`;
   // Внутреннее представление веса — всегда строка с запятой в качестве разделителя
   const toDisplay = (n: number | null | undefined) => (n === null || n === undefined ? '' : String(n).replace('.', ','));
   const toNumber = (s: string) => {
@@ -27,13 +28,56 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
     return s;
   };
 
+  const MAX_REPS_LABEL = 'макс.';
+
+  const repsFromDbToDisplay = (value: string | null) => {
+    if (value === null || value === undefined) return '';
+    if (value === '0') return MAX_REPS_LABEL;
+    return value;
+  };
+
+  const repsDisplayToDb = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (trimmed === '') return null;
+    const lower = trimmed.toLowerCase();
+    if (lower === 'макс' || lower === 'макс.' || /^0+$/.test(trimmed)) return '0';
+    return trimmed;
+  };
+
+  const normalizeRepsInput = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed === '') return '';
+    if (/^0+$/.test(trimmed)) return MAX_REPS_LABEL;
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('макс')) return MAX_REPS_LABEL;
+    const digitsOnly = trimmed.replace(/[^0-9]/g, '');
+    return digitsOnly;
+  };
+
+  const initialRepsDisplay = repsFromDbToDisplay(set.reps);
   const [weight, setWeight] = useState<string>(toDisplay(set.weight));
-  const [reps, setRps] = useState<string>(set.reps ?? '');
+  const [reps, setRps] = useState<string>(initialRepsDisplay);
+  const [lastNonMaxReps, setLastNonMaxReps] = useState<string | null>(
+    repsDisplayToDb(initialRepsDisplay) === '0' ? null : (initialRepsDisplay || null)
+  );
   const [isDone, setIsDone] = useState<boolean>(set.is_done);
   const [isSaving, setIsSaving] = useState(false);
 
   const debouncedWeight = useDebounce(weight, 500);
   const debouncedReps = useDebounce(reps, 500);
+ 
+  const persistLastNonMaxReps = (value: string | null) => {
+    setLastNonMaxReps(value);
+    try {
+      if (value && value.trim() !== '') {
+        localStorage.setItem(lastNonMaxKey, value);
+      } else {
+        localStorage.removeItem(lastNonMaxKey);
+      }
+    } catch {
+      // ignore
+    }
+  };
   
   // При маунте пробуем восстановиться из localStorage, если данные свежее, чем в БД
   useEffect(() => {
@@ -44,7 +88,11 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
       const dbUpdatedAt = new Date(set.updated_at).getTime();
       if (draft.updatedAt > dbUpdatedAt) {
         setWeight(draft.weight === '' ? '' : toDisplay(draft.weight as number));
-        setRps(draft.reps ?? '');
+        const restoredRepsDisplay = repsFromDbToDisplay(draft.reps);
+        setRps(restoredRepsDisplay);
+        const nonMax =
+          repsDisplayToDb(restoredRepsDisplay) === '0' ? null : (restoredRepsDisplay || null);
+        persistLastNonMaxReps(nonMax);
         setIsDone(draft.isDone);
       }
     } catch {
@@ -57,13 +105,26 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   useEffect(() => {
     setIsDone(set.is_done);
   }, [set.is_done]);
+ 
+  useEffect(() => {
+    if (set.reps !== '0') return;
+    try {
+      const saved = localStorage.getItem(lastNonMaxKey);
+      if (saved && saved.trim() !== '') {
+        setLastNonMaxReps(saved);
+      }
+    } catch {
+      // ignore
+    }
+  }, [set.reps, lastNonMaxKey]);
   
   useEffect(() => {
     const saveSet = async () => {
       // Только если действительно что-то изменилось
       const weightNum = toNumber(debouncedWeight as string);
-      if (weightNum !== (set.weight ?? null) || debouncedReps !== (set.reps ?? '') || isDone !== set.is_done) {
-        const draft = { weight: weightNum === null ? '' : weightNum, reps: debouncedReps === '' ? null : debouncedReps, isDone, updatedAt: Date.now() };
+      const repsForDb = repsDisplayToDb(debouncedReps as string);
+      if (weightNum !== (set.weight ?? null) || repsForDb !== (set.reps ?? null) || isDone !== set.is_done) {
+        const draft = { weight: weightNum === null ? '' : weightNum, reps: repsForDb, isDone, updatedAt: Date.now() };
         try { localStorage.setItem(storageKey, JSON.stringify(draft)); } catch {}
 
         setIsSaving(true);
@@ -71,7 +132,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           .from('workout_sets')
           .update({
             weight: weightNum,
-            reps: debouncedReps === '' ? null : debouncedReps,
+            reps: repsForDb,
             is_done: isDone,
             updated_at: new Date().toISOString(),
           })
@@ -86,7 +147,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           onChange?.({
             ...set,
             weight: weightNum,
-            reps: debouncedReps === '' ? null : debouncedReps,
+            reps: repsForDb,
             is_done: isDone,
             updated_at: new Date().toISOString(),
           });
@@ -100,7 +161,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   // Автоматическое выставление/отключение галочки при изменении веса или повторов
   useEffect(() => {
     const hasWeight = toNumber(debouncedWeight as string) !== null;
-    const hasReps = debouncedReps !== '' && debouncedReps !== null;
+    const hasReps = repsDisplayToDb(debouncedReps as string) !== null;
     const shouldBeDone = hasWeight && hasReps;
 
     if (shouldBeDone && !isDone) {
@@ -110,65 +171,66 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
     }
   }, [debouncedWeight, debouncedReps, isDone]);
 
-  const handleDoneToggle = async () => {
-    const newDoneState = !isDone;
-    setIsDone(newDoneState);
-    setIsSaving(true);
-    // Обновим черновик сразу
-    try {
-      localStorage.setItem(
-        storageKey,
-        JSON.stringify({ weight: toNumber(weight) === null ? '' : (toNumber(weight) as number), reps: reps === '' ? null : reps, isDone: newDoneState, updatedAt: Date.now() })
-      );
-    } catch {}
-    const { error } = await supabase
-      .from('workout_sets')
-      .update({ is_done: newDoneState, updated_at: new Date().toISOString() })
-      .eq('id', set.id);
-    if (error) {
-      console.error("Error updating done status:", error);
-      setIsDone(!newDoneState); // Revert on error
-    }
-    try { localStorage.removeItem(storageKey); } catch {}
-    setTimeout(() => setIsSaving(false), 500);
-    onChange?.({ ...set, is_done: newDoneState, updated_at: new Date().toISOString() });
-  };
-  
   const doneBg = isDone ? 'bg-green-500' : 'bg-transparent';
   const textColor = isDone ? 'text-black' : 'text-inherit';
 
+  const isMaxMode = repsDisplayToDb(reps) === '0';
+
+  const handleToggleMax = () => {
+    if (isMaxMode) {
+      if (lastNonMaxReps !== null && lastNonMaxReps.trim() !== '') {
+        setRps(lastNonMaxReps);
+      } else {
+        setRps('');
+      }
+    } else {
+      if (repsDisplayToDb(reps) !== '0' && reps.trim() !== '') {
+        persistLastNonMaxReps(reps);
+      }
+      setRps(MAX_REPS_LABEL);
+    }
+  };
+
   return (
-    <div className={`relative grid grid-cols-5 gap-2 items-center p-2 rounded-md transition-colors duration-300 ${doneBg}`}>
+    <div className={`relative grid grid-cols-6 gap-3 items-center p-2 rounded-md transition-colors duration-300 ${doneBg}`}>
       <div className={`col-span-1 text-center font-medium ${textColor}`}>{set.set_index}</div>
-      <div className="col-span-2">
+      <div className="col-span-2 flex justify-center">
         <input
           type="text"
           inputMode="decimal"
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
-          className={`w-full p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
+          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
           style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
         />
       </div>
-      <div className="col-span-1">
+      <div className="col-span-2 flex justify-center">
         <input
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
           placeholder="0"
           value={reps}
-          onChange={(e) => setRps(e.target.value)}
-          className={`w-full p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
+          onChange={(e) => {
+            const next = normalizeRepsInput(e.target.value);
+            setRps(next);
+            if (repsDisplayToDb(next) !== '0') {
+              const value = next.trim() === '' ? null : next;
+              persistLastNonMaxReps(value);
+            }
+          }}
+          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
           style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
         />
       </div>
       <div className="col-span-1 flex justify-center">
         <input
           type="checkbox"
-          checked={isDone}
-          onChange={handleDoneToggle}
-          className="h-6 w-6 rounded-sm border border-gray-300 bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          checked={isMaxMode}
+          onChange={handleToggleMax}
+          aria-label="Подход в отказ (макс.)"
+          className="h-6 w-6 rounded-md border border-gray-300 bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           style={{ accentColor: '#000000', color: '#0a0a0a' }}
         />
       </div>

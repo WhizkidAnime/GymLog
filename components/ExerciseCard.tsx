@@ -392,7 +392,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
             onAdjustRestSeconds={adjustRestSeconds}
           />
         </div>
-        <div className="flex items-center justify-between text-xs sm:text-sm py-4 sm:py-5 px-2 rounded-lg" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.02)'}}>
+        <div className="flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.02)'}}>
           <div className="flex items-center gap-3">
             <span className="whitespace-nowrap font-medium">Подходы:</span>
             <div className="inline-flex items-center gap-2">
@@ -401,7 +401,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
                 onClick={() => applySetsChange(setsCount - 1)}
                 className="btn-glass btn-glass-icon-round btn-glass-secondary"
               >−</button>
-              <span className="min-w-[3ch] text-center text-white font-semibold text-base sm:text-lg">{setsCount}</span>
+              <span className="min-w-[3ch] text-center text-white font-semibold text-sm sm:text-base">{setsCount}</span>
               <button
                 disabled={busy || setsCount >= 30}
                 onClick={() => applySetsChange(setsCount + 1)}
@@ -410,17 +410,17 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
             </div>
           </div>
           {exercise.reps?.trim() && (
-            <div className="ml-3 flex-1 text-right whitespace-nowrap text-sm sm:text-base font-medium">Повторы: {exercise.reps}</div>
+            <div className="ml-3 flex-1 text-right whitespace-nowrap font-medium">Повторы: {exercise.reps}</div>
           )}
         </div>
       </div>
       
-      <div className="space-y-3 pt-2">
-        <div className="grid grid-cols-5 gap-3 text-center text-sm sm:text-base font-semibold px-3 py-3 rounded-lg" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
+      <div className="space-y-3 pt-1">
+        <div className="grid grid-cols-6 gap-3 text-center text-sm font-semibold px-2 py-2 rounded-lg" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
           <div className="col-span-1">Подход</div>
           <div className="col-span-2">Вес (кг)</div>
-          <div className="col-span-1">Повторы</div>
-          <div className="col-span-1">Готово</div>
+          <div className="col-span-2">Повторы</div>
+          <div className="col-span-1 whitespace-nowrap">В отказ</div>
         </div>
         <div className="space-y-2">
           {exercise.workout_sets.map((set) => (
