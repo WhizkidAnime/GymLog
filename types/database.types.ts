@@ -199,7 +199,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      exercise_progress_view: {
+        Row: {
+          workout_date: string
+          workout_name: string
+          workout_id: string
+          exercise_id: string
+          max_weight: number | null
+          reps_at_max_weight: string | null
+        }
+      }
     }
     Functions: {
       delete_user_account: {

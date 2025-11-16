@@ -48,28 +48,49 @@ const ProgressPage = () => {
   // Загрузка списка упражнений
   const fetchExercises = useCallback(async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: workouts, error: wErr } = await supabase
+        .from('workouts')
+        .select('id')
+        .eq('user_id', user.id);
+      if (wErr) throw wErr;
+
+      const workoutIds = (workouts || []).map((w: any) => w.id as string);
+
+      if (workoutIds.length === 0) {
+        setExercises([]);
+        return;
+      }
+
+      const { data: progressRows, error: pErr } = await supabase
+        .from('exercise_progress_view')
+        .select('workout_id, exercise_id, max_weight')
+        .in('workout_id', workoutIds);
+      if (pErr) throw pErr;
+
+      const statsByExerciseId = new Map<string, number>();
+
+      (progressRows || []).forEach((row: any) => {
+        const id = row.exercise_id as string | null;
+        const weight = row.max_weight || 0;
+        if (!id || weight <= 0) return;
+        const prev = statsByExerciseId.get(id) || 0;
+        statsByExerciseId.set(id, prev + 1);
+      });
+
+      if (statsByExerciseId.size === 0) {
+        setExercises([]);
+        return;
+      }
+
+      const { data: exerciseRows, error: eErr } = await supabase
         .from('workout_exercises')
-        .select(`
-          name,
-          workout_sets!inner (
-            id,
-            weight,
-            is_done,
-            reps
-          ),
-          workouts!inner (
-            user_id
-          )
-        `)
-        .eq('workouts.user_id', user.id);
+        .select('id, name')
+        .in('id', Array.from(statsByExerciseId.keys()));
+      if (eErr) throw eErr;
 
-      if (error) throw error;
-
-      // Группируем по нормализованному названию
       const normalize = (s: string) => (s || '')
         .normalize('NFKC')
         .toLowerCase()
@@ -78,24 +99,23 @@ const ProgressPage = () => {
         .replace(/[-–—]+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+
       const exerciseMap = new Map<string, { name: string; total: number }>();
-      
-      (data || []).forEach((ex: any) => {
+
+      (exerciseRows || []).forEach((ex: any) => {
         const rawName = (ex.name ?? '').trim();
         if (!rawName) return;
         const key = normalize(rawName);
-        // Считаем только валидные сеты (готовые или с весом+повторами)
-        const completedSets = (ex.workout_sets || []).filter((s: any) => {
-          const hasWeight = s.weight !== null && s.weight > 0;
-          const hasReps = s.reps !== null && String(s.reps).trim() !== '';
-          return (s.is_done || (hasWeight && hasReps)) && hasWeight;
-        });
-        if (completedSets.length === 0) return;
+        const totalSessions = statsByExerciseId.get(ex.id as string) || 0;
+        if (totalSessions <= 0) return;
         const prev = exerciseMap.get(key);
         if (prev) {
-          exerciseMap.set(key, { name: prev.name.length >= rawName.length ? prev.name : rawName, total: prev.total + completedSets.length });
+          exerciseMap.set(key, {
+            name: prev.name.length >= rawName.length ? prev.name : rawName,
+            total: prev.total + totalSessions,
+          });
         } else {
-          exerciseMap.set(key, { name: rawName, total: completedSets.length });
+          exerciseMap.set(key, { name: rawName, total: totalSessions });
         }
       });
 
@@ -119,36 +139,28 @@ const ProgressPage = () => {
   // Загрузка данных прогресса для выбранного упражнения
   const fetchProgressData = useCallback(async (exerciseName: string) => {
     if (!user) return;
-    
+
     setLoadingProgress(true);
     try {
-      // 1) Берем все тренировки пользователя (минимальные поля)
       const { data: workouts, error: wErr } = await supabase
         .from('workouts')
-        .select('id, workout_date, name')
-        .eq('user_id', user.id)
-        .order('workout_date', { ascending: true });
+        .select('id')
+        .eq('user_id', user.id);
       if (wErr) throw wErr;
 
-      const workoutMap = new Map<string, { date: string; name: string }>();
-      const workoutIds = (workouts || []).map((w: any) => {
-        workoutMap.set(w.id, { date: w.workout_date, name: w.name });
-        return w.id as string;
-      });
+      const workoutIds = (workouts || []).map((w: any) => w.id as string);
 
       if (workoutIds.length === 0) {
         setProgressData({ exerciseName, dataPoints: [], totalSessions: 0, maxWeight: 0, minWeight: 0 });
         return;
       }
 
-      // 2) Берем упражнения по этим тренировкам с сетами
-      const { data: exData, error: exErr } = await supabase
+      const { data: exList, error: exListErr } = await supabase
         .from('workout_exercises')
-        .select(`id, name, workout_id, workout_sets ( weight, reps, is_done )`)
+        .select('id, name, workout_id')
         .in('workout_id', workoutIds);
-      if (exErr) throw exErr;
+      if (exListErr) throw exListErr;
 
-      // Обрабатываем данные для графика
       const normalize = (s: string) => (s || '')
         .normalize('NFKC')
         .toLowerCase()
@@ -159,21 +171,36 @@ const ProgressPage = () => {
         .trim();
       const target = normalize(exerciseName);
 
-      const filtered = (exData || []).filter((ex: any) => normalize(ex.name) === target);
+      const exerciseIds = new Set<string>();
 
-      const rawData = filtered
-        .map((ex: any) => {
-          const w = workoutMap.get(ex.workout_id);
-          if (!w) return null;
-          return {
-            workout_date: w.date,
-            workout_name: w.name,
-            workout_id: ex.workout_id,
-            exercise_id: ex.id,
-            sets: ex.workout_sets || [],
-          } as { workout_date: string; workout_name: string; workout_id: string; exercise_id: string; sets: any[] };
-        })
-        .filter(Boolean) as { workout_date: string; workout_name: string; workout_id: string; exercise_id: string; sets: any[] }[];
+      (exList || []).forEach((ex: any) => {
+        const rawName = (ex.name ?? '').trim();
+        if (!rawName) return;
+        if (normalize(rawName) === target) {
+          exerciseIds.add(ex.id as string);
+        }
+      });
+
+      if (exerciseIds.size === 0) {
+        setProgressData({ exerciseName, dataPoints: [], totalSessions: 0, maxWeight: 0, minWeight: 0 });
+        return;
+      }
+
+      const { data: viewRows, error: viewErr } = await supabase
+        .from('exercise_progress_view')
+        .select('workout_date, workout_name, workout_id, exercise_id, max_weight, reps_at_max_weight')
+        .in('workout_id', workoutIds)
+        .in('exercise_id', Array.from(exerciseIds));
+      if (viewErr) throw viewErr;
+
+      const rawData = (viewRows || []).map((row: any) => ({
+        workout_date: row.workout_date as string,
+        workout_name: row.workout_name as string,
+        workout_id: row.workout_id as string,
+        exercise_id: row.exercise_id as string,
+        max_weight: row.max_weight as number | null,
+        reps_at_max_weight: row.reps_at_max_weight as string | null,
+      }));
 
       const processed = processProgressData(exerciseName, rawData);
       setProgressData(processed);

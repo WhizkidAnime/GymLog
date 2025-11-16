@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { WorkoutExerciseWithSets, WorkoutSet } from '../types/database.types';
+import type { WorkoutExerciseWithSets } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 import { SetRow } from './SetRow';
 import { RestTimer } from './RestTimer';
@@ -30,6 +30,39 @@ type LastPerformance = {
   weight: number | null;
   reps: string | null;
   workoutDate: string | null;
+};
+
+const LAST_PERFORMANCE_TTL = 2 * 60 * 60 * 1000; // 2 часа
+
+type LastPerformanceCacheEntry = {
+  data: LastPerformance | null;
+  timestamp: number;
+};
+
+const lastPerformanceCache = new Map<string, LastPerformanceCacheEntry>();
+
+const getLastPerformanceCacheKey = (
+  userId: string,
+  normalizedName: string,
+  workoutDate?: string | null
+) => `${userId}:${normalizedName}:${workoutDate || 'none'}`;
+
+const getCachedLastPerformance = (key: string): LastPerformance | null | undefined => {
+  const entry = lastPerformanceCache.get(key);
+  if (!entry) return undefined;
+  const age = Date.now() - entry.timestamp;
+  if (age > LAST_PERFORMANCE_TTL) {
+    lastPerformanceCache.delete(key);
+    return undefined;
+  }
+  return entry.data;
+};
+
+const setCachedLastPerformance = (key: string, data: LastPerformance | null) => {
+  lastPerformanceCache.set(key, {
+    data,
+    timestamp: Date.now(),
+  });
 };
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDate, onUpdateExercise, onDeleteExercise }) => {
@@ -76,70 +109,88 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
       return;
     }
 
+    const cacheKey = getLastPerformanceCacheKey(user.id, normalizedTarget, workoutDate ?? null);
+    const cached = getCachedLastPerformance(cacheKey);
+    if (cached !== undefined) {
+      setLastPerformance(cached);
+      setLastPerformanceStatus('ready');
+      return;
+    }
+
     let cancelled = false;
     setLastPerformanceStatus('loading');
 
     const fetchLastPerformance = async () => {
       try {
-        let query = supabase
+        let workoutsQuery = supabase
           .from('workouts')
           .select('id, workout_date, name, user_id')
           .eq('user_id', user.id);
 
         if (workoutDate) {
-          query = query.lt('workout_date', workoutDate);
+          workoutsQuery = workoutsQuery.lt('workout_date', workoutDate);
         }
 
-        const { data: workouts, error: wErr } = await query.order('workout_date', { ascending: true });
+        const { data: workouts, error: wErr } = await workoutsQuery.order('workout_date', { ascending: true });
 
         if (cancelled) return;
         if (wErr) throw wErr;
 
-        const workoutMap = new Map<string, { date: string; name: string }>();
-        const workoutIds = (workouts || []).map((w: any) => {
-          workoutMap.set(w.id as string, { date: w.workout_date as string, name: w.name as string });
-          return w.id as string;
-        });
+        const workoutIds = (workouts || []).map((w: any) => w.id as string);
 
         if (workoutIds.length === 0) {
           setLastPerformance(null);
+          setCachedLastPerformance(cacheKey, null);
           setLastPerformanceStatus('ready');
           return;
         }
 
-        const { data: exData, error: exErr } = await supabase
+        const { data: exList, error: exListErr } = await supabase
           .from('workout_exercises')
-          .select('id, name, workout_id, workout_sets ( weight, reps, is_done )')
+          .select('id, name, workout_id')
           .in('workout_id', workoutIds);
 
         if (cancelled) return;
-        if (exErr) throw exErr;
+        if (exListErr) throw exListErr;
 
-        const normalizeLocal = (s: string) => normalizeExerciseName(s);
-        const filtered = (exData || []).filter((ex: any) => normalizeLocal(ex.name as string) === normalizedTarget);
+        const exerciseIds = new Set<string>();
 
-        const rawData = filtered
-          .map((ex: any) => {
-            const w = workoutMap.get(ex.workout_id as string);
-            if (!w) return null;
-            return {
-              workout_date: w.date,
-              workout_name: w.name,
-              workout_id: ex.workout_id as string,
-              exercise_id: ex.id as string,
-              sets: (ex.workout_sets || []) as WorkoutSet[],
-            };
-          })
-          .filter(Boolean) as {
-            workout_date: string;
-            workout_name: string;
-            workout_id: string;
-            exercise_id: string;
-            sets: WorkoutSet[];
-          }[];
+        (exList || []).forEach((ex: any) => {
+          const raw = (ex.name ?? '').trim();
+          if (!raw) return;
+          if (normalizeExerciseName(raw) === normalizedTarget) {
+            exerciseIds.add(ex.id as string);
+          }
+        });
+
+        if (exerciseIds.size === 0) {
+          setLastPerformance(null);
+          setCachedLastPerformance(cacheKey, null);
+          setLastPerformanceStatus('ready');
+          return;
+        }
+
+        const { data: viewRows, error: viewErr } = await supabase
+          .from('exercise_progress_view')
+          .select('workout_date, workout_name, workout_id, exercise_id, max_weight, reps_at_max_weight')
+          .in('workout_id', workoutIds)
+          .in('exercise_id', Array.from(exerciseIds));
+
+        if (cancelled) return;
+        if (viewErr) throw viewErr;
+
+        const rawData = (viewRows || []).map((row: any) => ({
+          workout_date: row.workout_date as string,
+          workout_name: row.workout_name as string,
+          workout_id: row.workout_id as string,
+          exercise_id: row.exercise_id as string,
+          max_weight: row.max_weight as number | null,
+          reps_at_max_weight: row.reps_at_max_weight as string | null,
+        }));
 
         if (rawData.length === 0) {
           setLastPerformance(null);
+          setCachedLastPerformance(cacheKey, null);
           setLastPerformanceStatus('ready');
           return;
         }
@@ -149,15 +200,19 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
 
         if (!lastPoint) {
           setLastPerformance(null);
+          setCachedLastPerformance(cacheKey, null);
           setLastPerformanceStatus('ready');
           return;
         }
 
-        setLastPerformance({
+        const result: LastPerformance = {
           weight: lastPoint.weight,
           reps: lastPoint.reps,
           workoutDate: lastPoint.date,
-        });
+        };
+
+        setLastPerformance(result);
+        setCachedLastPerformance(cacheKey, result);
         setLastPerformanceStatus('ready');
       } catch (err) {
         console.error('Failed to fetch last exercise performance', err);
@@ -192,7 +247,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
     const saveName = async () => {
       if (debouncedName.trim() === '' || debouncedName === exercise.name) return;
       try {
-        await supabase
+        await (supabase as any)
           .from('workout_exercises')
           .update({ name: debouncedName })
           .eq('id', exercise.id);
@@ -211,7 +266,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
     const saveRestSeconds = async () => {
       if (debouncedRestSeconds === exercise.rest_seconds) return;
       try {
-        await supabase
+        await (supabase as any)
           .from('workout_exercises')
           .update({ rest_seconds: debouncedRestSeconds })
           .eq('id', exercise.id);
@@ -241,7 +296,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
           workout_exercise_id: exercise.id,
           set_index: setsCount + i + 1,
         }));
-        const { data: inserted, error: addErr } = await supabase
+        const { data: inserted, error: addErr } = await (supabase as any)
           .from('workout_sets')
           .insert(toAdd)
           .select();
@@ -249,7 +304,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
 
         const updatedSets = [...exercise.workout_sets, ...(inserted || [])].sort((a, b) => a.set_index - b.set_index);
         // Обновим количество в упражнении
-        await supabase.from('workout_exercises').update({ sets: next }).eq('id', exercise.id);
+        await (supabase as any).from('workout_exercises').update({ sets: next }).eq('id', exercise.id);
         const updated: WorkoutExerciseWithSets = { ...exercise, sets: next, workout_sets: updatedSets };
         onUpdateExercise(updated);
       } else {
@@ -262,7 +317,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
         if (delErr) throw delErr;
 
         const updatedSets = exercise.workout_sets.filter(s => s.set_index <= next);
-        await supabase.from('workout_exercises').update({ sets: next }).eq('id', exercise.id);
+        await (supabase as any).from('workout_exercises').update({ sets: next }).eq('id', exercise.id);
         const updated: WorkoutExerciseWithSets = { ...exercise, sets: next, workout_sets: updatedSets };
         onUpdateExercise(updated);
       }
@@ -416,10 +471,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
       </div>
       
       <div className="space-y-3 pt-1">
-        <div className="grid grid-cols-6 gap-3 text-center text-sm font-semibold px-2 py-2 rounded-lg" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
-          <div className="col-span-1">Подход</div>
-          <div className="col-span-2">Вес (кг)</div>
-          <div className="col-span-2">Повторы</div>
+        <div className="grid grid-cols-6 gap-2 text-center text-sm sm:text-base font-semibold px-1 sm:px-2 py-2 rounded-lg overflow-hidden" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
+          <div className="col-span-1 whitespace-nowrap">Подход</div>
+          <div className="col-span-2 whitespace-nowrap">Вес (кг)</div>
+          <div className="col-span-2 whitespace-nowrap">Повторы</div>
           <div className="col-span-1 whitespace-nowrap">В отказ</div>
         </div>
         <div className="space-y-2">
