@@ -1,221 +1,40 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
-import { processProgressData, type ExerciseProgress, type ProgressDataPoint } from '../utils/progress-helpers';
-import { usePageState } from '../hooks/usePageState';
-
-type ExerciseOption = {
-  name: string;
-  totalSets: number;
-};
-
-type ProgressPageState = {
-  searchQuery: string;
-  selectedExercise: string | null;
-};
+import { type ProgressDataPoint } from '../utils/progress-helpers';
+import { normalizeExerciseName } from '../utils/exercise-name';
+import { useHeaderScroll } from '../hooks/use-header-scroll';
+import { useScrollRestoration } from '../hooks/use-scroll-restoration';
+import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
+import { useProgress } from '../hooks/use-progress';
 
 const ProgressPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [exercises, setExercises] = useState<ExerciseOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [progressData, setProgressData] = useState<ExerciseProgress | null>(null);
-  const [loadingProgress, setLoadingProgress] = useState(false);
-  const [pageState, setPageState] = usePageState<ProgressPageState>({ key: 'progress-page', initialState: { searchQuery: '', selectedExercise: null }, ttl: 30 * 60 * 1000 });
-  const { searchQuery, selectedExercise } = pageState;
+  const {
+    exercises,
+    loading,
+    progressData,
+    loadingProgress,
+    searchQuery,
+    selectedExercise,
+    setSearchQuery,
+    setSelectedExercise,
+    loadProgress,
+  } = useProgress();
   const inputRef = useRef<HTMLInputElement>(null);
-  const isRestoringScroll = useRef(false);
-  const lastScrollPosition = useRef(0);
-  const [isScrolling, setIsScrolling] = useState(false);
+  const isScrolling = useHeaderScroll();
 
   const getScrollKey = useCallback(() => {
     if (selectedExercise) {
-      const k = (selectedExercise || '')
-        .normalize('NFKC')
-        .toLowerCase()
-        .replace(/ё/g, 'е')
-        .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ')
-        .replace(/[-–—]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+      const k = normalizeExerciseName(selectedExercise || '');
       return `scroll:progress-page:detail:${k}`;
     }
     return 'scroll:progress-page:list';
   }, [selectedExercise]);
 
-  // Загрузка списка упражнений
-  const fetchExercises = useCallback(async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const { data: workouts, error: wErr } = await supabase
-        .from('workouts')
-        .select('id')
-        .eq('user_id', user.id);
-      if (wErr) throw wErr;
-
-      const workoutIds = (workouts || []).map((w: any) => w.id as string);
-
-      if (workoutIds.length === 0) {
-        setExercises([]);
-        return;
-      }
-
-      const { data: progressRows, error: pErr } = await supabase
-        .from('exercise_progress_view')
-        .select('workout_id, exercise_id, max_weight')
-        .in('workout_id', workoutIds);
-      if (pErr) throw pErr;
-
-      const statsByExerciseId = new Map<string, number>();
-
-      (progressRows || []).forEach((row: any) => {
-        const id = row.exercise_id as string | null;
-        const weight = row.max_weight || 0;
-        if (!id || weight <= 0) return;
-        const prev = statsByExerciseId.get(id) || 0;
-        statsByExerciseId.set(id, prev + 1);
-      });
-
-      if (statsByExerciseId.size === 0) {
-        setExercises([]);
-        return;
-      }
-
-      const { data: exerciseRows, error: eErr } = await supabase
-        .from('workout_exercises')
-        .select('id, name')
-        .in('id', Array.from(statsByExerciseId.keys()));
-      if (eErr) throw eErr;
-
-      const normalize = (s: string) => (s || '')
-        .normalize('NFKC')
-        .toLowerCase()
-        .replace(/ё/g, 'е')
-        .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ')
-        .replace(/[-–—]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      const exerciseMap = new Map<string, { name: string; total: number }>();
-
-      (exerciseRows || []).forEach((ex: any) => {
-        const rawName = (ex.name ?? '').trim();
-        if (!rawName) return;
-        const key = normalize(rawName);
-        const totalSessions = statsByExerciseId.get(ex.id as string) || 0;
-        if (totalSessions <= 0) return;
-        const prev = exerciseMap.get(key);
-        if (prev) {
-          exerciseMap.set(key, {
-            name: prev.name.length >= rawName.length ? prev.name : rawName,
-            total: prev.total + totalSessions,
-          });
-        } else {
-          exerciseMap.set(key, { name: rawName, total: totalSessions });
-        }
-      });
-
-      const exerciseList = Array.from(exerciseMap.values())
-        .map(({ name, total }) => ({ name, totalSets: total }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
-
-      setExercises(exerciseList);
-    } catch (error) {
-      console.error('Error fetching exercises:', error);
-      alert('Не удалось загрузить список упражнений');
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    fetchExercises();
-  }, [fetchExercises]);
-
-  // Загрузка данных прогресса для выбранного упражнения
-  const fetchProgressData = useCallback(async (exerciseName: string) => {
-    if (!user) return;
-
-    setLoadingProgress(true);
-    try {
-      const { data: workouts, error: wErr } = await supabase
-        .from('workouts')
-        .select('id')
-        .eq('user_id', user.id);
-      if (wErr) throw wErr;
-
-      const workoutIds = (workouts || []).map((w: any) => w.id as string);
-
-      if (workoutIds.length === 0) {
-        setProgressData({ exerciseName, dataPoints: [], totalSessions: 0, maxWeight: 0, minWeight: 0 });
-        return;
-      }
-
-      const { data: exList, error: exListErr } = await supabase
-        .from('workout_exercises')
-        .select('id, name, workout_id')
-        .in('workout_id', workoutIds);
-      if (exListErr) throw exListErr;
-
-      const normalize = (s: string) => (s || '')
-        .normalize('NFKC')
-        .toLowerCase()
-        .replace(/ё/g, 'е')
-        .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ')
-        .replace(/[-–—]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      const target = normalize(exerciseName);
-
-      const exerciseIds = new Set<string>();
-
-      (exList || []).forEach((ex: any) => {
-        const rawName = (ex.name ?? '').trim();
-        if (!rawName) return;
-        if (normalize(rawName) === target) {
-          exerciseIds.add(ex.id as string);
-        }
-      });
-
-      if (exerciseIds.size === 0) {
-        setProgressData({ exerciseName, dataPoints: [], totalSessions: 0, maxWeight: 0, minWeight: 0 });
-        return;
-      }
-
-      const { data: viewRows, error: viewErr } = await supabase
-        .from('exercise_progress_view')
-        .select('workout_date, workout_name, workout_id, exercise_id, max_weight, reps_at_max_weight')
-        .in('workout_id', workoutIds)
-        .in('exercise_id', Array.from(exerciseIds));
-      if (viewErr) throw viewErr;
-
-      const rawData = (viewRows || []).map((row: any) => ({
-        workout_date: row.workout_date as string,
-        workout_name: row.workout_name as string,
-        workout_id: row.workout_id as string,
-        exercise_id: row.exercise_id as string,
-        max_weight: row.max_weight as number | null,
-        reps_at_max_weight: row.reps_at_max_weight as string | null,
-      }));
-
-      const processed = processProgressData(exerciseName, rawData);
-      setProgressData(processed);
-    } catch (error) {
-      console.error('Error fetching progress data:', error);
-      alert('Не удалось загрузить данные прогресса');
-    } finally {
-      setLoadingProgress(false);
-    }
-  }, [user]);
-
   const handleSelectExercise = (exerciseName: string) => {
-    setPageState(prev => ({ ...prev, selectedExercise: exerciseName }));
-    fetchProgressData(exerciseName);
+    setSelectedExercise(exerciseName);
+    loadProgress(exerciseName);
   };
 
   const handleNavigateToWorkout = (point: ProgressDataPoint) => {
@@ -224,21 +43,12 @@ const ProgressPage = () => {
 
   const handleBack = () => {
     if (selectedExercise) {
-      setPageState(prev => ({ ...prev, selectedExercise: null }));
-      setProgressData(null);
+      setSelectedExercise(null);
+      loadProgress(null);
     } else {
       navigate('/profile');
     }
   };
-
-  const normalizeName = (s: string) => (s || '')
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/ё/g, 'е')
-    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ')
-    .replace(/[-–—]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
 
   // Кастомный тултип для графика
   const CustomTooltip = ({ active, payload }: any) => {
@@ -257,74 +67,10 @@ const ProgressPage = () => {
     );
   };
 
-  useEffect(() => {
-    if (selectedExercise) return;
-    if (loading) return;
-    if (exercises.length === 0) return;
-    try {
-      const saved = localStorage.getItem(getScrollKey());
-      if (saved) {
-        const y = parseInt(saved, 10);
-        if (!Number.isNaN(y)) {
-          isRestoringScroll.current = true;
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              window.scrollTo({ top: y, behavior: 'auto' });
-              lastScrollPosition.current = y;
-              setTimeout(() => { isRestoringScroll.current = false; }, 100);
-            });
-          });
-        }
-      }
-    } catch {}
-  }, [selectedExercise, loading, exercises.length, getScrollKey]);
-
-  useEffect(() => {
-    if (!selectedExercise) return;
-    if (loadingProgress) return;
-    if (!progressData) return;
-    try {
-      const saved = localStorage.getItem(getScrollKey());
-      if (saved) {
-        const y = parseInt(saved, 10);
-        if (!Number.isNaN(y)) {
-          isRestoringScroll.current = true;
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              window.scrollTo({ top: y, behavior: 'auto' });
-              lastScrollPosition.current = y;
-              setTimeout(() => { isRestoringScroll.current = false; }, 100);
-            });
-          });
-        }
-      }
-    } catch {}
-  }, [selectedExercise, loadingProgress, progressData, getScrollKey]);
-
-  useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      lastScrollPosition.current = window.scrollY;
-      setIsScrolling(window.scrollY > 0);
-      if (!ticking && !isRestoringScroll.current) {
-        window.requestAnimationFrame(() => {
-          try { localStorage.setItem(getScrollKey(), String(lastScrollPosition.current)); } catch {}
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [getScrollKey]);
-
-  useEffect(() => {
-    return () => {
-      if (lastScrollPosition.current > 0) {
-        try { localStorage.setItem(getScrollKey(), String(lastScrollPosition.current)); } catch {}
-      }
-    };
-  }, [getScrollKey]);
+  useScrollRestoration({
+    key: getScrollKey(),
+    enabled: !loading && (!selectedExercise || (!loadingProgress && !!progressData)),
+  });
 
   useEffect(() => {
     try {
@@ -338,11 +84,11 @@ const ProgressPage = () => {
   }, [selectedExercise]);
 
   useEffect(() => {
-    if (pageState.selectedExercise) return;
+    if (selectedExercise) return;
     try {
       const saved = localStorage.getItem('progress:lastSelectedExercise');
       if (saved) {
-        setPageState(prev => ({ ...prev, selectedExercise: saved }));
+        setSelectedExercise(saved);
       }
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -350,25 +96,16 @@ const ProgressPage = () => {
 
   useEffect(() => {
     if (selectedExercise) {
-      fetchProgressData(selectedExercise);
+      loadProgress(selectedExercise);
     }
-  }, [selectedExercise, fetchProgressData]);
+  }, [selectedExercise, loadProgress]);
 
   const filteredExercises = searchQuery.trim()
-    ? exercises.filter((ex) => normalizeName(ex.name).includes(normalizeName(searchQuery)))
+    ? exercises.filter((ex) => normalizeExerciseName(ex.name).includes(normalizeExerciseName(searchQuery)))
     : exercises;
 
   if (loading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-12 h-12">
-            <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
-          </div>
-          <p className="text-white text-center">Загрузка упражнений...</p>
-        </div>
-      </div>
-    );
+    return <WorkoutLoadingOverlay message="Загрузка упражнений..." />;
   }
 
   return (
@@ -447,7 +184,7 @@ const ProgressPage = () => {
                 ref={inputRef}
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setPageState(prev => ({ ...prev, searchQuery: e.target.value }))}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск"
                 aria-label="Поиск упражнений"
                 className="flex-1 bg-transparent !bg-transparent border-0 !border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-gray-500 text-base shadow-none"
@@ -455,7 +192,7 @@ const ProgressPage = () => {
               />
               <button
                 type="button"
-                onClick={() => { setPageState(prev => ({ ...prev, searchQuery: '' })); inputRef.current?.focus(); }}
+                onClick={() => { setSearchQuery(''); inputRef.current?.focus(); }}
                 aria-label="Очистить"
                 aria-hidden={!searchQuery}
                 className={`shrink-0 w-7 h-7 grid place-items-center rounded-full text-gray-400 hover:text-gray-200 hover:bg-white/10 transition ${searchQuery ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}

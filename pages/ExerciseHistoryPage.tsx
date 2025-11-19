@@ -1,198 +1,57 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import { formatDateForDisplay } from '../utils/date-helpers';
-import { usePageState } from '../hooks/usePageState';
-
-type ExerciseHistoryItem = {
-  exerciseName: string;
-  exerciseId: string;
-  workoutDate: string;
-  workoutName: string;
-  workoutId: string;
-  sets: Array<{
-    setIndex: number;
-    weight: number | null;
-    reps: string | null;
-    isDone: boolean;
-  }>;
-};
-
-type ExerciseHistoryPageState = {
-  searchQuery: string;
-  results: ExerciseHistoryItem[];
-  loading: boolean;
-  hasSearched: boolean;
-  lastUpdated: number | null;
-  lastQuery: string | null;
-};
+import { useScrollRestoration } from '../hooks/use-scroll-restoration';
+import { useExerciseHistory } from '../hooks/use-exercise-history';
 
 const ExerciseHistoryPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [pageState, setPageState] = usePageState<ExerciseHistoryPageState>({
-    key: 'exercise-history-page',
-    initialState: { searchQuery: '', results: [], loading: false, hasSearched: false, lastUpdated: null, lastQuery: null },
-    ttl: 30 * 60 * 1000,
-  });
-  const { searchQuery, results, loading, hasSearched, lastUpdated, lastQuery } = pageState;
-  
+  const {
+    pageState,
+    searchQuery,
+    results,
+    loading,
+    hasSearched,
+    lastUpdated,
+    lastQuery,
+    setSearchQuery,
+    clearSearch,
+    searchExercises,
+    shouldUseCache,
+  } = useExerciseHistory();
+
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
   const scrollKey = 'scroll:exercise-history';
-  const isRestoringScroll = useRef(false);
-  const lastScrollPosition = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const CACHE_TTL = 3 * 60 * 1000; // 3 минуты
-
-  const searchExercises = useCallback(async (query: string) => {
-    if (!user || !query.trim()) {
-      setPageState(prev => ({ ...prev, results: [], hasSearched: false, loading: false, lastUpdated: null }));
-      return;
-    }
-
-    setPageState(prev => ({ ...prev, loading: true, hasSearched: true }));
-
-    try {
-      const { data: exercisesData, error } = await supabase
-        .from('workout_exercises')
-        .select(`
-          id,
-          name,
-          workout_id,
-          workout_sets (
-            set_index,
-            weight,
-            reps,
-            is_done
-          ),
-          workouts!inner (
-            id,
-            workout_date,
-            name,
-            user_id
-          )
-        `)
-        .eq('workouts.user_id', user.id)
-        .ilike('name', `%${query.trim()}%`)
-        .order('workouts(workout_date)', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      const groupedResults: ExerciseHistoryItem[] = [];
-      
-      if (exercisesData) {
-        exercisesData.forEach((exercise: any) => {
-          if (!exercise.workouts) return;
-          
-          const sets = (exercise.workout_sets || [])
-            .map((set: any) => ({
-              setIndex: set.set_index,
-              weight: set.weight,
-              reps: set.reps,
-              isDone: set.is_done,
-            }))
-            .sort((a: any, b: any) => a.setIndex - b.setIndex);
-
-          groupedResults.push({
-            exerciseName: exercise.name,
-            exerciseId: exercise.id,
-            workoutDate: exercise.workouts.workout_date,
-            workoutName: exercise.workouts.name,
-            workoutId: exercise.workouts.id,
-            sets,
-          });
-        });
-      }
-
-      setPageState(prev => ({ ...prev, results: groupedResults, lastUpdated: Date.now(), lastQuery: query.trim() }));
-    } catch (error: any) {
-      console.error('Error searching exercises:', error);
-      setPageState(prev => ({ ...prev, results: [] }));
-    } finally {
-      setPageState(prev => ({ ...prev, loading: false }));
-    }
-  }, [user]);
 
   useEffect(() => {
     const q = debouncedSearchQuery.trim();
     if (!q) {
-      setPageState(prev => ({ ...prev, results: [], hasSearched: false, loading: false, lastUpdated: null, lastQuery: null }));
+      clearSearch();
       return;
     }
-    if (lastQuery === q && lastUpdated && Date.now() - lastUpdated < CACHE_TTL) {
+    if (shouldUseCache(q)) {
       return; // кэш свежий — не перезапрашиваем для того же запроса
     }
     searchExercises(q);
-  }, [debouncedSearchQuery, searchExercises, lastUpdated, lastQuery, setPageState]);
+  }, [debouncedSearchQuery, searchExercises, shouldUseCache, clearSearch]);
 
-  useEffect(() => {
-    if (results.length === 0) return;
-    try {
-      const saved = localStorage.getItem(scrollKey);
-      if (saved) {
-        const y = parseInt(saved, 10);
-        if (!Number.isNaN(y)) {
-          isRestoringScroll.current = true;
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              window.scrollTo({ top: y, behavior: 'auto' });
-              lastScrollPosition.current = y;
-              setTimeout(() => {
-                isRestoringScroll.current = false;
-              }, 100);
-            });
-          });
-        }
-      }
-    } catch {}
-  }, [results.length, scrollKey]);
-
-  useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      lastScrollPosition.current = window.scrollY;
-      if (!ticking && !isRestoringScroll.current) {
-        window.requestAnimationFrame(() => {
-          try { localStorage.setItem(scrollKey, String(lastScrollPosition.current)); } catch {}
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [scrollKey]);
-
-  useEffect(() => {
-    return () => {
-      if (lastScrollPosition.current > 0) {
-        try { localStorage.setItem(scrollKey, String(lastScrollPosition.current)); } catch {}
-      }
-    };
-  }, [scrollKey]);
+  useScrollRestoration({ key: scrollKey, enabled: results.length > 0 });
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const q = searchQuery.trim();
-        if (user && q) {
-          if (lastQuery !== q) {
-            searchExercises(q);
-          } else if (!lastUpdated || Date.now() - lastUpdated >= CACHE_TTL) {
-            searchExercises(q);
-          }
+        if (q && !shouldUseCache(q)) {
+          searchExercises(q);
         }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user, searchQuery, searchExercises, lastUpdated, lastQuery]);
+  }, [searchQuery, searchExercises, shouldUseCache]);
 
   const handleNavigateToWorkout = (date: string, exerciseId: string) => {
     navigate(`/workout/${date}`, { state: { focusExerciseId: exerciseId } });
@@ -211,7 +70,7 @@ const ExerciseHistoryPage = () => {
             ref={inputRef}
             type="text"
             value={searchQuery}
-            onChange={(e) => setPageState(prev => ({ ...prev, searchQuery: e.target.value }))}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Поиск"
             aria-label="Поиск упражнений"
             className="flex-1 bg-transparent !bg-transparent border-0 !border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-gray-500 text-base shadow-none"
@@ -219,7 +78,7 @@ const ExerciseHistoryPage = () => {
           />
           <button
             type="button"
-            onClick={() => { setPageState(prev => ({ ...prev, searchQuery: '' })); inputRef.current?.focus(); }}
+            onClick={() => { clearSearch(); inputRef.current?.focus(); }}
             aria-label="Очистить"
             aria-hidden={!searchQuery}
             className={`shrink-0 w-7 h-7 grid place-items-center rounded-full text-gray-400 hover:text-gray-200 hover:bg-white/10 transition ${searchQuery ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}

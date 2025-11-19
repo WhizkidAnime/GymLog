@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { deleteUserAccount } from '../lib/user';
 
 const ProfilePage = () => {
   const { user, signOut } = useAuth();
@@ -44,9 +44,8 @@ const ProfilePage = () => {
 
     setIsDeleting(true);
     try {
-      const { error } = await supabase.rpc('delete_user_account');
-      if (error) throw error;
-      
+      await deleteUserAccount();
+
       alert('Ваш аккаунт и все данные были успешно удалены.');
       await signOut();
       navigate('/login', { replace: true });

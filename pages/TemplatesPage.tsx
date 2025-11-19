@@ -8,6 +8,7 @@ import type { WorkoutTemplate } from '../types/database.types';
 import ConfirmDialog from '../components/confirm-dialog';
 import { generateShareLink } from '../utils/template-sharing';
 import TemplateSavedDialog from '../components/template-saved-dialog';
+import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
 
 const TemplateDeleteButton: React.FC<{ 
   id: string; 
@@ -244,14 +245,7 @@ const TemplatesPage = () => {
       )}
 
       {loading ? (
-        <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative w-12 h-12">
-              <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
-            </div>
-            <p className="text-white text-center">Загрузка шаблонов...</p>
-          </div>
-        </div>
+        <WorkoutLoadingOverlay message="Загрузка шаблонов..." />
       ) : templates.length === 0 ? (
         <div className="mt-4 p-8 text-center glass">
           <p className="text-gray-500">У вас еще нет шаблонов. Создайте первый!</p>

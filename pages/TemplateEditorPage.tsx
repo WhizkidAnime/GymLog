@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 import ConfirmDialog from '../components/confirm-dialog';
 import TemplateSavedDialog from '../components/template-saved-dialog';
 import type { TemplateExercise, TemplateExerciseInsert } from '../types/database.types';
+import { useHeaderScroll } from '../hooks/use-header-scroll';
+import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
 
 type EditableExercise = Partial<TemplateExercise> & {
   _tempId: number; // Unique ID for UI tracking, especially for animations
@@ -23,6 +25,7 @@ const TemplateEditorPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const db = supabase as any;
 
   const [name, setName] = useState('');
   const [exercises, setExercises] = useState<EditableExercise[]>([newExerciseFactory()]);
@@ -30,7 +33,7 @@ const TemplateEditorPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; tempId?: number }>({ open: false });
   const [savedDialogOpen, setSavedDialogOpen] = useState(false);
-  const [isScrolling, setIsScrolling] = useState(false);
+  const isScrolling = useHeaderScroll();
   const textareaRefs = React.useRef<{ [key: number]: HTMLTextAreaElement | null }>({});
   const topSentinelRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -68,8 +71,8 @@ const TemplateEditorPage = () => {
         setLoading(true);
         // грузим данные параллельно и только нужные поля
         const [{ data: templateData, error: templateError }, { data: exercisesData, error: exercisesError }] = await Promise.all([
-          supabase.from('workout_templates').select('id, name').eq('id', id).single(),
-          supabase.from('template_exercises').select('id, name, sets, reps, rest_seconds, position').eq('template_id', id).order('position'),
+          db.from('workout_templates').select('id, name').eq('id', id).single(),
+          db.from('template_exercises').select('id, name, sets, reps, rest_seconds, position').eq('template_id', id).order('position'),
         ]);
 
         if (templateError) {
@@ -94,16 +97,6 @@ const TemplateEditorPage = () => {
       setLoading(false);
     }
   }, [id, navigate]);
-
-  useEffect(() => {
-    const el = topSentinelRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      setIsScrolling(!entry.isIntersecting);
-    }, { root: null, threshold: 0 });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   const handleExerciseChange = (tempId: number, field: keyof TemplateExercise, value: string) => {
     setExercises(prevExercises =>
@@ -151,7 +144,7 @@ const TemplateEditorPage = () => {
 
     try {
       // 1) Сохраняем сам шаблон
-      const { data: templateData, error: templateError } = await supabase
+      const { data: templateData, error: templateError } = await db
         .from('workout_templates')
         .upsert({ id: id, name, user_id: user.id })
         .select('id')
@@ -165,7 +158,7 @@ const TemplateEditorPage = () => {
 
       // 2) Пересобираем упражнения: удаляем старые только при редактировании
       if (id) {
-        const { error: deleteError } = await supabase
+        const { error: deleteError } = await db
           .from('template_exercises')
           .delete()
           .eq('template_id', templateId);
@@ -184,7 +177,7 @@ const TemplateEditorPage = () => {
         }));
 
       if (exercisesToInsert.length > 0) {
-        const { error: exercisesError } = await supabase
+        const { error: exercisesError } = await db
           .from('template_exercises')
           .insert(exercisesToInsert);
         if (exercisesError) throw exercisesError;
@@ -198,14 +191,15 @@ const TemplateEditorPage = () => {
       // Попробуем проверить, сохранилось ли всё фактически, и завершить поток без шума.
       try {
         const templateQuery = id
-          ? supabase.from('workout_templates').select('id').eq('id', id).maybeSingle()
-          : supabase.from('workout_templates').select('id').eq('user_id', user.id).eq('name', name).order('created_at', { ascending: false }).limit(1).maybeSingle();
+          ? db.from('workout_templates').select('id').eq('id', id).maybeSingle()
+          : db.from('workout_templates').select('id').eq('user_id', user.id).eq('name', name).order('created_at', { ascending: false }).limit(1).maybeSingle();
         const { data: verifyTemplate } = await templateQuery;
-        if (verifyTemplate?.id) {
-          const { count } = await supabase
+        const verifyTemplateId = (verifyTemplate as any)?.id as string | undefined;
+        if (verifyTemplateId) {
+          const { count } = await db
             .from('template_exercises')
             .select('id', { count: 'exact', head: true })
-            .eq('template_id', verifyTemplate.id);
+            .eq('template_id', verifyTemplateId);
           // Если шаблон существует — считаем сохранение успешным
           setSavedDialogOpen(true);
           return;
@@ -221,50 +215,50 @@ const TemplateEditorPage = () => {
     }
   };
 
-  if (loading) return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative w-12 h-12">
-          <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
-        </div>
-        <p className="text-white text-center">Загрузка редактора...</p>
-      </div>
-    </div>
-  );
-  
+  if (loading) return <WorkoutLoadingOverlay message="Загрузка редактора..." />;
+ 
   return (
     <div className="relative p-4 max-w-lg mx-auto template-editor">
       <style>{`
         .header-container {
-          transition: padding 0.3s ease-out, gap 0.3s ease-out;
           position: sticky;
           top: 1rem;
           z-index: 30;
+          will-change: transform, padding, gap;
           -webkit-transform: translateZ(0);
           transform: translateZ(0);
-          will-change: transform;
+          backface-visibility: hidden;
+          transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .header-container.scrolling {
           padding: 0.35rem 1rem;
           gap: 0.7rem;
+          top: 0.25rem;
+        }
+        @supports (top: calc(env(safe-area-inset-top) + 1px)) {
+          .header-container.scrolling {
+            top: calc(env(safe-area-inset-top) + 4px);
+          }
+        }
+        @supports (top: constant(safe-area-inset-top)) {
+          .header-container.scrolling {
+            top: calc(constant(safe-area-inset-top) + 4px);
+          }
         }
         .header-container h1 {
+          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: font-size;
           overflow: visible;
-          transition: font-size 0.3s ease-out, line-height 0.3s ease-out, max-height 0.3s ease-out;
-          font-size: 1.25rem;
-          line-height: 1.2;
           max-height: 10rem;
         }
         .header-container.scrolling h1 {
-          font-size: 1.1rem;
+          font-size: 1.25rem;
           line-height: 1.2;
           max-height: 1.25em; /* 1 строка */
           overflow: hidden;
-        }
-        .header-container.scrolling input {
-          font-size: 1.1rem;
-          pointer-events: none;
-          cursor: default;
         }
         .header-container.scrolling p {
           font-size: 0.8rem;
@@ -287,7 +281,7 @@ const TemplateEditorPage = () => {
         .template-editor { overscroll-behavior-y: contain; }
       `}</style>
       <div ref={topSentinelRef} className="top-sentinel" aria-hidden="true"></div>
-      <div className={`mb-4 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
+      <div className={`mb-6 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <BackButton className="shrink-0" />
         <div className="flex-1 min-w-0 text-center">
           <h1 className="text-3xl font-bold">

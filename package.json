@@ -13,10 +13,14 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "2",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.18.2",
+    "lucide-react": "^0.469.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^6.23.1",
-    "recharts": "^3.3.0"
+    "recharts": "^3.3.0",
+    "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

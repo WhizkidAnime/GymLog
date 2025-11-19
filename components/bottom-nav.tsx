@@ -1,28 +1,32 @@
 import React, { KeyboardEvent, useLayoutEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { CalendarDays, Search, FileText, User2, type LucideIcon } from 'lucide-react';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import { useTabNavigation } from '../hooks/useTabNavigation';
 
 type CssVars = React.CSSProperties & Record<string, string | number>;
+
+type TabKey = 'calendar' | 'search' | 'templates' | 'profile';
+
+type TabConfig = {
+  key: TabKey;
+  label: string;
+  icon: LucideIcon;
+};
+
+const tabs: TabConfig[] = [
+  { key: 'calendar', label: 'Календарь', icon: CalendarDays },
+  { key: 'search', label: 'Поиск', icon: Search },
+  { key: 'templates', label: 'Шаблоны', icon: FileText },
+  { key: 'profile', label: 'Профиль', icon: User2 },
+];
 
 const BottomNav = () => {
   const location = useLocation();
   const { navigateToTab } = useTabNavigation();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-
-  const tabs = [
-    { key: 'calendar' as const, label: 'Календарь', icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-    ) },
-    { key: 'search' as const, label: 'Поиск', icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-    ) },
-    { key: 'templates' as const, label: 'Шаблоны', icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-    ) },
-    { key: 'profile' as const, label: 'Профиль', icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-    ) },
-  ];
 
   const activeIndex = useMemo(() => {
     const p = location.pathname;
@@ -38,10 +42,10 @@ const BottomNav = () => {
     e.preventDefault();
     const dir = e.key === 'ArrowRight' ? 1 : -1;
     const next = (activeIndex + dir + tabs.length) % tabs.length;
-    navigateToTab(tabs[next].key as 'calendar' | 'search' | 'templates' | 'profile');
+    navigateToTab(tabs[next].key);
   };
 
-  const cssVars: CssVars = { ['--tabs-count' as any]: tabs.length, ['--active-index' as any]: activeIndex };
+  const cssVars: CssVars = { ['--tabs-count' as any]: tabs.length };
 
   useLayoutEffect(() => {
     const el = wrapperRef.current;
@@ -69,21 +73,62 @@ const BottomNav = () => {
 
   return (
     <nav ref={wrapperRef} className="bottom-dock-wrapper" aria-label="Нижняя навигация">
-      <div className="bottom-dock glass-dock" role="tablist" aria-orientation="horizontal" onKeyDown={onKeyDown} style={cssVars}>
+      <div
+        className="bottom-dock glass-dock"
+        role="tablist"
+        aria-orientation="horizontal"
+        onKeyDown={onKeyDown}
+        style={cssVars}
+      >
         <div className="dock-track">
-          <div className="dock-indicator" aria-hidden="true" />
-          {tabs.map((t, i) => (
-            <button
-              key={t.key}
-              onClick={() => navigateToTab(t.key as 'calendar' | 'search' | 'templates' | 'profile')}
-              className={`dock-item ${activeIndex === i ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeIndex === i}
-            >
-              <span className="icon" aria-hidden="true">{t.icon}</span>
-              <span className="label">{t.label}</span>
-            </button>
-          ))}
+          {tabs.map((t, i) => {
+            const isActive = i === activeIndex;
+            const Icon = t.icon;
+
+            const className = twMerge(
+              'dock-item',
+              clsx({ active: isActive })
+            );
+
+            return (
+              <button
+                key={t.key}
+                onClick={() => navigateToTab(t.key)}
+                className={className}
+                role="tab"
+                aria-selected={isActive}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="liquid-lamp"
+                    className="dock-indicator"
+                    transition={{
+                      type: 'spring',
+                      stiffness: 350,
+                      damping: 30,
+                      mass: 0.5,
+                    }}
+                    aria-hidden="true"
+                  />
+                )}
+
+                <span className="icon" aria-hidden="true">
+                  <Icon
+                    size={24}
+                    strokeWidth={isActive ? 2.5 : 2}
+                    className={twMerge(
+                      'relative z-10 transition-all duration-300',
+                      isActive
+                        ? 'scale-110 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]'
+                        : 'text-zinc-400'
+                    )}
+                  />
+                </span>
+
+                <span className="label">{t.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </nav>

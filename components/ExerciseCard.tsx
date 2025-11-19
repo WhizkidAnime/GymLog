@@ -8,16 +8,7 @@ import ConfirmDialog from './confirm-dialog';
 import { useAuth } from '../hooks/useAuth';
 import { formatDateForDisplay } from '../utils/date-helpers';
 import { processProgressData } from '../utils/progress-helpers';
-
-const normalizeExerciseName = (value: string) =>
-  (value || '')
-    .normalize('NFKC')
-    .toLowerCase()
-    .replace(/ё/g, 'е')
-    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ')
-    .replace(/[-–—]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+import { normalizeExerciseName } from '../utils/exercise-name';
 
 interface ExerciseCardProps {
   exercise: WorkoutExerciseWithSets;

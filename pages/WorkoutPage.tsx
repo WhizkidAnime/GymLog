@@ -11,6 +11,13 @@ import type {
   WorkoutExercisePositionUpdate,
 } from '../types/database.types';
 import { ExerciseCard } from '../components/ExerciseCard';
+import { BackButton } from '../components/back-button';
+import { WorkoutHeader } from '../components/workout-header';
+import { WorkoutTemplateSelectModal } from '../components/workout-template-select-modal';
+import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
+import { useWorkoutScrollAndFocus } from '../hooks/use-workout-scroll-and-focus';
+import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
+import { useWorkoutActionsMenu } from '../hooks/use-workout-actions-menu';
 import { formatDateForDisplay, formatDate } from '../utils/date-helpers';
 import ConfirmDialog from '../components/confirm-dialog';
 import ReorderExercisesModal, { ReorderItem } from '../components/ReorderExercisesModal';
@@ -53,6 +60,7 @@ const WorkoutPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const db = supabase as any;
 
   const normalizedDate = useMemo(() => normalizeDateParam(date), [date]);
   const pageStateKey = normalizedDate ? `workout-page:${normalizedDate}` : 'workout-page';
@@ -78,7 +86,14 @@ const WorkoutPage = () => {
 
   const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName, isCardio, isSavingCardio } = pageState;
 
-  const [isScrolling, setIsScrolling] = useState(false);
+  const {
+    isActionsOpen,
+    menuPos,
+    actionsRef,
+    actionsBtnRef,
+    toggleActions,
+    closeActions,
+  } = useWorkoutActionsMenu();
 
   const setWorkout = (next: Workout | null) => setPageState(prev => ({
     ...prev,
@@ -112,16 +127,17 @@ const WorkoutPage = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(workoutName);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isActionsOpen, setIsActionsOpen] = useState(false);
-  const actionsRef = useRef<HTMLDivElement>(null);
-  const actionsBtnRef = useRef<HTMLButtonElement>(null);
-  const [menuPos, setMenuPos] = useState<{top: number; left: number} | null>(null);
   const [isReorderOpen, setIsReorderOpen] = useState(false);
 
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
-  const isRestoringScroll = useRef(false);
-  const lastScrollPosition = useRef(0);
-  const focusAppliedRef = useRef(false);
+  const { isScrolling } = useWorkoutScrollAndFocus({
+    normalizedDate,
+    exercisesLength: exercises.length,
+    scrollKey,
+    location,
+  });
+
+  useModalScrollLock(isSelectTemplateOpen);
 
   const fetchWorkoutData = useCallback(async (fromCache = false, silent = false) => {
     if (!user || !normalizedDate) {
@@ -169,7 +185,7 @@ const WorkoutPage = () => {
       setLoading(true);
     }
 
-    const { data: workoutsData, error: workoutError } = await supabase
+    const { data: workoutsData, error: workoutError } = await db
       .from('workouts')
       .select('*')
       .eq('user_id', user.id)
@@ -183,7 +199,7 @@ const WorkoutPage = () => {
       console.error('Error fetching workout:', workoutError);
     } else if (workoutData) {
       setWorkout(workoutData);
-      const { data: exercisesData, error: exercisesError } = await supabase
+      const { data: exercisesData, error: exercisesError } = await db
         .from('workout_exercises')
         .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, updated_at )')
         .eq('workout_id', workoutData.id)
@@ -230,7 +246,7 @@ const WorkoutPage = () => {
       } catch {}
     }
 
-    supabase
+    db
       .from('workout_templates')
       .select('id, name, created_at, user_id')
       .eq('user_id', user.id)
@@ -281,133 +297,6 @@ const WorkoutPage = () => {
     }
   }, [isEditingName]);
 
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (!actionsRef.current && !actionsBtnRef.current) return;
-      const target = e.target as Node;
-      const isClickOnButton = actionsBtnRef.current?.contains(target);
-      const isClickOnRef = actionsRef.current?.contains(target);
-      if (!isClickOnButton && !isClickOnRef) setIsActionsOpen(false);
-    };
-    document.addEventListener('click', fn);
-    return () => document.removeEventListener('click', fn);
-  }, []);
-
-  useEffect(() => {
-    // Сбрасываем флаг применения фокуса при смене даты или переходе на новую history-запись
-    focusAppliedRef.current = false;
-  }, [normalizedDate, location.key]);
-
-  useEffect(() => {
-    if (!normalizedDate || exercises.length === 0) return;
-
-    const tryFocusExercise = () => {
-      const focusExerciseId = (location.state as any)?.focusExerciseId as string | undefined;
-      if (!focusExerciseId || focusAppliedRef.current) return false;
-      const el = document.getElementById(`exercise-${focusExerciseId}`);
-      if (!el) return false;
-      focusAppliedRef.current = true;
-      isRestoringScroll.current = true;
-      const header = document.querySelector('.header-container') as HTMLElement | null;
-      const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
-      const spacing = 12;
-      const rect = el.getBoundingClientRect();
-      const targetTop = Math.max(0, window.scrollY + rect.top - headerBottom - spacing);
-      window.scrollTo({ top: targetTop, behavior: 'smooth' });
-      if ((el as any).animate) {
-        (el as any).animate(
-          [
-            { boxShadow: '0 0 0 rgba(59,130,246,0)' },
-            { boxShadow: '0 0 0 4px rgba(59,130,246,0.6)' },
-            { boxShadow: '0 0 0 rgba(59,130,246,0)' },
-          ],
-          { duration: 1200, easing: 'ease-in-out' }
-        );
-      }
-      setTimeout(() => { isRestoringScroll.current = false; }, 600);
-      return true;
-    };
-
-    const restoreScroll = () => {
-      try {
-        const saved = localStorage.getItem(scrollKey);
-        if (saved) {
-          const y = parseInt(saved, 10);
-          if (!Number.isNaN(y)) {
-            isRestoringScroll.current = true;
-
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                window.scrollTo({ top: y, behavior: 'auto' });
-                lastScrollPosition.current = y;
-                setTimeout(() => {
-                  isRestoringScroll.current = false;
-                }, 100);
-              });
-            });
-          }
-        }
-      } catch (e) {
-        console.error('Error restoring scroll:', e);
-      }
-    };
-
-    if (!tryFocusExercise()) {
-      // Если нечего фокусировать — восстанавливаем обычный скролл
-      restoreScroll();
-    }
-  }, [normalizedDate, exercises.length, scrollKey, location.state]);
-
-  useEffect(() => {
-    if (!normalizedDate) return;
-
-    let ticking = false;
-
-    const handleScroll = () => {
-      lastScrollPosition.current = window.scrollY;
-      setIsScrolling(window.scrollY > 0);
-
-      if (!ticking && !isRestoringScroll.current) {
-        window.requestAnimationFrame(() => {
-          try {
-            localStorage.setItem(scrollKey, String(lastScrollPosition.current));
-          } catch (e) {
-            // Ignore quota errors
-          }
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [normalizedDate, scrollKey]);
-
-  useEffect(() => {
-    return () => {
-      if (normalizedDate && lastScrollPosition.current > 0) {
-        try {
-          localStorage.setItem(scrollKey, String(lastScrollPosition.current));
-        } catch (e) {
-          // Ignore
-        }
-      }
-    };
-  }, [normalizedDate, scrollKey]);
-
-  useEffect(() => {
-    if (!isSelectTemplateOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    const prevOverscrollY = (document.body.style as any).overscrollBehaviorY;
-    document.body.style.overflow = 'hidden';
-    (document.body.style as any).overscrollBehaviorY = 'contain';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      (document.body.style as any).overscrollBehaviorY = prevOverscrollY;
-    };
-  }, [isSelectTemplateOpen]);
-
   const handleUpdateExercise = (updatedExercise: WorkoutExerciseWithSets) => {
     setPageState(prev => {
       const updatedExercises = prev.exercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex));
@@ -434,7 +323,7 @@ const WorkoutPage = () => {
         ? Math.max(...exercises.map(ex => (typeof ex.position === 'number' ? ex.position : 0))) + 1
         : 1;
 
-      const { data: insertedExercises, error: insertExerciseError } = await supabase
+      const { data: insertedExercises, error: insertExerciseError } = await db
         .from('workout_exercises')
         .insert({
           workout_id: workout.id,
@@ -455,7 +344,7 @@ const WorkoutPage = () => {
         throw new Error('Не удалось создать упражнение');
       }
 
-      const { data: insertedSets, error: insertSetError } = await supabase
+      const { data: insertedSets, error: insertSetError } = await db
         .from('workout_sets')
         .insert({
           workout_exercise_id: insertedExercise.id,
@@ -515,7 +404,7 @@ const WorkoutPage = () => {
     setIsCreating(true);
 
     try {
-      const { data: newWorkout, error } = await supabase
+      const { data: newWorkout, error } = await db
         .from('workouts')
         .insert({
           user_id: user.id,
@@ -557,12 +446,12 @@ const WorkoutPage = () => {
     setIsCreating(true);
 
     try {
-      const { data: templateExercises } = await supabase
+      const { data: templateExercises } = await db
         .from('template_exercises')
         .select('*')
         .eq('template_id', template.id);
 
-      const { data: newWorkout } = await supabase
+      const { data: newWorkout } = await db
         .from('workouts')
         .insert({
           user_id: user.id,
@@ -580,7 +469,7 @@ const WorkoutPage = () => {
         name: ex.name, sets: ex.sets, reps: ex.reps, rest_seconds: ex.rest_seconds, position: ex.position,
       }));
 
-      const { data: insertedExercises } = await supabase
+      const { data: insertedExercises } = await db
         .from('workout_exercises')
         .insert(newWorkoutExercises)
         .select();
@@ -593,7 +482,7 @@ const WorkoutPage = () => {
         }))
       );
       
-      await supabase.from('workout_sets').insert(newSets);
+      await db.from('workout_sets').insert(newSets);
       
       // Инвалидируем кеш, чтобы загрузить свежие данные
       const cacheKey = `${user.id}:${normalizedDate}`;
@@ -625,7 +514,7 @@ const WorkoutPage = () => {
     setIsSavingWorkoutName(true);
 
     try {
-      const { data: updatedWorkout, error } = await supabase
+      const { data: updatedWorkout, error } = await db
         .from('workouts')
         .update({ name: trimmedName })
         .eq('id', workout.id)
@@ -686,7 +575,7 @@ const WorkoutPage = () => {
     setIsSavingWorkoutName(true);
 
     try {
-      const { data: updatedWorkout, error } = await supabase
+      const { data: updatedWorkout, error } = await db
         .from('workouts')
         .update({ name: trimmedName })
         .eq('id', workout.id)
@@ -731,7 +620,7 @@ const WorkoutPage = () => {
     setIsSavingCardio(true);
 
     try {
-      const { data: updatedWorkout, error } = await supabase
+      const { data: updatedWorkout, error } = await db
         .from('workouts')
         .update({ is_cardio: newCardioState })
         .eq('id', workout.id)
@@ -786,7 +675,7 @@ const WorkoutPage = () => {
     try {
       await Promise.all(
         payload.map(async p => {
-          const { error } = await supabase
+          const { error } = await db
             .from('workout_exercises')
             .update({ position: p.position })
             .eq('id', p.id);
@@ -820,7 +709,7 @@ const WorkoutPage = () => {
 
   const confirmDeleteWorkout = async () => {
     if (!workout) return;
-    const { error } = await supabase
+    const { error } = await db
       .from('workouts')
       .delete()
       .eq('id', workout.id);
@@ -848,13 +737,13 @@ const WorkoutPage = () => {
     try {
       setIsCreating(true);
 
-      const { data: templateExercises, error: tErr } = await supabase
+      const { data: templateExercises, error: tErr } = await db
         .from('template_exercises')
         .select('*')
         .eq('template_id', template.id);
       if (tErr) throw tErr;
 
-      const { data: existingExercises, error: exErr } = await supabase
+      const { data: existingExercises, error: exErr } = await db
         .from('workout_exercises')
         .select('id')
         .eq('workout_id', workout.id);
@@ -863,20 +752,20 @@ const WorkoutPage = () => {
       const existingExerciseIds = (existingExercises || []).map(e => e.id);
 
       if (existingExerciseIds.length > 0) {
-        const { error: setsDelErr } = await supabase
+        const { error: setsDelErr } = await db
           .from('workout_sets')
           .delete()
           .in('workout_exercise_id', existingExerciseIds);
         if (setsDelErr) throw setsDelErr;
 
-        const { error: exDelErr } = await supabase
+        const { error: exDelErr } = await db
           .from('workout_exercises')
           .delete()
           .eq('workout_id', workout.id);
         if (exDelErr) throw exDelErr;
       }
 
-      const { error: updErr } = await supabase
+      const { error: updErr } = await db
         .from('workouts')
         .update({ name: template.name, template_id: template.id })
         .eq('id', workout.id);
@@ -891,7 +780,7 @@ const WorkoutPage = () => {
         position: ex.position,
       }));
 
-      const { data: insertedExercises, error: insErr } = await supabase
+      const { data: insertedExercises, error: insErr } = await db
         .from('workout_exercises')
         .insert(newWorkoutExercises)
         .select();
@@ -904,7 +793,7 @@ const WorkoutPage = () => {
         }))
       );
       if (newSets.length > 0) {
-        const { error: setsInsErr } = await supabase.from('workout_sets').insert(newSets);
+        const { error: setsInsErr } = await db.from('workout_sets').insert(newSets);
         if (setsInsErr) throw setsInsErr;
       }
 
@@ -922,28 +811,8 @@ const WorkoutPage = () => {
     }
   };
   
-  const BackButton = ({ className = '' }: { className?: string }) => (
-    <button
-      onClick={() => navigate('/calendar', { state: { refreshDate: normalizedDate } })}
-      className={`inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white transition-colors z-10 bg-transparent hover:border-white active:border-white focus:outline-none ${className}`}
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
-  );
-
   if (!hasInitialData) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-12 h-12">
-            <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
-          </div>
-          <p className="text-white text-center">Загрузка тренировки...</p>
-        </div>
-      </div>
-    );
+    return <WorkoutLoadingOverlay message="Загрузка тренировки..." />;
   }
   
   if (!normalizedDate) {
@@ -954,21 +823,14 @@ const WorkoutPage = () => {
     if (isCreating) {
       return (
         <div className="px-4 pt-4">
-          <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative w-12 h-12">
-                <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
-              </div>
-              <p className="text-white text-center">Создание...</p>
-            </div>
-          </div>
+          <WorkoutLoadingOverlay message="Создание..." />
         </div>
       );
     }
     return (
       <div className="max-w-lg mx-auto px-4 pt-4">
         <div className="flex items-center gap-3 mb-6">
-          <BackButton />
+          <BackButton normalizedDate={normalizedDate} />
           <h1 className="flex-1 text-xl font-bold text-center">Тренировка на {formatDateForDisplay(normalizedDate)}</h1>
         </div>
         <div className="mt-4 p-6 text-center">
@@ -1020,16 +882,7 @@ const WorkoutPage = () => {
   return (
     <div className="relative px-4 space-y-4 pt-4 pb-10">
       {/* Показываем индикатор при начальной загрузке или при обновлении страницы */}
-      {loading && (
-        <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative w-12 h-12">
-              <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
-            </div>
-            <p className="text-white text-center">Загрузка тренировки...</p>
-          </div>
-        </div>
-      )}
+      {loading && <WorkoutLoadingOverlay message="Загрузка тренировки..." />}
       
       <style>{`
         @keyframes slideDown {
@@ -1102,97 +955,22 @@ const WorkoutPage = () => {
           line-height: 1.15;
         }
       `}</style>
-      <div className={`glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
-        <BackButton className="shrink-0" />
-        <div className="flex-1 text-center">
-          {!isEditingName ? (
-            <div className="flex items-center justify-center gap-2">
-              <div>
-                <h1 className="text-2xl font-bold text-white">{workoutName}</h1>
-                <p className="text-lg transition-all duration-300" style={{color:'#a1a1aa'}}>Дата: {formatDateForDisplay(normalizedDate)}</p>
-              </div>
-              <button
-                onClick={handleStartEditName}
-                className="shrink-0 p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                title="Редактировать название"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2 w-full">
-              <div className="relative">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={editNameValue}
-                  onChange={event => setEditNameValue(event.target.value)}
-                  disabled={isSavingWorkoutName}
-                  className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 pr-9 py-2 transition-colors disabled:opacity-70"
-                  placeholder="Название тренировки"
-                />
-                {editNameValue && (
-                  <button
-                    type="button"
-                    onClick={() => setEditNameValue('')}
-                    aria-label="Очистить"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={handleSaveEditName}
-                  disabled={isSavingWorkoutName}
-                  className="shrink-0 p-1.5 rounded-full hover:bg-green-500/20 transition-colors disabled:opacity-50"
-                  title="Сохранить"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleCancelEditName}
-                  disabled={isSavingWorkoutName}
-                  className="shrink-0 p-1.5 rounded-full hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                  title="Отмена"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="relative" ref={actionsRef}>
-          <button
-            ref={actionsBtnRef}
-            type="button"
-            aria-label="Меню действий"
-            className="inline-flex items-center justify-center p-2 rounded-full hover:bg-white/10"
-            onClick={() => {
-              if (!isActionsOpen && actionsBtnRef.current) {
-                const r = actionsBtnRef.current.getBoundingClientRect();
-                setMenuPos({ top: r.bottom + 8, left: r.right - 192 });
-              }
-              setIsActionsOpen(v => !v);
-            }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      
+      <WorkoutHeader
+        normalizedDate={normalizedDate}
+        workoutName={workoutName}
+        isEditingName={isEditingName}
+        editNameValue={editNameValue}
+        isSavingWorkoutName={isSavingWorkoutName}
+        isScrolling={isScrolling}
+        inputRef={inputRef}
+        onStartEditName={handleStartEditName}
+        onChangeEditName={setEditNameValue}
+        onSaveEditName={handleSaveEditName}
+        onCancelEditName={handleCancelEditName}
+        actionsRef={actionsRef}
+        actionsBtnRef={actionsBtnRef}
+        onToggleActions={toggleActions}
+      />
 
       <div className="space-y-4">
         {exercises.map(exercise => (
@@ -1268,34 +1046,13 @@ const WorkoutPage = () => {
         </button>
       </div>
 
-      {isSelectTemplateOpen && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overscroll-contain">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setIsSelectTemplateOpen(false)} />
-          <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Выберите шаблон</h2>
-              <button onClick={() => setIsSelectTemplateOpen(false)} className="px-2 py-1 text-sm text-gray-300 hover:text-white">✕</button>
-            </div>
-            {templates.length === 0 ? (
-              <p className="text-gray-400">Нет доступных шаблонов.</p>
-            ) : (
-              <div className="space-y-2 max-h-[70vh] overflow-y-auto overscroll-contain pr-1">
-                {templates.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => handleReplaceWithTemplate(t)}
-                    disabled={isCreating}
-                    className="w-full text-left px-4 py-2 rounded-md border border-white/20 text-gray-100 hover:bg-white/5 disabled:opacity-50"
-                  >
-                    {isCreating ? 'Применение...' : t.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+      <WorkoutTemplateSelectModal
+        open={isSelectTemplateOpen}
+        templates={templates}
+        isCreating={isCreating}
+        onClose={() => setIsSelectTemplateOpen(false)}
+        onReplaceWithTemplate={handleReplaceWithTemplate}
+      />
 
       <ReorderExercisesModal
         open={isReorderOpen}
@@ -1327,7 +1084,7 @@ const WorkoutPage = () => {
         >
           <button
             onClick={() => {
-              setIsActionsOpen(false);
+              closeActions();
               setIsReorderOpen(true);
             }}
             className="w-full text-left px-4 py-2 hover:bg-white/10 text-gray-100 transition-colors rounded-lg"
@@ -1336,7 +1093,7 @@ const WorkoutPage = () => {
           </button>
           <button
             onClick={() => {
-              setIsActionsOpen(false);
+              closeActions();
               handleOpenChangeTemplate();
             }}
             className="w-full text-left px-4 py-2 hover:bg-white/10 text-gray-100 transition-colors rounded-lg"
@@ -1345,7 +1102,7 @@ const WorkoutPage = () => {
           </button>
           <button
             onClick={() => {
-              setIsActionsOpen(false);
+              closeActions();
               handleDeleteWorkout();
             }}
             className="w-full text-left px-4 py-2 text-red-400 hover:bg-red-500/10 transition-colors rounded-lg"
