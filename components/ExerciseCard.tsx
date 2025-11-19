@@ -456,7 +456,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
                 onClick={() => applySetsChange(setsCount - 1)}
                 className="btn-glass btn-glass-icon-round btn-glass-secondary"
               >−</button>
-              <span className="min-w-[3ch] text-center text-white font-semibold text-sm sm:text-base">{setsCount}</span>
+              <span className="min-w-[3ch] text-center text-white font-semibold">{setsCount}</span>
               <button
                 disabled={busy || setsCount >= 30}
                 onClick={() => applySetsChange(setsCount + 1)}
@@ -471,11 +471,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
       </div>
       
       <div className="space-y-3 pt-1">
-        <div className="grid grid-cols-6 gap-2 text-center text-sm sm:text-base font-semibold px-1 sm:px-2 py-2 rounded-lg overflow-hidden" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
-          <div className="col-span-1 whitespace-nowrap">Подход</div>
-          <div className="col-span-2 whitespace-nowrap">Вес (кг)</div>
-          <div className="col-span-2 whitespace-nowrap">Повторы</div>
-          <div className="col-span-1 whitespace-nowrap">В отказ</div>
+        <div className="grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
+          <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">Подход</div>
+          <div className="col-span-2 flex items-center justify-center whitespace-nowrap">Вес (кг)</div>
+          <div className="col-span-2 flex items-center justify-center whitespace-nowrap">Повторы</div>
+          <div className="col-span-1 flex items-center justify-end pr-1 sm:pr-2 whitespace-nowrap">В отказ</div>
         </div>
         <div className="space-y-2">
           {exercise.workout_sets.map((set) => (

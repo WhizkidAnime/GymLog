@@ -26,6 +26,36 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+button {
+  outline: none;
+}
+
+button:focus,
+button:focus-visible {
+  outline: none;
+}
+
+a:focus,
+a:focus-visible {
+  outline: none;
+}
+
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  outline: none;
+}
+
+svg:focus,
+svg:focus-visible {
+  outline: none;
+}
+
+.recharts-wrapper:focus,
+.recharts-surface:focus,
+.recharts-layer:focus {
+  outline: none;
+}
+
 #root {
   display: flex;
   flex-direction: column;
@@ -522,3 +552,10 @@ body::before {
   z-index: 50;
 }
 
+.back-button-plain,
+.back-button-plain:hover,
+.back-button-plain:active,
+.back-button-plain:focus {
+  background: transparent !important;
+  box-shadow: none !important;
+}

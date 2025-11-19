@@ -29,6 +29,7 @@ const ProgressPage = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const isRestoringScroll = useRef(false);
   const lastScrollPosition = useRef(0);
+  const [isScrolling, setIsScrolling] = useState(false);
 
   const getScrollKey = useCallback(() => {
     if (selectedExercise) {
@@ -304,6 +305,7 @@ const ProgressPage = () => {
     let ticking = false;
     const handleScroll = () => {
       lastScrollPosition.current = window.scrollY;
+      setIsScrolling(window.scrollY > 0);
       if (!ticking && !isRestoringScroll.current) {
         window.requestAnimationFrame(() => {
           try { localStorage.setItem(getScrollKey(), String(lastScrollPosition.current)); } catch {}
@@ -371,11 +373,57 @@ const ProgressPage = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto pt-safe pb-4">
+      <style>{`
+        .header-container {
+          position: sticky;
+          top: 1rem;
+          z-index: 30;
+          will-change: transform, padding, gap;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .header-container.scrolling {
+          padding: 0.35rem 1rem;
+          gap: 0.7rem;
+          top: 0.25rem;
+        }
+        @supports (top: calc(env(safe-area-inset-top) + 1px)) {
+          .header-container.scrolling {
+            top: calc(env(safe-area-inset-top) + 4px);
+          }
+        }
+        @supports (top: constant(safe-area-inset-top)) {
+          .header-container.scrolling {
+            top: calc(constant(safe-area-inset-top) + 4px);
+          }
+        }
+        .header-container h1 {
+          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: font-size;
+        }
+        .header-container.scrolling h1 {
+          font-size: 1.25rem;
+          line-height: 1.2;
+        }
+        .header-container p {
+          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: font-size;
+        }
+        .header-container.scrolling p {
+          font-size: 0.8rem;
+          line-height: 1.15;
+        }
+      `}</style>
       {/* Хедер */}
-      <div className="mb-6 glass card-dark p-4 flex items-center gap-4">
+      <div className={`mb-6 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <button
           onClick={handleBack}
-          className="shrink-0 p-2 rounded-full border border-transparent text-white hover:border-white transition-colors"
+          className="shrink-0 inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white bg-transparent transition-colors focus:outline-none active:outline-none back-button-plain"
           aria-label="Назад"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -501,7 +549,7 @@ const ProgressPage = () => {
               <div className="glass card-dark p-4 rounded-lg">
                 <h3 className="text-lg font-semibold text-white mb-4">Динамика веса</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={progressData.dataPoints} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <LineChart data={progressData.dataPoints} margin={{ top: 24, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                     <XAxis
                       dataKey="displayDate"
@@ -511,7 +559,7 @@ const ProgressPage = () => {
                     <YAxis
                       stroke="rgba(255,255,255,0.5)"
                       style={{ fontSize: '12px' }}
-                      label={{ value: 'Вес (кг)', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)' }}
+                      label={{ value: 'Вес (кг)', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)', dx: 8 }}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Line
