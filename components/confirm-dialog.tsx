@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -23,6 +24,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onOpenChange,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useModalScrollLock(open);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

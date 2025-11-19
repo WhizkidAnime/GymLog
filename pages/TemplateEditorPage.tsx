@@ -284,7 +284,7 @@ const TemplateEditorPage = () => {
       <div className={`mb-6 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <BackButton className="shrink-0" />
         <div className="flex-1 min-w-0 text-center">
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-xl font-bold">
             {id ? 'Редактировать шаблон' : 'Новый шаблон'}
           </h1>
         </div>

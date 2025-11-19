@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
 
 export type ReorderItem = { id: string; name: string; position: number };
 
@@ -34,17 +35,7 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
     if (open) setList(initial);
   }, [open, initial]);
 
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    const prevOverscrollY = (document.body.style as any).overscrollBehaviorY;
-    document.body.style.overflow = 'hidden';
-    (document.body.style as any).overscrollBehaviorY = 'contain';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      (document.body.style as any).overscrollBehaviorY = prevOverscrollY;
-    };
-  }, [open]);
+  useModalScrollLock(open);
 
   if (!open) return null;
 

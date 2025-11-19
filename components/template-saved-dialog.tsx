@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
 
 type TemplateSavedDialogProps = {
   open: boolean;
@@ -15,6 +16,8 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   templateName,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+
+  useModalScrollLock(open);
 
   useEffect(() => {
     if (open) {
