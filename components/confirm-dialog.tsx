@@ -9,8 +9,10 @@ type ConfirmDialogProps = {
   confirmText?: string;
   cancelText?: string;
   variant?: 'danger' | 'primary';
+  confirmDisabled?: boolean;
   onConfirm: () => Promise<void> | void;
   onOpenChange: (open: boolean) => void;
+  children?: React.ReactNode;
 };
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -20,8 +22,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmText = 'Подтвердить',
   cancelText = 'Отмена',
   variant = 'primary',
+  confirmDisabled,
   onConfirm,
   onOpenChange,
+  children,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,6 +64,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <p className="mt-1 text-sm" style={{ color: '#a1a1aa' }}>{description}</p>
           )}
         </div>
+        {children && (
+          <div className="mt-3">
+            {children}
+          </div>
+        )}
         <div className="mt-4 flex items-center justify-end gap-2">
           <button
             type="button"
@@ -73,7 +82,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             type="button"
             className={`btn-glass btn-glass-sm ${variant === 'danger' ? 'btn-glass-danger' : 'btn-glass-primary'}`}
             onClick={handleConfirm}
-            disabled={isSubmitting}
+            disabled={isSubmitting || Boolean(confirmDisabled)}
           >
             {isSubmitting ? 'Выполнение...' : confirmText}
           </button>

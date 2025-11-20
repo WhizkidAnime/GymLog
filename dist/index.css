@@ -81,13 +81,13 @@ select {
 
 input::placeholder,
 textarea::placeholder {
-  color: #a1a1aa; /* zinc-400 */
+  color: rgba(161,161,170,0.4); /* заметно более бледный placeholder */
 }
 
-/* Прячем плейсхолдер при фокусе, чтобы текст не накладывался */
-input:focus::placeholder,
-textarea:focus::placeholder {
-  opacity: 0;
+input:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #18181b inset;
+  -webkit-text-fill-color: #fafafa;
 }
 
 /* Карточки/контейнеры */
@@ -637,4 +637,10 @@ body::before {
 .back-button-plain:focus {
   background: transparent !important;
   box-shadow: none !important;
+}
+
+/* Возвращаем плейсхолдер при фокусе, чтобы он оставался до первого ввода символа */
+input:focus::placeholder,
+textarea:focus::placeholder {
+  opacity: 1;
 }

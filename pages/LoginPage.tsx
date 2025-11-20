@@ -9,9 +9,14 @@ const LoginPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  const nicknameRef = React.useRef<HTMLInputElement | null>(null);
+  const passwordRef = React.useRef<HTMLInputElement | null>(null);
+  const confirmPasswordRef = React.useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (session) {
@@ -19,26 +24,94 @@ const LoginPage = () => {
     }
   }, [session, navigate]);
 
+  useEffect(() => {
+    const clearFields = () => {
+      setNickname('');
+      setPassword('');
+      setConfirmPassword('');
+
+      if (nicknameRef.current) nicknameRef.current.value = '';
+      if (passwordRef.current) passwordRef.current.value = '';
+      if (confirmPasswordRef.current) confirmPasswordRef.current.value = '';
+    };
+
+    clearFields();
+    const id = window.setTimeout(clearFields, 100);
+    return () => window.clearTimeout(id);
+  }, []);
+
+  const mapSupabaseError = (err: any): string => {
+    if (!err || !err.message || typeof err.message !== 'string') {
+      return 'Произошла ошибка. Попробуйте ещё раз.';
+    }
+
+    const msg = err.message.toLowerCase();
+
+    if (msg.includes('invalid login credentials')) {
+      return 'Неверный никнейм или пароль';
+    }
+
+    if (msg.includes('user already registered')) {
+      return 'Пользователь с таким никнеймом уже существует';
+    }
+
+    return err.message;
+  };
+
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
     setMessage('');
     setError('');
 
-    const email = nickname.includes('@') ? nickname : `${nickname}@gymlog.app`;
+    const trimmedNickname = nickname.trim();
+
+    if (!trimmedNickname) {
+      setError('Введите никнейм');
+      return;
+    }
+
+    if (isSignUp) {
+      if (password.length < 6) {
+        setError('Пароль должен быть не короче 6 символов');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('Пароли не совпадают');
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    const identifier = trimmedNickname;
+    const email = identifier.includes('@') ? identifier : `${identifier}@gymlog.app`;
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              nickname: identifier,
+            },
+          },
+        });
         if (error) throw error;
-        setMessage('Регистрация успешна! Теперь вы можете войти.');
-        setIsSignUp(false); 
+
+        if (!data?.session) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) throw signInError;
+        }
+
+        setMessage('Регистрация успешна! Вы вошли в аккаунт.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message || 'Произошла ошибка');
+      setError(mapSupabaseError(err));
     } finally {
       setLoading(false);
     }
@@ -73,14 +146,15 @@ const LoginPage = () => {
             <input
               id="nickname"
               type="text"
-              placeholder={isSignUp ? "Придумайте никнейм" : "Ваш никнейм"}
+              placeholder={isSignUp ? "Логин" : "Ваш логин"}
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               required
               name="nickname"
               autoComplete="off"
-              className="w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{backgroundColor:'#18181b', color:'#0a0a0a', border:'1px solid #3f3f46'}}
+              className="w-full px-4 py-2 rounded-md focus:outline-none"
+              style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
+              ref={nicknameRef}
             />
           </div>
           <div>
@@ -88,17 +162,37 @@ const LoginPage = () => {
             <input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Введите пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
               name={isSignUp ? 'new-password' : 'current-password'}
               autoComplete={isSignUp ? 'new-password' : 'off'}
-              className="w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{backgroundColor:'#18181b', color:'#0a0a0a', border:'1px solid #3f3f46'}}
+              className="w-full px-4 py-2 rounded-md focus:outline-none"
+              style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
+              ref={passwordRef}
             />
           </div>
+          {isSignUp && (
+            <div>
+              <label htmlFor="confirm-password" className="sr-only">Повторите пароль</label>
+              <input
+                id="confirm-password"
+                type="password"
+                placeholder="Повторите пароль"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                name="confirm-password"
+                autoComplete="off"
+                className="w-full px-4 py-2 rounded-md focus:outline-none"
+                style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
+                ref={confirmPasswordRef}
+              />
+            </div>
+          )}
           <button
             type="submit"
             disabled={loading}
@@ -119,6 +213,8 @@ const LoginPage = () => {
               setIsSignUp(!isSignUp);
               setMessage('');
               setError('');
+              setPassword('');
+              setConfirmPassword('');
             }}
             className="ml-1 font-semibold text-blue-600 hover:underline"
           >

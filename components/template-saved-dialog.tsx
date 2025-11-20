@@ -7,6 +7,9 @@ type TemplateSavedDialogProps = {
   onOpenChange: (open: boolean | null) => void;
   onClose?: () => void;
   templateName?: string;
+  message?: string;
+  durationMs?: number;
+  variant?: 'success' | 'error';
 };
 
 export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
@@ -14,6 +17,9 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   onOpenChange,
   onClose,
   templateName,
+  message,
+  durationMs,
+  variant = 'success',
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -22,15 +28,16 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   useEffect(() => {
     if (open) {
       setIsVisible(true);
+      const duration = typeof durationMs === 'number' ? durationMs : 2500;
       const timer = setTimeout(() => {
         onOpenChange(null);
         onClose?.();
-      }, 1500);
+      }, duration);
       return () => clearTimeout(timer);
     } else {
       setIsVisible(false);
     }
-  }, [open, onOpenChange, onClose]);
+  }, [open, onOpenChange, onClose, durationMs]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -50,12 +57,23 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}>
         <div className="flex justify-center mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-12 w-12 ${variant === 'error' ? 'text-red-400' : 'text-green-400'}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            {variant === 'error' ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            )}
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-white">
-          {templateName ? `Ссылка на "${templateName}" скопирована в буфер обмена` : 'Шаблон сохранен!'}
+          {message ?? (templateName ? `Ссылка на "${templateName}" скопирована в буфер обмена` : 'Шаблон сохранен!')}
         </h2>
       </div>
     </div>,
