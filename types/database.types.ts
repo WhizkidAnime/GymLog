@@ -152,6 +152,24 @@ export type Database = {
           },
         ]
       }
+      template_share_codes: {
+        Row: {
+          created_at: string
+          id: string
+          template: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          template: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          template?: Json
+        }
+        Relationships: []
+      }
       workouts: {
         Row: {
           created_at: string

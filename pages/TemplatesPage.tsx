@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -9,6 +10,7 @@ import ConfirmDialog from '../components/confirm-dialog';
 import { generateShareLink } from '../utils/template-sharing';
 import TemplateSavedDialog from '../components/template-saved-dialog';
 import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
+import { useWorkoutActionsMenu } from '../hooks/use-workout-actions-menu';
 
 import ImportIcon from '../src/assets/icons/import.svg';
 
@@ -20,6 +22,24 @@ const TemplateDeleteButton: React.FC<{
 }> = ({ id, name, onDeleted, onShare }) => {
   const [busy, setBusy] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const {
+    isActionsOpen,
+    menuPos,
+    actionsRef,
+    actionsBtnRef,
+    toggleActions,
+    closeActions,
+  } = useWorkoutActionsMenu();
+
+  const handleShareClick = () => {
+    closeActions();
+    onShare(id, name);
+  };
+
+  const handleDeleteClick = () => {
+    closeActions();
+    setOpen(true);
+  };
 
   const confirmDelete = async () => {
     if (busy) return;
@@ -50,23 +70,40 @@ const TemplateDeleteButton: React.FC<{
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="relative">
         <button
-          onClick={() => onShare(id, name)}
-          className="text-blue-400 hover:opacity-75 transition-opacity"
-          title="Поделиться шаблоном"
+          ref={actionsBtnRef}
+          onClick={toggleActions}
+          className="p-2 text-white hover:text-gray-300 transition-colors"
+          aria-label="Меню шаблона"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 8c1.1 0 2-1 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 1-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 1-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
           </svg>
         </button>
-        <button
-          onClick={() => setOpen(true)}
-          disabled={busy}
-          className="glass-button-danger"
-        >
-          {busy ? '...' : 'Удалить'}
-        </button>
+        {isActionsOpen && menuPos && createPortal(
+          <div
+            ref={actionsRef}
+            className="fixed menu-popover space-y-0.5"
+            style={{ top: menuPos.top, left: menuPos.left, width: 192 }}
+            role="menu"
+          >
+            <button
+              onClick={handleShareClick}
+              className="w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-white/10 transition-colors rounded-lg"
+            >
+              Поделиться
+            </button>
+            <button
+              onClick={handleDeleteClick}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors rounded-lg"
+            >
+              {busy ? 'Удаление...' : 'Удалить'}
+            </button>
+          </div>,
+          document.body
+        )}
       </div>
       <ConfirmDialog
         open={open}
@@ -182,7 +219,7 @@ const TemplatesPage = () => {
         return;
       }
 
-      const shareLink = generateShareLink({
+      const shareLink = await generateShareLink({
         name: templateName,
         exercises: exercises,
       });
@@ -255,19 +292,22 @@ const TemplatesPage = () => {
       ) : (
         <div className="space-y-3">
           {templates.map(template => (
-            <div key={template.id} className="p-4 glass card-dark flex items-center justify-between gap-3">
-              <button
-                onClick={() => window.location.hash = `#/templates/${template.id}`}
-                className="text-left flex-1 hover:opacity-90"
-              >
-                <h2 className="font-semibold text-lg text-gray-100">{template.name}</h2>
-              </button>
-              <TemplateDeleteButton 
-                id={template.id} 
-                name={template.name}
-                onDeleted={handleDeleted}
-                onShare={handleShare}
-              />
+            <div
+              key={template.id}
+              className="relative p-4 glass card-dark flex items-center justify-between gap-3"
+            >
+                <button
+                  onClick={() => window.location.hash = `#/templates/${template.id}`}
+                  className="text-left flex-1 hover:opacity-90"
+                >
+                  <h2 className="font-semibold text-lg text-gray-100">{template.name}</h2>
+                </button>
+                <TemplateDeleteButton 
+                  id={template.id} 
+                  name={template.name}
+                  onDeleted={handleDeleted}
+                  onShare={handleShare}
+                />
             </div>
           ))}
         </div>

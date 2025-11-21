@@ -15,12 +15,17 @@ import ExerciseHistoryPage from './pages/ExerciseHistoryPage';
 import ProgressPage from './pages/ProgressPage';
 
 // const DefaultRedirect = () => {
-//     const lastPath = typeof window !== 'undefined' ? window.localStorage.getItem('lastPath') : null;
-//     const target = lastPath && lastPath.startsWith('/') ? lastPath : '/calendar';
-//     return <Navigate to={target} replace />;
-// };
-
 const DefaultRedirect = () => {
+    if (typeof window !== 'undefined') {
+        const search = window.location.search;
+        if (search) {
+            const params = new URLSearchParams(search);
+            const shareCode = params.get('s');
+            if (shareCode) {
+                return <Navigate to={`/templates/import?s=${encodeURIComponent(shareCode)}`} replace />;
+            }
+        }
+    }
     return <Navigate to="/calendar" replace />;
 };
 

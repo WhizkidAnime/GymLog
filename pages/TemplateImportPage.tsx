@@ -16,26 +16,36 @@ const TemplateImportPage = () => {
 
   // Проверяем URL при загрузке
   useEffect(() => {
-    const dataParam = searchParams.get('data');
-    if (dataParam) {
+    const loadFromUrl = async () => {
+      const codeParam = searchParams.get('s');
+      const dataParam = searchParams.get('data');
+
+      if (!codeParam && !dataParam) {
+        return;
+      }
+
       try {
         const fullUrl = window.location.href;
-        const extracted = extractTemplateFromLink(fullUrl);
+        const extracted = await extractTemplateFromLink(fullUrl);
         if (extracted) {
           setTemplate(extracted);
+          setError(null);
         } else {
           setError('Неверный формат ссылки на шаблон');
         }
       } catch (err: any) {
         setError(err.message || 'Не удалось загрузить шаблон из ссылки');
       }
-    }
+    };
+
+    void loadFromUrl();
   }, [searchParams]);
 
   // Автоматическая проверка буфера обмена при открытии страницы без параметров
   useEffect(() => {
+    const codeParam = searchParams.get('s');
     const dataParam = searchParams.get('data');
-    if (!dataParam && !template && !error) {
+    if (!codeParam && !dataParam && !template && !error) {
       checkClipboard();
     }
   }, [searchParams, template, error]);
@@ -47,11 +57,12 @@ const TemplateImportPage = () => {
         throw new Error('Clipboard API недоступен в этом окружении');
       }
       const clipboardText = await navigator.clipboard.readText();
-      
+
       if (isValidTemplateLink(clipboardText)) {
-        const extracted = extractTemplateFromLink(clipboardText);
+        const extracted = await extractTemplateFromLink(clipboardText);
         if (extracted) {
           setTemplate(extracted);
+          setError(null);
         } else {
           setError('В буфере обмена ссылка неверного формата');
         }
@@ -113,7 +124,6 @@ const TemplateImportPage = () => {
         } 
       });
     } catch (err: any) {
-      // eslint-disable-next-line no-console
       console.error('Error importing template:', err);
       alert('Не удалось импортировать шаблон: ' + err.message);
     } finally {
@@ -121,14 +131,14 @@ const TemplateImportPage = () => {
     }
   };
 
-  const handleManualInput = () => {
+  const handleManualInput = async () => {
     const pasted = window.prompt('Вставьте ссылку на шаблон из буфера обмена');
     if (!pasted) return;
     if (!isValidTemplateLink(pasted)) {
       setError('Вставленный текст не является валидной ссылкой на шаблон');
       return;
     }
-    const extracted = extractTemplateFromLink(pasted);
+    const extracted = await extractTemplateFromLink(pasted);
     if (extracted) {
       setTemplate(extracted);
       setError(null);

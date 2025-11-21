@@ -1,15 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface MenuPosition {
   top: number;
   left: number;
 }
 
-export function useWorkoutActionsMenu() {
+interface UseWorkoutActionsMenuOptions {
+  width?: number;
+  offsetY?: number;
+}
+
+export function useWorkoutActionsMenu(options?: UseWorkoutActionsMenuOptions) {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
   const actionsBtnRef = useRef<HTMLButtonElement>(null);
+
+  const { width, offsetY } = useMemo(() => ({
+    width: options?.width ?? 192,
+    offsetY: options?.offsetY ?? 8,
+  }), [options?.width, options?.offsetY]);
+
+  const updateMenuPosition = () => {
+    if (!actionsBtnRef.current) return;
+    const r = actionsBtnRef.current.getBoundingClientRect();
+    setMenuPos({ top: r.bottom + offsetY, left: r.right - width });
+  };
 
   useEffect(() => {
     const fn = (e: MouseEvent) => {
@@ -26,12 +42,14 @@ export function useWorkoutActionsMenu() {
   const toggleActions = () => {
     setIsActionsOpen(prev => {
       const next = !prev;
-      if (!prev && actionsBtnRef.current) {
-        const r = actionsBtnRef.current.getBoundingClientRect();
-        setMenuPos({ top: r.bottom + 8, left: r.right - 192 });
-      }
+      if (!prev) updateMenuPosition();
       return next;
     });
+  };
+
+  const openActions = () => {
+    updateMenuPosition();
+    setIsActionsOpen(true);
   };
 
   const closeActions = () => setIsActionsOpen(false);
@@ -41,6 +59,7 @@ export function useWorkoutActionsMenu() {
     menuPos,
     actionsRef,
     actionsBtnRef,
+    openActions,
     toggleActions,
     closeActions,
   };

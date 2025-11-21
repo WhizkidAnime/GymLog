@@ -101,7 +101,7 @@ textarea:-webkit-autofill {
 /* Хедер карточки упражнения: название + кнопка удаления */
 .exercise-card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
 }
 
@@ -629,6 +629,17 @@ body::before {
   box-shadow: 0 10px 30px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.06);
   border-radius: 8px;
   z-index: 50;
+  min-width: 12.5rem;
+}
+
+.menu-popover-templates {
+  /* Glass-эффект для меню шаблонов, как для выпадающего списка периода */
+  background: rgba(24, 24, 27, 0.95);
+  -webkit-backdrop-filter: saturate(160%) blur(36px);
+  backdrop-filter: saturate(160%) blur(36px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
 }
 
 .back-button-plain,
@@ -637,10 +648,17 @@ body::before {
 .back-button-plain:focus {
   background: transparent !important;
   box-shadow: none !important;
+  border-color: transparent !important;
 }
 
 /* Возвращаем плейсхолдер при фокусе, чтобы он оставался до первого ввода символа */
 input:focus::placeholder,
 textarea:focus::placeholder {
   opacity: 1;
+}
+
+/* Светлая иконка календаря в полях даты под тёмную тему */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5);
+  opacity: 0.9;
 }

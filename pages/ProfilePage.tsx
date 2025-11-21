@@ -50,6 +50,7 @@ const ProfilePage = () => {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const workoutsFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const templatesFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [isEmailSpoilerRevealed, setIsEmailSpoilerRevealed] = useState(false);
 
   const displayName = React.useMemo(() => {
     if (!user) return '';
@@ -66,6 +67,24 @@ const ProfilePage = () => {
 
     return email;
   }, [user]);
+
+  const emailParts = React.useMemo(() => {
+    const email = user?.email || '';
+    if (!email || typeof email !== 'string') {
+      return null;
+    }
+
+    const [localPart, domain] = email.split('@');
+    if (!localPart || !domain) {
+      return null;
+    }
+
+    const visibleLength = Math.max(1, Math.ceil(localPart.length / 2));
+    const visiblePart = localPart.slice(0, visibleLength);
+    const hiddenPart = localPart.slice(visibleLength);
+
+    return { email, localPart, domain, visiblePart, hiddenPart };
+  }, [user?.email]);
 
   const formatDateDDMMYYYY = (iso: string) => {
     if (!iso || typeof iso !== 'string') return iso;
@@ -1263,36 +1282,19 @@ const ProfilePage = () => {
           </button>
           
           {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-56 menu-popover space-y-1">
-              <button
-                onClick={async () => {
-                  setIsMenuOpen(false);
-                  await handleExportWorkouts();
-                }}
-                disabled={isExporting}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
-              >
-                {isExporting ? 'Экспорт...' : 'Экспортировать данные о тренировках'}
-              </button>
-              <button
-                onClick={async () => {
-                  setIsMenuOpen(false);
-                  await handleExportTemplates();
-                }}
-                disabled={isExportingTemplates}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
-              >
-                {isExportingTemplates ? 'Экспорт шаблонов...' : 'Экспортировать шаблоны тренировок'}
-              </button>
+            <div className="absolute right-0 mt-2 menu-popover space-y-0.5">
+              <div className="px-4 pt-2 pb-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center whitespace-nowrap">
+                Импорт
+              </div>
               <button
                 onClick={() => {
                   setIsMenuOpen(false);
                   handleStartImportWorkouts();
                 }}
                 disabled={isImportingWorkouts}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
+                className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
               >
-                {isImportingWorkouts ? 'Импорт...' : 'Импортировать данные о тренировках'}
+                {isImportingWorkouts ? 'Импорт тренировок...' : 'Тренировки'}
               </button>
               <button
                 onClick={() => {
@@ -1300,16 +1302,42 @@ const ProfilePage = () => {
                   handleStartImportTemplates();
                 }}
                 disabled={isImportingTemplates}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
+                className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
               >
-                {isImportingTemplates ? 'Импорт шаблонов...' : 'Импортировать шаблоны тренировок'}
+                {isImportingTemplates ? 'Импорт шаблонов...' : 'Шаблоны'}
               </button>
+              <div className="px-4 pt-1 pb-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center whitespace-nowrap">
+                Экспорт
+              </div>
+              <button
+                onClick={async () => {
+                  setIsMenuOpen(false);
+                  await handleExportWorkouts();
+                }}
+                disabled={isExporting}
+                className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
+              >
+                {isExporting ? 'Экспорт тренировок...' : 'Тренировки'}
+              </button>
+              <button
+                onClick={async () => {
+                  setIsMenuOpen(false);
+                  await handleExportTemplates();
+                }}
+                disabled={isExportingTemplates}
+                className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
+              >
+                {isExportingTemplates ? 'Экспорт шаблонов...' : 'Шаблоны'}
+              </button>
+              <div className="px-4 pt-1 pb-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center whitespace-nowrap">
+                Данные и аккаунт
+              </div>
               <button
                 onClick={() => {
                   setIsMenuOpen(false);
                   startCleanDataFlow();
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/5 transition-colors rounded-lg"
+                className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 transition-colors rounded-lg"
               >
                 Очистить данные
               </button>
@@ -1319,9 +1347,9 @@ const ProfilePage = () => {
                   startDeleteAccountFlow();
                 }}
                 disabled={isDeleting}
-                className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors rounded-lg"
+                className="w-full text-left px-4 py-1.5 text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors rounded-lg"
               >
-                {isDeleting ? 'Удаление...' : 'Удалить аккаунт полностью'}
+                {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
               </button>
             </div>
           )}
@@ -1330,8 +1358,31 @@ const ProfilePage = () => {
       
       <div className="p-4 glass card-dark rounded-lg shadow">
         {user && (
-          <p>
-            Вы вошли как: <span className="font-semibold">{displayName}</span>
+          <p className="flex flex-wrap items-center gap-1">
+            <span>Вы вошли как:</span>
+            {emailParts ? (
+              <span className="font-semibold">
+                {emailParts.visiblePart}
+                {emailParts.hiddenPart && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEmailSpoilerRevealed(true)}
+                    className="inline px-0 py-0 border-b border-dashed border-white/40 hover:border-white/80 transition-colors cursor-pointer select-none bg-transparent rounded-none align-baseline"
+                  >
+                    {isEmailSpoilerRevealed ? (
+                      <span>{emailParts.hiddenPart}</span>
+                    ) : (
+                      <span>
+                        {'•'.repeat(Math.max(3, emailParts.hiddenPart.length))}
+                      </span>
+                    )}
+                  </button>
+                )}
+                @{emailParts.domain}
+              </span>
+            ) : (
+              <span className="font-semibold">{displayName}</span>
+            )}
           </p>
         )}
       </div>
@@ -1417,7 +1468,7 @@ const ProfilePage = () => {
           <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5 space-y-4">
             <h2 className="text-lg font-semibold text-white">Очистить данные</h2>
             <p className="text-sm text-gray-300">
-              Выберите, какие данные вы хотите удалить. Аккаунт останется, вы сможете продолжить пользоваться приложением.
+              Выберите, какие данные вы хотите удалить.
             </p>
             {(isLoadingWorkoutsForDeletion || isLoadingTemplatesForDeletion) && (
               <p className="text-xs text-gray-400">Загружаем данные...</p>

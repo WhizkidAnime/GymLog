@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { type ProgressDataPoint } from '../utils/progress-helpers';
@@ -23,6 +23,11 @@ const ProgressPage = () => {
   } = useProgress();
   const inputRef = useRef<HTMLInputElement>(null);
   const isScrolling = useHeaderScroll();
+  const [period, setPeriod] = useState<'all' | '3m' | '6m' | '1y' | 'custom'>('all');
+  const [customFrom, setCustomFrom] = useState<string | null>(null);
+  const [customTo, setCustomTo] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const getScrollKey = useCallback(() => {
     if (selectedExercise) {
@@ -99,6 +104,120 @@ const ProgressPage = () => {
       loadProgress(selectedExercise);
     }
   }, [selectedExercise, loadProgress]);
+
+  useEffect(() => {
+    setPeriod('all');
+    setCustomFrom(null);
+    setCustomTo(null);
+  }, [selectedExercise]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isDropdownOpen]);
+
+  const periodOptions = [
+    { id: 'all', label: 'Все данные' },
+    { id: '3m', label: 'Последние 3 мес' },
+    { id: '6m', label: 'Последние 6 мес' },
+    { id: '1y', label: 'Последний год' },
+    { id: 'custom', label: 'Произвольный период' },
+  ] as const;
+
+  const currentPeriodLabel = periodOptions.find((opt) => opt.id === period)?.label || 'Выбрать';
+
+  const filteredDataPoints = useMemo(() => {
+    if (!progressData) return [] as ProgressDataPoint[];
+
+    const points = progressData.dataPoints;
+
+    if (period === 'all') {
+      return points;
+    }
+
+    const now = new Date();
+
+    if (period === '3m' || period === '6m' || period === '1y') {
+      const fromDate = new Date(now);
+
+      if (period === '3m') {
+        fromDate.setMonth(fromDate.getMonth() - 3);
+      } else if (period === '6m') {
+        fromDate.setMonth(fromDate.getMonth() - 6);
+      } else {
+        fromDate.setFullYear(fromDate.getFullYear() - 1);
+      }
+
+      return points.filter((p) => new Date(p.date) >= fromDate);
+    }
+
+    if (period === 'custom') {
+      if (!customFrom && !customTo) {
+        return points;
+      }
+
+      const fromDate = customFrom ? new Date(customFrom) : null;
+      const toDate = customTo ? new Date(customTo) : null;
+
+      return points.filter((p) => {
+        const d = new Date(p.date);
+
+        if (fromDate && d < fromDate) return false;
+
+        if (toDate) {
+          const toInclusive = new Date(toDate);
+          toInclusive.setHours(23, 59, 59, 999);
+          if (d > toInclusive) return false;
+        }
+
+        return true;
+      });
+    }
+
+    return points;
+  }, [progressData, period, customFrom, customTo]);
+
+  const chartMinWidth = Math.max((filteredDataPoints.length || 0) * 56, 320);
+
+  const visibleStats = useMemo(() => {
+    if (!progressData || filteredDataPoints.length === 0) {
+      return null as
+        | null
+        | {
+            totalSessions: number;
+            maxWeight: number;
+            minWeight: number;
+          };
+    }
+
+    const weights = filteredDataPoints.map((d) => d.weight);
+
+    const totalSessions = filteredDataPoints.length;
+    const maxWeight = Math.max(...weights);
+    const minWeight = Math.min(...weights);
+
+    return { totalSessions, maxWeight, minWeight };
+  }, [progressData, filteredDataPoints]);
+
+  const visibleGrowth = useMemo(() => {
+    if (!visibleStats) return '—';
+
+    if (visibleStats.totalSessions <= 1 || visibleStats.minWeight <= 0) {
+      return '—';
+    }
+
+    const value = ((visibleStats.maxWeight - visibleStats.minWeight) / visibleStats.minWeight) * 100;
+
+    return `${value.toFixed(1)}%`;
+  }, [visibleStats]);
 
   const filteredExercises = searchQuery.trim()
     ? exercises.filter((ex) => normalizeExerciseName(ex.name).includes(normalizeExerciseName(searchQuery)))
@@ -264,19 +383,17 @@ const ProgressPage = () => {
               <div className="glass card-dark p-4 rounded-lg">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-white">{progressData.totalSessions}</p>
+                    <p className="text-2xl font-bold text-white">{visibleStats ? visibleStats.totalSessions : 0}</p>
                     <p className="text-sm text-gray-400 mt-1">Тренировок</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-green-400">{progressData.maxWeight} кг</p>
+                    <p className="text-2xl font-bold text-green-400">
+                      {visibleStats ? `${visibleStats.maxWeight} кг` : '—'}
+                    </p>
                     <p className="text-sm text-gray-400 mt-1">Максимум</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-blue-400">
-                      {progressData.dataPoints.length > 1
-                        ? `${((progressData.maxWeight - progressData.minWeight) / progressData.minWeight * 100).toFixed(1)}%`
-                        : '—'}
-                    </p>
+                    <p className="text-2xl font-bold text-blue-400">{visibleGrowth}</p>
                     <p className="text-sm text-gray-400 mt-1">Прирост</p>
                   </div>
                 </div>
@@ -284,54 +401,136 @@ const ProgressPage = () => {
 
               {/* График */}
               <div className="glass card-dark p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-white mb-4">Динамика веса</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={progressData.dataPoints} margin={{ top: 24, right: 10, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                    <XAxis
-                      dataKey="displayDate"
-                      stroke="rgba(255,255,255,0.5)"
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis
-                      stroke="rgba(255,255,255,0.5)"
-                      style={{ fontSize: '12px' }}
-                      label={{ value: 'Вес (кг)', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)', dx: 8 }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line
-                      type="monotone"
-                      dataKey="weight"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={{ fill: '#3b82f6', r: 4 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="flex flex-col gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-lg font-semibold text-white">Динамика веса</h3>
+                    <div ref={dropdownRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-xs text-gray-200 hover:bg-white/10 hover:border-white/25 transition-colors"
+                      >
+                        <span className="hidden sm:inline text-gray-400">Период:</span>
+                        <span className="font-medium">{currentPeriodLabel}</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`h-3 w-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                      </button>
+
+                      {isDropdownOpen && (
+                        <div className="absolute top-full right-0 mt-1 w-48 rounded-lg shadow-lg border border-white/10 z-50 overflow-hidden" style={{ background: 'rgba(24,24,27,0.95)', backdropFilter: 'saturate(160%) blur(36px)', WebkitBackdropFilter: 'saturate(160%) blur(24px)' }}>
+                          {periodOptions.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => {
+                                setPeriod(opt.id as typeof period);
+                                setIsDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                                period === opt.id
+                                  ? 'bg-white/15 text-white font-medium'
+                                  : 'text-gray-300 hover:bg-white/8'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {period === 'custom' && (
+                    <div className="mt-2 flex items-center justify-center gap-2 text-xs text-gray-300 flex-wrap text-center">
+                      <label className="flex items-center gap-1">
+                        <span>с</span>
+                        <input
+                          type="date"
+                          value={customFrom ?? ''}
+                          onChange={(e) => setCustomFrom(e.target.value || null)}
+                          className="bg-transparent border border-white/20 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-0 focus:border-blue-400/80"
+                        />
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <span>по</span>
+                        <input
+                          type="date"
+                          value={customTo ?? ''}
+                          onChange={(e) => setCustomTo(e.target.value || null)}
+                          className="bg-transparent border border-white/20 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-0 focus:border-blue-400/80"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {filteredDataPoints.length === 0 ? (
+                  <div className="pt-6 pb-3 text-sm text-gray-400 text-center">
+                    Нет данных за выбранный период
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto -mx-4 px-4 pb-2">
+                    <div style={{ minWidth: `${chartMinWidth}px` }}>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={filteredDataPoints} margin={{ top: 24, right: 10, left: 0, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                          <XAxis
+                            dataKey="displayDate"
+                            stroke="rgba(255,255,255,0.5)"
+                            style={{ fontSize: '12px' }}
+                          />
+                          <YAxis
+                            stroke="rgba(255,255,255,0.5)"
+                            style={{ fontSize: '12px' }}
+                            label={{ value: 'Вес (кг)', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)', dx: 8 }}
+                          />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Line
+                            type="monotone"
+                            dataKey="weight"
+                            stroke="#3b82f6"
+                            strokeWidth={2}
+                            dot={{ fill: '#3b82f6', r: 4 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Таблица данных */}
               <div className="glass card-dark p-4 rounded-lg">
                 <h3 className="text-lg font-semibold text-white mb-3">История</h3>
-                <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {progressData.dataPoints.slice().reverse().map((point, index) => (
-                    <div
-                      key={index}
-                      onClick={() => handleNavigateToWorkout(point)}
-                      className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-white font-medium">{new Date(point.date).toLocaleDateString('ru')}</p>
-                        <p className="text-sm text-gray-400">{point.workoutName}</p>
+                {filteredDataPoints.length === 0 ? (
+                  <p className="text-sm text-gray-400 mt-1">Нет тренировок за выбранный период</p>
+                ) : (
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {filteredDataPoints.slice().reverse().map((point, index) => (
+                      <div
+                        key={index}
+                        onClick={() => handleNavigateToWorkout(point)}
+                        className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                      >
+                        <div>
+                          <p className="text-white font-medium">{new Date(point.date).toLocaleDateString('ru')}</p>
+                          <p className="text-sm text-gray-400">{point.workoutName}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-white">{point.weight} кг</p>
+                          <p className="text-sm text-gray-400">{point.reps || '?'} повторов</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-white">{point.weight} кг</p>
-                        <p className="text-sm text-gray-400">{point.reps || '?'} повторов</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           ) : (
