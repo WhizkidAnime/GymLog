@@ -34,8 +34,8 @@ export function processProgressData(
   const dateMap = new Map<string, ProgressDataPoint>();
 
   rawData.forEach(({ workout_date, workout_name, workout_id, exercise_id, max_weight, reps_at_max_weight }) => {
-    const weight = max_weight || 0;
-    if (weight <= 0) return;
+    if (max_weight === null || max_weight === undefined) return;
+    const weight = max_weight;
 
     const existing = dateMap.get(workout_date);
     

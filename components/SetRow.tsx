@@ -62,6 +62,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   );
   const [isDone, setIsDone] = useState<boolean>(set.is_done);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFailure, setIsFailure] = useState<boolean>(() => repsDisplayToDb(initialRepsDisplay) === '0');
 
   const debouncedWeight = useDebounce(weight, 500);
   const debouncedReps = useDebounce(reps, 500);
@@ -128,7 +129,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
         try { localStorage.setItem(storageKey, JSON.stringify(draft)); } catch {}
 
         setIsSaving(true);
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('workout_sets')
           .update({
             weight: weightNum,
@@ -144,13 +145,14 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           // Успешно сохранили — черновик больше не нужен
           try { localStorage.removeItem(storageKey); } catch {}
           // Сообщим вверх об изменении
-          onChange?.({
+          const updatedSet: WorkoutSet = {
             ...set,
             weight: weightNum,
             reps: repsForDb,
             is_done: isDone,
             updated_at: new Date().toISOString(),
-          });
+          };
+          onChange?.(updatedSet);
         }
         setTimeout(() => setIsSaving(false), 500);
       }
@@ -175,19 +177,37 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   const textColor = isDone ? 'text-black' : 'text-inherit';
 
   const isMaxMode = repsDisplayToDb(reps) === '0';
+  const isMaxChecked = isFailure || isMaxMode;
 
   const handleToggleMax = () => {
-    if (isMaxMode) {
-      if (lastNonMaxReps !== null && lastNonMaxReps.trim() !== '') {
-        setRps(lastNonMaxReps);
-      } else {
-        setRps('');
+    const dbValue = repsDisplayToDb(reps);
+    const hasNumericReps = dbValue !== null && dbValue !== '0';
+
+    if (!isMaxChecked) {
+      // Включаем чекбокс
+      if (hasNumericReps) {
+        // Новый сценарий: повторы уже введены — ничего не меняем в reps,
+        // только помечаем подход как выполненный в отказ визуально
+        setIsFailure(true);
+        return;
       }
-    } else {
+
+      // Старый сценарий: повторы не введены — используем режим "макс." (reps = '0')
       if (repsDisplayToDb(reps) !== '0' && reps.trim() !== '') {
         persistLastNonMaxReps(reps);
       }
       setRps(MAX_REPS_LABEL);
+      setIsFailure(true);
+    } else {
+      // Выключаем чекбокс
+      if (isMaxMode) {
+        if (lastNonMaxReps !== null && lastNonMaxReps.trim() !== '') {
+          setRps(lastNonMaxReps);
+        } else {
+          setRps('');
+        }
+      }
+      setIsFailure(false);
     }
   };
 
@@ -201,7 +221,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
-          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
+          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent ${textColor}`}
           style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
         />
       </div>
@@ -220,14 +240,14 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
               persistLastNonMaxReps(value);
             }
           }}
-          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm ${textColor}`}
+          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent ${textColor}`}
           style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
         />
       </div>
       <div className="col-span-1 flex justify-center">
         <input
           type="checkbox"
-          checked={isMaxMode}
+          checked={isMaxChecked}
           onChange={handleToggleMax}
           aria-label="Подход в отказ (макс.)"
           className="h-6 w-6 rounded-md border border-gray-300 bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

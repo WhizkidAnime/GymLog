@@ -127,7 +127,16 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
         if (cancelled) return;
         if (wErr) throw wErr;
 
-        const workoutIds = (workouts || []).map((w: any) => w.id as string);
+        const workoutsList = (workouts || []).map((w: any) => ({
+          id: w.id as string,
+          date: w.workout_date as string,
+          name: w.name as string,
+        }));
+
+        const workoutMetaById = new Map<string, { date: string; name: string }>();
+        workoutsList.forEach((w) => workoutMetaById.set(w.id, { date: w.date, name: w.name }));
+
+        const workoutIds = workoutsList.map((w) => w.id);
 
         if (workoutIds.length === 0) {
           setLastPerformance(null);
@@ -145,12 +154,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
         if (exListErr) throw exListErr;
 
         const exerciseIds = new Set<string>();
+        const exerciseToWorkoutId = new Map<string, string>();
 
         (exList || []).forEach((ex: any) => {
           const raw = (ex.name ?? '').trim();
           if (!raw) return;
           if (normalizeExerciseName(raw) === normalizedTarget) {
-            exerciseIds.add(ex.id as string);
+            const exId = ex.id as string;
+            exerciseIds.add(exId);
+            const wId = ex.workout_id as string | null;
+            if (wId) {
+              exerciseToWorkoutId.set(exId, wId);
+            }
           }
         });
 
@@ -170,7 +185,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
         if (cancelled) return;
         if (viewErr) throw viewErr;
 
-        const rawData = (viewRows || []).map((row: any) => ({
+        let rawData = (viewRows || []).map((row: any) => ({
           workout_date: row.workout_date as string,
           workout_name: row.workout_name as string,
           workout_id: row.workout_id as string,
@@ -178,6 +193,44 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
           max_weight: row.max_weight as number | null,
           reps_at_max_weight: row.reps_at_max_weight as string | null,
         }));
+
+        if (rawData.length === 0) {
+          const { data: zeroSets, error: zeroErr } = await supabase
+            .from('workout_sets')
+            .select('id, workout_exercise_id, weight, reps, is_done, updated_at')
+            .in('workout_exercise_id', Array.from(exerciseIds))
+            .order('updated_at', { ascending: false });
+
+          if (cancelled) return;
+          if (zeroErr) throw zeroErr;
+
+          rawData = (zeroSets || [])
+            .filter((set: any) => set.weight !== null && Number(set.weight) === 0)
+            .filter((set: any) => set.is_done || (typeof set.reps === 'string' && set.reps.trim() !== ''))
+            .map((set: any) => {
+              const exerciseId = set.workout_exercise_id as string;
+              const workoutId = exerciseToWorkoutId.get(exerciseId);
+              if (!workoutId) return null;
+              const meta = workoutMetaById.get(workoutId);
+              if (!meta) return null;
+              return {
+                workout_date: meta.date,
+                workout_name: meta.name,
+                workout_id: workoutId,
+                exercise_id: exerciseId,
+                max_weight: 0,
+                reps_at_max_weight: set.reps as string | null,
+              };
+            })
+            .filter((row): row is {
+              workout_date: string;
+              workout_name: string;
+              workout_id: string;
+              exercise_id: string;
+              max_weight: number;
+              reps_at_max_weight: string | null;
+            } => row !== null);
+        }
 
         if (rawData.length === 0) {
           setLastPerformance(null);
