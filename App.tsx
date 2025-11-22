@@ -14,8 +14,8 @@ import TemplateImportPage from './pages/TemplateImportPage';
 import ExerciseHistoryPage from './pages/ExerciseHistoryPage';
 import ProgressPage from './pages/ProgressPage';
 
-// const DefaultRedirect = () => {
 const DefaultRedirect = () => {
+
     if (typeof window !== 'undefined') {
         const search = window.location.search;
         if (search) {
@@ -25,7 +25,28 @@ const DefaultRedirect = () => {
                 return <Navigate to={`/templates/import?s=${encodeURIComponent(shareCode)}`} replace />;
             }
         }
+
+        const lastWorkoutPath = window.localStorage.getItem('lastWorkoutPath');
+        const lastWorkoutTimestamp = window.localStorage.getItem('lastWorkoutTimestamp');
+
+        if (typeof lastWorkoutPath === 'string') {
+            const isValidWorkoutPath = /^\/workout\/\d{4}-\d{2}-\d{2}$/.test(lastWorkoutPath);
+
+            if (isValidWorkoutPath && typeof lastWorkoutTimestamp === 'string') {
+                const timestamp = Number.parseInt(lastWorkoutTimestamp, 10);
+                if (Number.isFinite(timestamp)) {
+                    const now = Date.now();
+                    const diffMs = now - timestamp;
+                    const maxAgeMs = 90 * 60 * 1000;
+
+                    if (diffMs >= 0 && diffMs <= maxAgeMs) {
+                        return <Navigate to={lastWorkoutPath} replace />;
+                    }
+                }
+            }
+        }
     }
+
     return <Navigate to="/calendar" replace />;
 };
 

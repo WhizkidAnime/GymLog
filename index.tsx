@@ -3,7 +3,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles/tailwind.css';
-import { waitAuthReady } from './lib/waitAuthReady';
 
 if ('serviceWorker' in navigator) {
   const registerServiceWorker = () => {
@@ -55,21 +54,7 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 
-const renderFallback = () => {
-  root.render(
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
-      <p>Загрузка...</p>
-    </div>
-  );
-};
-
-const bootstrap = async () => {
-  renderFallback();
-  try {
-    await waitAuthReady();
-  } catch (error) {
-    console.error('Не удалось восстановить сессию:', error);
-  }
+const bootstrap = () => {
   root.render(<App />);
 };
 

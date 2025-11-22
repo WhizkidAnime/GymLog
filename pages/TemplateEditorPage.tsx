@@ -295,7 +295,7 @@ const TemplateEditorPage = () => {
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div>
-          <label htmlFor="template-name" className="block text-sm font-medium" style={{color:'#e4e4e7'}}>Название дня</label>
+          <label htmlFor="template-name" className="block text-xl font-semibold" style={{color:'#ffffffff'}}>Название дня</label>
           <div className="relative">
             <input
               id="template-name"

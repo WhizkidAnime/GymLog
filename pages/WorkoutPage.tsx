@@ -288,6 +288,7 @@ const WorkoutPage = () => {
   useEffect(() => {
     if (!normalizedDate) return;
     localStorage.setItem('lastWorkoutPath', `/workout/${normalizedDate}`);
+    localStorage.setItem('lastWorkoutTimestamp', Date.now().toString());
   }, [normalizedDate]);
 
   useEffect(() => {
