@@ -42,8 +42,8 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
         {!isEditingName ? (
           <div className="flex items-center justify-center gap-2">
             <div>
-              <h1 className="text-2xl font-bold text-white">{workoutName}</h1>
-              <p className="text-lg transition-all duration-300" style={{ color: '#a1a1aa' }}>
+              <h1 className="text-xl font-bold text-white">{workoutName}</h1>
+              <p className="text-md transition-all duration-300" style={{ color: '#a1a1aa' }}>
                 Дата: {formatDateForDisplay(normalizedDate)}
               </p>
             </div>

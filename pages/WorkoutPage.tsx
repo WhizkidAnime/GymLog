@@ -907,6 +907,24 @@ const WorkoutPage = () => {
                       gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                       top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .header-container::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: calc(100% - 1px);
+          height: 100vh;
+          background: var(--glass-bg);
+          backdrop-filter: saturate(160%) blur(30px);
+          -webkit-backdrop-filter: saturate(160%) blur(30px);
+          z-index: -1;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .header-container.scrolling::before {
+          opacity: 1;
+        }
         .header-container.scrolling {
           padding: 0.35rem 1rem;
           gap: 0.7rem;
