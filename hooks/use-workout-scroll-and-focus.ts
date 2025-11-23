@@ -18,13 +18,16 @@ export function useWorkoutScrollAndFocus({
   const isRestoringScroll = useRef(false);
   const lastScrollPosition = useRef(0);
   const focusAppliedRef = useRef(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     focusAppliedRef.current = false;
+    initializedRef.current = false;
   }, [normalizedDate, location.key]);
 
   useEffect(() => {
     if (!normalizedDate || exercisesLength === 0) return;
+    if (initializedRef.current) return;
 
     const tryFocusExercise = () => {
       const focusExerciseId = (location.state as any)?.focusExerciseId as string | undefined;
@@ -79,9 +82,11 @@ export function useWorkoutScrollAndFocus({
       }
     };
 
-    if (!tryFocusExercise()) {
+    const didFocus = tryFocusExercise();
+    if (!didFocus) {
       restoreScroll();
     }
+    initializedRef.current = true;
   }, [normalizedDate, exercisesLength, scrollKey, location.state]);
 
   useEffect(() => {

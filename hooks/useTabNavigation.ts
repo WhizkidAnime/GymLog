@@ -84,13 +84,22 @@ export const useTabNavigation = () => {
 
   // Функция для навигации к вкладке с восстановлением последнего пути
   const navigateToTab = (targetTab: 'calendar' | 'search' | 'templates' | 'profile') => {
+    const currentPath = location.pathname;
+
+    // Если мы на странице конкретной тренировки, клик по вкладке календаря
+    // всегда возвращает в корень календаря
+    if (targetTab === 'calendar' && currentPath.startsWith('/workout')) {
+      navigate(DEFAULT_PATHS.calendar);
+      return;
+    }
+
+    // Если уже на нужной вкладке (и это не workout-страница для календаря), ничего не делаем
+    const currentTab = getTabFromPath(currentPath);
+    if (currentTab === targetTab) return;
+
     const storedPaths = getStoredPaths();
     const fallback = DEFAULT_PATHS[targetTab];
     const targetPath = storedPaths[targetTab] || fallback;
-
-    // Если мы уже на этой вкладке, не делаем ничего
-    const currentTab = getTabFromPath(location.pathname);
-    if (currentTab === targetTab) return;
 
     navigate(targetPath);
   };
