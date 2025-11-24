@@ -220,6 +220,29 @@ const TemplateEditorPage = () => {
   return (
     <div className="relative p-4 max-w-lg mx-auto template-editor">
       <style>{`
+        .status-bar-blur {
+          position: fixed;
+          top: -68px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: min(calc(100vw - 2rem), 30rem);
+          height: calc(env(safe-area-inset-top, 0px) + 60px);
+          z-index: 29;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @supports (height: constant(safe-area-inset-top)) {
+          .status-bar-blur {
+            height: constant(safe-area-inset-top);
+          }
+        }
+        .status-bar-blur.visible {
+          opacity: 1;
+        }
         .header-container {
           position: sticky;
           top: 1rem;
@@ -280,6 +303,7 @@ const TemplateEditorPage = () => {
         .top-sentinel { height: 1px; }
         .template-editor { overscroll-behavior-y: contain; }
       `}</style>
+      <div className={`status-bar-blur ${isScrolling ? 'visible' : ''}`} />
       <div ref={topSentinelRef} className="top-sentinel" aria-hidden="true"></div>
       <div className={`mb-6 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <BackButton className="shrink-0" />
