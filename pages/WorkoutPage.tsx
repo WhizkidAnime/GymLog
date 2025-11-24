@@ -896,6 +896,28 @@ const WorkoutPage = () => {
             opacity: 1;
           }
         }
+        .status-bar-blur {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: env(safe-area-inset-top, 0px);
+          z-index: 29;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @supports (height: constant(safe-area-inset-top)) {
+          .status-bar-blur {
+            height: constant(safe-area-inset-top);
+          }
+        }
+        .status-bar-blur.visible {
+          opacity: 1;
+        }
         .header-container {
           position: sticky;
           top: 1rem;
@@ -956,6 +978,7 @@ const WorkoutPage = () => {
           line-height: 1.15;
         }
       `}</style>
+      <div className={`status-bar-blur ${isScrolling ? 'visible' : ''}`} />
       <WorkoutHeader
         normalizedDate={normalizedDate}
         workoutName={workoutName}
