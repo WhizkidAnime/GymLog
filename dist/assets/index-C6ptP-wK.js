@@ -168,7 +168,7 @@ ${O}`}class en extends Error{constructor({message:t,code:n,cause:r,name:a}){var 
           top: 0;
           left: 0;
           right: 0;
-          height: env(safe-area-inset-top, 0px);
+          height: calc(env(safe-area-inset-top, 0px) + 3.5rem);
           z-index: 29;
           background: rgba(0, 0, 0, 0.5);
           backdrop-filter: blur(12px);
@@ -179,7 +179,7 @@ ${O}`}class en extends Error{constructor({message:t,code:n,cause:r,name:a}){var 
         }
         @supports (height: constant(safe-area-inset-top)) {
           .status-bar-blur {
-            height: constant(safe-area-inset-top);
+            height: calc(constant(safe-area-inset-top) + 3.5rem);
           }
         }
         .status-bar-blur.visible {
