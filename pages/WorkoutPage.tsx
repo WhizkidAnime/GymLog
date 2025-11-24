@@ -898,7 +898,7 @@ const WorkoutPage = () => {
         }
         .status-bar-blur {
           position: fixed;
-          top: 0;
+          top: -68px;
           left: 0;
           right: 0;
           height: calc(env(safe-area-inset-top, 0px) + 60px);

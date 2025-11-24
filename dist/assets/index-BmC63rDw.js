@@ -165,7 +165,7 @@ ${O}`}class en extends Error{constructor({message:t,code:n,cause:r,name:a}){var 
         }
         .status-bar-blur {
           position: fixed;
-          top: 0;
+          top: -68px;
           left: 0;
           right: 0;
           height: calc(env(safe-area-inset-top, 0px) + 60px);
