@@ -399,9 +399,19 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
     if (onDeleteExercise) onDeleteExercise(exercise.id);
   };
 
+  const MAX_REPS_LABEL = 'макс.';
+
   const formatWeight = (value: number | null) => {
     if (value === null || value === undefined) return '—';
     return String(value).replace('.', ',');
+  };
+
+  const formatReps = (value: string | null) => {
+    if (value === null || value === undefined) return '—';
+    const trimmed = value.trim();
+    if (!trimmed) return '—';
+    if (trimmed === '0') return MAX_REPS_LABEL;
+    return trimmed;
   };
 
   const renderLastPerformance = () => {
@@ -420,7 +430,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
     if (lastPerformance) {
       return (
         <span className="text-white text-base font-semibold">
-          {formatWeight(lastPerformance.weight)} кг × {lastPerformance.reps ?? '—'}
+          {formatWeight(lastPerformance.weight)} кг × {formatReps(lastPerformance.reps)}
         </span>
       );
     }
@@ -513,7 +523,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
           )}
         </div>
       </div>
-      
       <div className="space-y-3 pt-1">
         <div className="grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
           <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">Подход</div>
@@ -522,15 +531,23 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
           <div className="col-span-1 flex items-center justify-end pr-1 sm:pr-2 whitespace-nowrap">В отказ</div>
         </div>
         <div className="space-y-2">
-          {exercise.workout_sets.map((set) => (
-            <SetRow key={set.id} set={set} onChange={(updated) => {
-              const updatedExercise: WorkoutExerciseWithSets = {
-                ...exercise,
-                workout_sets: exercise.workout_sets.map(s => (s.id === updated.id ? updated : s)),
-              };
-              onUpdateExercise(updatedExercise);
-            }} />
-          ))}
+          {exercise.workout_sets.map((set, index, allSets) => {
+            const previousSet = index > 0 ? allSets[index - 1] : undefined;
+            return (
+              <SetRow
+                key={set.id}
+                set={set}
+                previousSet={previousSet}
+                onChange={(updated) => {
+                  const updatedExercise: WorkoutExerciseWithSets = {
+                    ...exercise,
+                    workout_sets: exercise.workout_sets.map((s) => (s.id === updated.id ? updated : s)),
+                  };
+                  onUpdateExercise(updatedExercise);
+                }}
+              />
+            );
+          })}
         </div>
       </div>
       <ConfirmDialog
@@ -538,7 +555,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
         onOpenChange={setIsDeleteOpen}
         title="Удалить упражнение?"
         description={exercise.name ? `Вы собираетесь удалить упражнение "${exercise.name}". Действие необратимо.` : 'Вы собираетесь удалить упражнение. Действие необратимо.'}
-        confirmText="Удалить"
+// ...
         cancelText="Отмена"
         variant="danger"
         onConfirm={handleConfirmDelete}

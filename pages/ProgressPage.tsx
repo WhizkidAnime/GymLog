@@ -5,11 +5,36 @@ import { type ProgressDataPoint } from '../utils/progress-helpers';
 import { normalizeExerciseName } from '../utils/exercise-name';
 import { useHeaderScroll } from '../hooks/use-header-scroll';
 import { useScrollRestoration } from '../hooks/use-scroll-restoration';
+import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
 import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
 import { useProgress } from '../hooks/use-progress';
+import { pluralize } from '../utils/pluralize';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
+
+const db = supabase as any;
+
+type TabType = 'exercises' | 'cardio';
+
+type CardioWeek = {
+  weekStart: string;
+  weekEnd: string;
+  weekLabel: string;
+  count: number;
+  goal: number;
+  isCurrentWeek: boolean;
+};
+
+type CardioMonthStats = {
+  month: string;
+  year: number;
+  count: number;
+  monthLabel: string;
+};
 
 const ProgressPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     exercises,
     loading,
@@ -28,6 +53,26 @@ const ProgressPage = () => {
   const [customTo, setCustomTo] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cardio tab state
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    try {
+      return (localStorage.getItem('progress:activeTab') as TabType) || 'exercises';
+    } catch {
+      return 'exercises';
+    }
+  });
+  const [cardioGoal, setCardioGoal] = useState<number>(3);
+  const [cardioWorkouts, setCardioWorkouts] = useState<{ workout_date: string }[]>([]);
+  const [loadingCardio, setLoadingCardio] = useState(false);
+  const [isCardioInfoOpen, setIsCardioInfoOpen] = useState(false);
+  const [selectedCardioMonth, setSelectedCardioMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const cardioGoalLoadedRef = useRef(false);
+
+  useModalScrollLock(isCardioInfoOpen);
 
   const getScrollKey = useCallback(() => {
     if (selectedExercise) {
@@ -124,6 +169,206 @@ const ProgressPage = () => {
     }
   }, [isDropdownOpen]);
 
+  // Save active tab
+  useEffect(() => {
+    try {
+      localStorage.setItem('progress:activeTab', activeTab);
+    } catch {}
+  }, [activeTab]);
+
+  // Load cardio goal from DB
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadCardioGoal = async () => {
+      try {
+        const { data, error } = await db
+          .from('user_settings')
+          .select('cardio_weekly_goal')
+          .eq('user_id', user.id)
+          .limit(1);
+
+        if (error) {
+          console.error('Error loading cardio goal:', error);
+          return;
+        }
+
+        if (!isCancelled && data && data.length > 0 && typeof data[0]?.cardio_weekly_goal === 'number') {
+          setCardioGoal(data[0].cardio_weekly_goal);
+        }
+      } catch (error) {
+        console.error('Error loading cardio goal:', error);
+      } finally {
+        if (!isCancelled) {
+          cardioGoalLoadedRef.current = true;
+        }
+      }
+    };
+
+    loadCardioGoal();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user]);
+
+  // Save cardio goal to DB
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+    if (!cardioGoalLoadedRef.current) {
+      return;
+    }
+
+    const saveCardioGoal = async () => {
+      try {
+        const { error } = await db
+          .from('user_settings')
+          .upsert(
+            {
+              user_id: user.id,
+              cardio_weekly_goal: cardioGoal,
+            },
+            { onConflict: 'user_id' }
+          );
+
+        if (error) {
+          console.error('Error saving cardio goal:', error);
+        }
+      } catch (error) {
+        console.error('Error saving cardio goal:', error);
+      }
+    };
+
+    saveCardioGoal();
+  }, [cardioGoal, user]);
+
+  // Fetch cardio workouts
+  useEffect(() => {
+    if (activeTab !== 'cardio' || !user) return;
+
+    const fetchCardioWorkouts = async () => {
+      setLoadingCardio(true);
+      try {
+        const { data, error } = await supabase
+          .from('workouts')
+          .select('workout_date')
+          .eq('user_id', user.id)
+          .eq('is_cardio', true)
+          .order('workout_date', { ascending: false });
+
+        if (error) throw error;
+        setCardioWorkouts(data || []);
+      } catch (error) {
+        console.error('Error fetching cardio workouts:', error);
+      } finally {
+        setLoadingCardio(false);
+      }
+    };
+
+    fetchCardioWorkouts();
+  }, [activeTab, user]);
+
+  // Calculate weeks for selected month
+  const cardioWeeks = useMemo((): CardioWeek[] => {
+    if (!selectedCardioMonth) return [];
+
+    const [year, month] = selectedCardioMonth.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const weeks: CardioWeek[] = [];
+    let currentDate = new Date(firstDay);
+
+    // Adjust to Monday of the first week
+    const dayOfWeek = currentDate.getDay();
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    currentDate.setDate(currentDate.getDate() + daysToMonday);
+
+    while (currentDate <= lastDay || (currentDate.getMonth() === month - 1 || (currentDate.getMonth() === month - 2 && currentDate.getDate() > 20))) {
+      const weekStart = new Date(currentDate);
+      const weekEnd = new Date(currentDate);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+
+      // Only include weeks that overlap with the selected month
+      if (weekEnd >= firstDay && weekStart <= lastDay) {
+        const count = cardioWorkouts.filter(w => {
+          const d = new Date(w.workout_date);
+          return d >= weekStart && d <= weekEnd;
+        }).length;
+
+        const isCurrentWeek = today >= weekStart && today <= weekEnd;
+
+        weeks.push({
+          weekStart: weekStart.toISOString().slice(0, 10),
+          weekEnd: weekEnd.toISOString().slice(0, 10),
+          weekLabel: `${weekStart.getDate()}.${String(weekStart.getMonth() + 1).padStart(2, '0')} - ${weekEnd.getDate()}.${String(weekEnd.getMonth() + 1).padStart(2, '0')}`,
+          count,
+          goal: cardioGoal,
+          isCurrentWeek,
+        });
+      }
+
+      currentDate.setDate(currentDate.getDate() + 7);
+      if (currentDate > lastDay && currentDate.getMonth() !== month - 1) break;
+    }
+
+    return weeks;
+  }, [selectedCardioMonth, cardioWorkouts, cardioGoal]);
+
+  // Calculate monthly stats
+  const cardioMonthStats = useMemo((): CardioMonthStats[] => {
+    const stats: Record<string, CardioMonthStats> = {};
+    const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+
+    cardioWorkouts.forEach(w => {
+      const d = new Date(w.workout_date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!stats[key]) {
+        stats[key] = {
+          month: key,
+          year: d.getFullYear(),
+          count: 0,
+          monthLabel: `${monthNames[d.getMonth()]} ${d.getFullYear()}`,
+        };
+      }
+      stats[key].count++;
+    });
+
+    return Object.values(stats).sort((a, b) => b.month.localeCompare(a.month));
+  }, [cardioWorkouts]);
+
+  // Month selector options
+  const monthOptions = useMemo(() => {
+    const options: { value: string; label: string }[] = [];
+    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+    const now = new Date();
+
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      options.push({
+        value,
+        label: `${monthNames[d.getMonth()]} ${d.getFullYear()}`,
+      });
+    }
+
+    return options;
+  }, []);
+
+  // Total cardio this month
+  const totalCardioThisMonth = useMemo(() => {
+    if (!selectedCardioMonth) return 0;
+    return cardioMonthStats.find(s => s.month === selectedCardioMonth)?.count || 0;
+  }, [selectedCardioMonth, cardioMonthStats]);
+
   const periodOptions = [
     { id: 'all', label: 'Все данные' },
     { id: '3m', label: 'Последние 3 мес' },
@@ -208,22 +453,24 @@ const ProgressPage = () => {
   }, [progressData, filteredDataPoints]);
 
   const visibleGrowth = useMemo(() => {
-    if (!visibleStats) return '—';
+    if (!filteredDataPoints || filteredDataPoints.length <= 1) return '—';
 
-    if (visibleStats.totalSessions <= 1 || visibleStats.minWeight <= 0) {
-      return '—';
-    }
+    const firstWeight = filteredDataPoints[0].weight;
+    const lastWeight = filteredDataPoints[filteredDataPoints.length - 1].weight;
 
-    const value = ((visibleStats.maxWeight - visibleStats.minWeight) / visibleStats.minWeight) * 100;
+    if (firstWeight <= 0) return '—';
 
-    return `${value.toFixed(1)}%`;
-  }, [visibleStats]);
+    const value = ((lastWeight - firstWeight) / firstWeight) * 100;
+    const sign = value > 0 ? '+' : '';
+
+    return `${sign}${value.toFixed(1)}%`;
+  }, [filteredDataPoints]);
 
   const filteredExercises = searchQuery.trim()
     ? exercises.filter((ex) => normalizeExerciseName(ex.name).includes(normalizeExerciseName(searchQuery)))
     : exercises;
 
-  if (loading) {
+  if (loading && activeTab === 'exercises') {
     return <WorkoutLoadingOverlay message="Загрузка упражнений..." />;
   }
 
@@ -287,12 +534,52 @@ const ProgressPage = () => {
           </svg>
         </button>
         <h1 className="flex-1 text-xl font-bold text-center">
-          {selectedExercise || 'Прогресс по упражнениям'}
+          {activeTab === 'exercises' 
+            ? (selectedExercise || 'Прогресс') 
+            : 'Кардио'
+          }
         </h1>
+        {activeTab === 'cardio' && (
+          <button
+            onClick={() => setIsCardioInfoOpen(true)}
+            className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-white bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Информация о кардио"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+        )}
       </div>
 
-      {/* Список упражнений */}
+      {/* Вкладки */}
       {!selectedExercise && (
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveTab('exercises')}
+            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all ${
+              activeTab === 'exercises'
+                ? 'bg-blue-500/30 text-white border border-blue-400/40'
+                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            Упражнения
+          </button>
+          <button
+            onClick={() => setActiveTab('cardio')}
+            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all ${
+              activeTab === 'cardio'
+                ? 'bg-green-500/30 text-white border border-green-400/40'
+                : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            Кардио
+          </button>
+        </div>
+      )}
+
+      {/* Список упражнений */}
+      {!selectedExercise && activeTab === 'exercises' && (
         <div className="space-y-3">
           <div className="glass card-dark rounded-full px-4 py-3">
             <div className="flex items-center gap-3">
@@ -365,6 +652,241 @@ const ProgressPage = () => {
         </div>
       )}
 
+      {/* Кардио вкладка */}
+      {activeTab === 'cardio' && !selectedExercise && (
+        <div className="space-y-4">
+          {loadingCardio ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-12 h-12">
+                  <div className="absolute inset-0 border-4 border-transparent border-t-green-500 border-r-green-500 rounded-full animate-spin"></div>
+                </div>
+                <p className="text-white text-center">Загрузка данных...</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Настройка цели */}
+              <div className="glass card-dark p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-white">Цель на неделю</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCardioGoal(Math.max(1, cardioGoal - 1))}
+                      className="w-8 h-8 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                      disabled={cardioGoal <= 1}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <span className="text-2xl font-bold text-green-400 w-8 text-center">{cardioGoal}</span>
+                    <button
+                      onClick={() => setCardioGoal(Math.min(7, cardioGoal + 1))}
+                      className="w-8 h-8 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                      disabled={cardioGoal >= 7}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-400">
+                  {pluralize(cardioGoal, 'тренировка', 'тренировки', 'тренировок')} в неделю
+                </p>
+              </div>
+
+              {/* Выбор месяца */}
+              <div className="glass card-dark p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Прогресс по неделям</h3>
+                  <select
+                    value={selectedCardioMonth}
+                    onChange={(e) => setSelectedCardioMonth(e.target.value)}
+                    className="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-0 focus:border-green-400/60"
+                  >
+                    {monthOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value} className="bg-zinc-900">
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Прогресс по неделям */}
+                <div className="space-y-3">
+                  {cardioWeeks.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-4">Нет данных за этот месяц</p>
+                  ) : (
+                    cardioWeeks.map((week, idx) => {
+                      const progress = Math.min((week.count / week.goal) * 100, 100);
+                      const isCompleted = week.count >= week.goal;
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-lg ${
+                            week.isCurrentWeek
+                              ? 'bg-green-500/10 border border-green-500/30'
+                              : 'bg-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`text-sm ${
+                              week.isCurrentWeek ? 'text-green-300 font-medium' : 'text-gray-300'
+                            }`}>
+                              {week.weekLabel}
+                              {week.isCurrentWeek && ' (текущая)'}
+                            </span>
+                            <span className={`text-sm font-bold ${
+                              isCompleted ? 'text-green-400' : 'text-gray-400'
+                            }`}>
+                              {week.count} / {week.goal}
+                            </span>
+                          </div>
+                          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-500 rounded-full ${
+                                isCompleted
+                                  ? 'bg-gradient-to-r from-green-500 to-green-400'
+                                  : 'bg-gradient-to-r from-blue-500 to-blue-400'
+                              }`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          {!isCompleted && week.isCurrentWeek && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              Осталось: {week.goal - week.count} {pluralize(week.goal - week.count, 'тренировка', 'тренировки', 'тренировок')}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Статистика по месяцам */}
+              <div className="glass card-dark p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-3">Статистика по месяцам</h3>
+                <div className="grid grid-cols-2 gap-3 text-center mb-4">
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <p className="text-2xl font-bold text-green-400">{totalCardioThisMonth}</p>
+                    <p className="text-xs text-gray-400">В этом месяце</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <p className="text-2xl font-bold text-blue-400">{cardioWorkouts.length}</p>
+                    <p className="text-xs text-gray-400">Всего кардио</p>
+                  </div>
+                </div>
+
+                {cardioMonthStats.length > 0 && (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {cardioMonthStats.map((stat) => (
+                      <div
+                        key={stat.month}
+                        onClick={() => setSelectedCardioMonth(stat.month)}
+                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                          stat.month === selectedCardioMonth
+                            ? 'bg-green-500/20 border border-green-500/30'
+                            : 'bg-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-sm text-gray-300">{stat.monthLabel}</span>
+                        <span className="text-lg font-bold text-white">{stat.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Модальное окно с информацией о кардио */}
+      {isCardioInfoOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsCardioInfoOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative glass card-dark p-5 rounded-2xl max-w-md w-full max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsCardioInfoOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+              aria-label="Закрыть"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <h2 className="text-xl font-bold text-white pr-10">О кардио тренировках</h2>
+
+            <div className="mt-4 space-y-4 text-sm text-gray-300 max-h-[60vh] overflow-y-auto pr-1">
+              <div>
+                <h3 className="text-green-400 font-semibold mb-2">Что такое кардио?</h3>
+                <p>Аэробные нагрузки, укрепляющие сердечно-сосудистую систему и улучшающие выносливость.</p>
+              </div>
+
+              <div>
+                <h3 className="text-green-400 font-semibold mb-2">Сколько делать?</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>2-3 раза в неделю — минимум для здоровья</li>
+                  <li>3-5 раз — оптимально для похудения</li>
+                  <li>20-40 минут за сессию</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-green-400 font-semibold mb-2">Целевой пульс</h3>
+                <p>130-140 уд/мин — зона жиросжигания. Вы должны мочь говорить, но с усилием.</p>
+              </div>
+
+              <div>
+                <h3 className="text-green-400 font-semibold mb-2">Виды кардио</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><b>Stair Master</b> — имитация подъёма по лестнице</li>
+                  <li><b>Эллипсоид</b> — щадящая нагрузка на суставы</li>
+                  <li><b>Велотренажёр</b> — подходит для начинающих</li>
+                  <li><b>Беговая дорожка</b> — быстрая ходьба или бег</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-green-400 font-semibold mb-2">Плюсы</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Укрепляет сердце и сосуды</li>
+                  <li>Ускоряет метаболизм</li>
+                  <li>Снижает уровень стресса</li>
+                  <li>Улучшает качество сна</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-green-400 font-semibold mb-2">Когда делать?</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>После силовой тренировки (20-30 мин)</li>
+                  <li>В отдельный день (40-60 мин)</li>
+                  <li>Утром натощак — для продвинутых</li>
+                </ul>
+              </div>
+
+              <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <h3 className="text-yellow-400 font-semibold mb-2">⚠️ Предупреждение</h3>
+                <p className="text-yellow-200/80">
+                  При проблемах с сердцем, суставами или давлением — проконсультируйтесь с врачом перед началом кардио тренировок.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* График прогресса */}
       {selectedExercise && (
         <div className="space-y-4">
@@ -384,7 +906,7 @@ const ProgressPage = () => {
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold text-white">{visibleStats ? visibleStats.totalSessions : 0}</p>
-                    <p className="text-sm text-gray-400 mt-1">Тренировок</p>
+                    <p className="text-sm text-gray-400 mt-1">{pluralize(visibleStats?.totalSessions ?? 0, 'Тренировка', 'Тренировки', 'Тренировок')}</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-400">

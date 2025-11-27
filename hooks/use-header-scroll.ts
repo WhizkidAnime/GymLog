@@ -1,11 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function useHeaderScroll() {
   const [isScrolling, setIsScrolling] = useState(false);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolling(window.scrollY > 0);
+      const next = window.scrollY > 0;
+
+      if (isScrollingRef.current !== next) {
+        isScrollingRef.current = next;
+        setIsScrolling(next);
+      }
     };
 
     handleScroll();

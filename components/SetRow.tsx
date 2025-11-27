@@ -5,10 +5,11 @@ import type { WorkoutSet } from '../types/database.types';
 
 interface SetRowProps {
   set: WorkoutSet;
+  previousSet?: WorkoutSet;
   onChange?: (updated: WorkoutSet) => void;
 }
 
-export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
+export const SetRow: React.FC<SetRowProps> = ({ set, previousSet, onChange }) => {
   const storageKey = `workout_set_draft:${set.id}`;
   const lastNonMaxKey = `workout_set_last_non_max_reps:${set.id}`;
   // Внутреннее представление веса — всегда строка с запятой в качестве разделителя
@@ -67,6 +68,12 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
   const debouncedWeight = useDebounce(weight, 500);
   const debouncedReps = useDebounce(reps, 500);
  
+  const canCopyWeightFromPrev =
+    !!previousSet &&
+    previousSet.is_done &&
+    previousSet.weight !== null &&
+    toNumber(weight) === null;
+
   const persistLastNonMaxReps = (value: string | null) => {
     setLastNonMaxReps(value);
     try {
@@ -222,9 +229,45 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
           className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent ${textColor}`}
-          style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
+          style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
         />
       </div>
+      {canCopyWeightFromPrev && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!previousSet || previousSet.weight === null) return;
+            setWeight(toDisplay(previousSet.weight));
+          }}
+          aria-label="Скопировать вес из предыдущего подхода"
+          className="btn-glass btn-glass-icon-round btn-glass-secondary absolute text-white h-6 w-6 p-0"
+          style={{
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            transition: 'none',
+            width: '1.5rem',
+            height: '1.5rem',
+            minWidth: '1.5rem',
+            minHeight: '1.5rem',
+            padding: 0,
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="12"
+            height="12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="5 15 12 8 19 15" />
+          </svg>
+        </button>
+      )}
       <div className="col-span-2 flex justify-center">
         <input
           type="text"
@@ -241,7 +284,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
             }
           }}
           className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent ${textColor}`}
-          style={{backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa'}}
+          style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
         />
       </div>
       <div className="col-span-1 flex justify-center">
@@ -254,7 +297,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, onChange }) => {
           style={{ accentColor: '#000000', color: '#0a0a0a' }}
         />
       </div>
-       {isSaving && <div className="absolute right-2 top-2 h-2 w-2 bg-blue-500 rounded-full animate-ping"></div>}
+      {isSaving && <div className="absolute right-2 top-2 h-2 w-2 bg-blue-500 rounded-full animate-ping"></div>}
     </div>
   );
 };
