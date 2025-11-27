@@ -1,3 +1,4 @@
+/// <reference path="./env.d.ts" />
 // Supabase Edge Function для отправки push-уведомлений
 // Запускается по cron каждую минуту или через webhook
 
@@ -58,44 +59,43 @@ async function createVapidJwt(audience: string): Promise<string> {
   const payloadB64 = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)));
   const unsignedToken = `${headerB64}.${payloadB64}`;
 
-  // Импортируем приватный ключ
-  const privateKeyData = base64UrlDecode(VAPID_PRIVATE_KEY);
+  // Строим JWK из публичного и приватного VAPID-ключей.
+  // VAPID_PUBLIC_KEY сгенерирован web-push и представляет собой
+  // несжатый публичный ключ: 0x04 || X(32) || Y(32)
+  const publicKeyBytes = base64UrlDecode(VAPID_PUBLIC_KEY);
+  if (publicKeyBytes.length !== 65 || publicKeyBytes[0] !== 4) {
+    throw new Error('Invalid VAPID_PUBLIC_KEY format');
+  }
+
+  const xBytes = publicKeyBytes.slice(1, 33);
+  const yBytes = publicKeyBytes.slice(33, 65);
+
+  const jwk: JsonWebKey = {
+    kty: 'EC',
+    crv: 'P-256',
+    x: base64UrlEncode(xBytes),
+    y: base64UrlEncode(yBytes),
+    d: VAPID_PRIVATE_KEY,
+  };
+
   const privateKey = await crypto.subtle.importKey(
-    'raw',
-    privateKeyData,
+    'jwk',
+    jwk,
     { name: 'ECDSA', namedCurve: 'P-256' },
     false,
     ['sign']
   );
 
-  // Подписываем
   const signature = await crypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },
     privateKey,
     new TextEncoder().encode(unsignedToken)
   );
 
-  // Преобразуем DER в raw формат (64 байта)
   const signatureArray = new Uint8Array(signature);
-  let r: Uint8Array, s: Uint8Array;
+  const rawSignature = base64UrlEncode(signatureArray);
 
-  if (signatureArray.length === 64) {
-    r = signatureArray.slice(0, 32);
-    s = signatureArray.slice(32, 64);
-  } else {
-    // DER формат
-    const rLen = signatureArray[3];
-    const rStart = 4 + (rLen > 32 ? 1 : 0);
-    r = signatureArray.slice(rStart, rStart + 32);
-    const sStart = rStart + 32 + 2 + (signatureArray[rStart + 33] > 32 ? 1 : 0);
-    s = signatureArray.slice(sStart, sStart + 32);
-  }
-
-  const rawSignature = new Uint8Array(64);
-  rawSignature.set(r.length > 32 ? r.slice(-32) : r, 32 - Math.min(r.length, 32));
-  rawSignature.set(s.length > 32 ? s.slice(-32) : s, 64 - Math.min(s.length, 32));
-
-  return `${unsignedToken}.${base64UrlEncode(rawSignature)}`;
+  return `${unsignedToken}.${rawSignature}`;
 }
 
 // Отправка push-уведомления
@@ -109,15 +109,14 @@ async function sendPushNotification(
 
     const jwt = await createVapidJwt(audience);
 
+    // Отправляем push без payload (данные возьмёт Service Worker по умолчанию).
+    // Это позволяет не реализовывать шифрование содержимого Web Push.
     const response = await fetch(subscription.endpoint, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Content-Encoding': 'aes128gcm',
         TTL: '86400',
         Authorization: `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`,
       },
-      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

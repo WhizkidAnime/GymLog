@@ -5,6 +5,10 @@ import { useAuth } from './useAuth';
 // VAPID публичный ключ - нужно заменить на свой
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 
+if (import.meta.env.DEV) {
+  console.log('[PUSH] VAPID_PUBLIC_KEY exists:', !!VAPID_PUBLIC_KEY);
+}
+
 interface PushSubscriptionState {
   isSupported: boolean;
   isSubscribed: boolean;
@@ -88,6 +92,8 @@ export function usePushNotifications() {
 
   // Подписка на push-уведомления
   const subscribe = useCallback(async (): Promise<boolean> => {
+    console.log('[PUSH] subscribe called', { hasUser: !!user, hasKey: !!VAPID_PUBLIC_KEY });
+
     if (!user || !VAPID_PUBLIC_KEY) {
       console.error('User not authenticated or VAPID key missing');
       return false;
@@ -113,8 +119,13 @@ export function usePushNotifications() {
 
       const subscriptionJson = subscription.toJSON();
 
-      // Сохраняем подписку в Supabase
       const db = supabase as any;
+      console.log('[PUSH] saving subscription to DB', {
+        userId: user.id,
+        endpoint: subscriptionJson.endpoint,
+      });
+
+      // Сохраняем подписку в Supabase
       const { error } = await db.from('push_subscriptions').upsert(
         {
           user_id: user.id,
@@ -127,6 +138,8 @@ export function usePushNotifications() {
           onConflict: 'user_id,endpoint',
         }
       );
+
+      console.log('[PUSH] upsert push_subscriptions result', { hasError: !!error, error });
 
       if (error) {
         console.error('Error saving subscription:', error);
@@ -198,6 +211,12 @@ export function usePushNotifications() {
 
       try {
         const db = supabase as any;
+        console.log('[PUSH] scheduleTimer insert', {
+          userId: user.id,
+          fireAtIso: fireAt.toISOString(),
+          exerciseId,
+        });
+
         const { data, error } = await db
           .from('scheduled_timers')
           .insert({
@@ -209,6 +228,8 @@ export function usePushNotifications() {
           })
           .select('id')
           .single();
+
+        console.log('[PUSH] scheduleTimer result', { hasError: !!error, data, error });
 
         if (error) {
           console.error('Error scheduling timer:', error);
