@@ -5,13 +5,11 @@ import { deleteUserAccount } from '../lib/user';
 import { supabase } from '../lib/supabase';
 import ConfirmDialog from '../components/confirm-dialog';
 import TemplateSavedDialog from '../components/template-saved-dialog';
-import { usePushNotifications } from '../hooks/use-push-notifications';
 
 const ProfilePage = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const db = supabase as any;
-  const { isSupported: isPushSupported, isSubscribed: isPushSubscribed, isLoading: isPushLoading, permission: pushPermission, subscribe: subscribeToPush, unsubscribe: unsubscribeFromPush } = usePushNotifications();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
@@ -1403,41 +1401,6 @@ const ProfilePage = () => {
           Выйти
         </button>
       </div>
-
-      {/* Секция уведомлений */}
-      {isPushSupported && (
-        <div className="p-4 glass card-dark rounded-lg shadow space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-white">Push-уведомления</h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {isPushSubscribed
-                  ? 'Вы получите уведомление, когда таймер отдыха закончится'
-                  : 'Включите, чтобы получать уведомления о таймере отдыха'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => isPushSubscribed ? unsubscribeFromPush() : subscribeToPush()}
-              disabled={isPushLoading}
-              className={`relative w-12 h-7 rounded-full transition-colors duration-200 ${
-                isPushSubscribed ? 'bg-green-500' : 'bg-gray-600'
-              } ${isPushLoading ? 'opacity-50' : ''}`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full transition-transform duration-200 ${
-                  isPushSubscribed ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-          {pushPermission === 'denied' && (
-            <p className="text-xs text-red-400">
-              Уведомления заблокированы в настройках браузера. Разрешите их, чтобы получать оповещения.
-            </p>
-          )}
-        </div>
-      )}
 
       <input
         ref={workoutsFileInputRef}

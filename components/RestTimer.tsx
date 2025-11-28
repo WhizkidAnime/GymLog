@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePushNotifications } from '../hooks/use-push-notifications';
 
 interface RestTimerProps {
   restSeconds: number;
@@ -17,8 +16,6 @@ interface TimerState {
 export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, onAdjustRestSeconds }) => {
   const storageKey = exerciseId ? `rest_timer:${exerciseId}` : undefined;
   const intervalRef = useRef<number | null>(null);
-  const scheduledTimerIdRef = useRef<string | null>(null);
-  const { isSubscribed, scheduleTimer, cancelTimersByExercise } = usePushNotifications();
   const prevRestSecondsRef = useRef(restSeconds);
   const latestStateRef = useRef<{ time: number; isActive: boolean; endAt: number | null }>({
     time: restSeconds,
@@ -119,7 +116,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
         if (storageKey) {
           localStorage.removeItem(storageKey);
         }
-        scheduledTimerIdRef.current = null;
       }
     };
 
@@ -165,24 +161,11 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
           window.clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
-        // Отменяем запланированное уведомление
-        if (exerciseId && isSubscribed) {
-          cancelTimersByExercise(exerciseId);
-        }
-        scheduledTimerIdRef.current = null;
         return { time: prev.time, isActive: false, endAt: null };
       }
 
       const nextEndAt = Date.now() + prev.time * 1000;
       persist({ endAt: nextEndAt, isActive: true }, prev.time);
-      
-      // Планируем push-уведомление
-      if (exerciseId && isSubscribed) {
-        const fireAt = new Date(nextEndAt);
-        scheduleTimer(fireAt, exerciseId).then(id => {
-          scheduledTimerIdRef.current = id;
-        });
-      }
       
       return { time: prev.time, isActive: true, endAt: nextEndAt };
     });
@@ -197,11 +180,6 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
     if (storageKey) {
       localStorage.removeItem(storageKey);
     }
-    // Отменяем запланированное уведомление
-    if (exerciseId && isSubscribed) {
-      cancelTimersByExercise(exerciseId);
-    }
-    scheduledTimerIdRef.current = null;
   };
 
   const adjustTime = (delta: number) => {
@@ -214,26 +192,12 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
           window.clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
-        // Отменяем запланированное уведомление
-        if (exerciseId && isSubscribed) {
-          cancelTimersByExercise(exerciseId);
-        }
-        scheduledTimerIdRef.current = null;
         return { time: 0, isActive: false, endAt: null };
       }
 
       if (prev.isActive) {
         const nextEndAt = Date.now() + next * 1000;
         persist({ endAt: nextEndAt, isActive: true }, next);
-        
-        // Обновляем push-уведомление с новым временем
-        if (exerciseId && isSubscribed) {
-          cancelTimersByExercise(exerciseId);
-          const fireAt = new Date(nextEndAt);
-          scheduleTimer(fireAt, exerciseId).then(id => {
-            scheduledTimerIdRef.current = id;
-          });
-        }
         
         return { time: next, isActive: true, endAt: nextEndAt };
       }
