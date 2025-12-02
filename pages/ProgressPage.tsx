@@ -281,6 +281,8 @@ const ProgressPage = () => {
     const [year, month] = selectedCardioMonth.split('-').map(Number);
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
+    firstDay.setHours(0, 0, 0, 0);
+    lastDay.setHours(23, 59, 59, 999);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -295,12 +297,19 @@ const ProgressPage = () => {
     while (currentDate <= lastDay || (currentDate.getMonth() === month - 1 || (currentDate.getMonth() === month - 2 && currentDate.getDate() > 20))) {
       const weekStart = new Date(currentDate);
       const weekEnd = new Date(currentDate);
+      weekStart.setHours(0, 0, 0, 0);
       weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999); // Set the end of the week to the last second of the day
 
       // Only include weeks that overlap with the selected month
       if (weekEnd >= firstDay && weekStart <= lastDay) {
         const count = cardioWorkouts.filter(w => {
-          const d = new Date(w.workout_date);
+          const [dYear, dMonth, dDay] = w.workout_date.split('-').map(Number);
+          if (!dYear || !dMonth || !dDay) {
+            return false;
+          }
+          const d = new Date(dYear, dMonth - 1, dDay);
+          d.setHours(12, 0, 0, 0);
           return d >= weekStart && d <= weekEnd;
         }).length;
 
@@ -593,7 +602,7 @@ const ProgressPage = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск"
                 aria-label="Поиск упражнений"
-                className="flex-1 bg-transparent !bg-transparent border-0 !border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-gray-500 text-base shadow-none"
+                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-gray-500 text-base shadow-none"
                 style={{ background: 'transparent', backgroundColor: 'transparent', border: 0, boxShadow: 'none', outline: 'none' }}
               />
               <button
@@ -697,6 +706,40 @@ const ProgressPage = () => {
                 </p>
               </div>
 
+              {/* Статистика по месяцам */}
+              <div className="glass card-dark p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-3">Статистика по месяцам</h3>
+                <div className="grid grid-cols-2 gap-3 text-center mb-4">
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <p className="text-2xl font-bold text-green-400">{totalCardioThisMonth}</p>
+                    <p className="text-xs text-gray-400">В этом месяце</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <p className="text-2xl font-bold text-blue-400">{cardioWorkouts.length}</p>
+                    <p className="text-xs text-gray-400">Всего кардио</p>
+                  </div>
+                </div>
+
+                {cardioMonthStats.length > 0 && (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {cardioMonthStats.map((stat) => (
+                      <div
+                        key={stat.month}
+                        onClick={() => setSelectedCardioMonth(stat.month)}
+                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                          stat.month === selectedCardioMonth
+                            ? 'bg-green-500/20 border border-green-500/30'
+                            : 'bg-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-sm text-gray-300">{stat.monthLabel}</span>
+                        <span className="text-lg font-bold text-white">{stat.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Выбор месяца */}
               <div className="glass card-dark p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-4">
@@ -764,40 +807,6 @@ const ProgressPage = () => {
                     })
                   )}
                 </div>
-              </div>
-
-              {/* Статистика по месяцам */}
-              <div className="glass card-dark p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-white mb-3">Статистика по месяцам</h3>
-                <div className="grid grid-cols-2 gap-3 text-center mb-4">
-                  <div className="p-3 rounded-lg bg-white/5">
-                    <p className="text-2xl font-bold text-green-400">{totalCardioThisMonth}</p>
-                    <p className="text-xs text-gray-400">В этом месяце</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-white/5">
-                    <p className="text-2xl font-bold text-blue-400">{cardioWorkouts.length}</p>
-                    <p className="text-xs text-gray-400">Всего кардио</p>
-                  </div>
-                </div>
-
-                {cardioMonthStats.length > 0 && (
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {cardioMonthStats.map((stat) => (
-                      <div
-                        key={stat.month}
-                        onClick={() => setSelectedCardioMonth(stat.month)}
-                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                          stat.month === selectedCardioMonth
-                            ? 'bg-green-500/20 border border-green-500/30'
-                            : 'bg-white/5 hover:bg-white/10'
-                        }`}
-                      >
-                        <span className="text-sm text-gray-300">{stat.monthLabel}</span>
-                        <span className="text-lg font-bold text-white">{stat.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </>
           )}
