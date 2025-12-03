@@ -7,6 +7,8 @@ import TemplateSavedDialog from '../components/template-saved-dialog';
 import type { TemplateExercise, TemplateExerciseInsert } from '../types/database.types';
 import { useHeaderScroll } from '../hooks/use-header-scroll';
 import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
+import IconPicker from '../components/icon-picker';
+import type { WorkoutIconType } from '../components/workout-icons';
 
 type EditableExercise = Partial<TemplateExercise> & {
   _tempId: number; // Unique ID for UI tracking, especially for animations
@@ -28,6 +30,7 @@ const TemplateEditorPage = () => {
   const db = supabase as any;
 
   const [name, setName] = useState('');
+  const [icon, setIcon] = useState<WorkoutIconType | null>(null);
   const [exercises, setExercises] = useState<EditableExercise[]>([newExerciseFactory()]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,7 +74,7 @@ const TemplateEditorPage = () => {
         setLoading(true);
         // грузим данные параллельно и только нужные поля
         const [{ data: templateData, error: templateError }, { data: exercisesData, error: exercisesError }] = await Promise.all([
-          db.from('workout_templates').select('id, name').eq('id', id).single(),
+          db.from('workout_templates').select('id, name, icon').eq('id', id).single(),
           db.from('template_exercises').select('id, name, sets, reps, rest_seconds, position').eq('template_id', id).order('position'),
         ]);
 
@@ -87,6 +90,7 @@ const TemplateEditorPage = () => {
 
         if (templateData) {
           setName(templateData.name);
+          setIcon((templateData as any).icon as WorkoutIconType | null);
           const loadedExercises = (exercisesData || []).map(ex => ({ ...ex, _tempId: Math.random() }));
           setExercises(loadedExercises.length > 0 ? loadedExercises : [newExerciseFactory()]);
         }
@@ -146,7 +150,7 @@ const TemplateEditorPage = () => {
       // 1) Сохраняем сам шаблон
       const { data: templateData, error: templateError } = await db
         .from('workout_templates')
-        .upsert({ id: id, name, user_id: user.id })
+        .upsert({ id: id, name, user_id: user.id, icon })
         .select('id')
         .single();
 
@@ -346,6 +350,8 @@ const TemplateEditorPage = () => {
             )}
           </div>
         </div>
+
+        <IconPicker value={icon} onChange={setIcon} />
 
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Упражнения</h2>

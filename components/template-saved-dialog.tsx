@@ -28,7 +28,7 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   useEffect(() => {
     if (open) {
       setIsVisible(true);
-      const duration = typeof durationMs === 'number' ? durationMs : 2500;
+      const duration = typeof durationMs === 'number' ? durationMs : 1000;
       const timer = setTimeout(() => {
         onOpenChange(null);
         onClose?.();

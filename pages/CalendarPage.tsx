@@ -5,9 +5,12 @@ import { useAuth } from '../hooks/useAuth';
 import { usePageState } from '../hooks/usePageState';
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, getMonthYear } from '../utils/date-helpers';
 import type { Workout } from '../types/database.types';
+import { WORKOUT_ICONS, WorkoutIconType } from '../components/workout-icons';
+
+type WorkoutWithIcon = Workout & { template_icon?: string | null };
 
 const calendarCache = new Map<string, {
-  workouts: Workout[];
+  workouts: WorkoutWithIcon[];
   timestamp: number;
 }>();
 
@@ -21,7 +24,7 @@ const CalendarPage = () => {
     key: 'calendar-page',
     initialState: {
       currentDate: new Date(),
-      workouts: [] as Workout[],
+      workouts: [] as WorkoutWithIcon[],
       loading: true,
       hasInitialData: false,
     },
@@ -34,7 +37,7 @@ const CalendarPage = () => {
     setPageState(prev => ({ ...prev, currentDate: date }));
   };
 
-  const setWorkouts = (workouts: Workout[]) => {
+  const setWorkouts = (workouts: WorkoutWithIcon[]) => {
     setPageState(prev => ({ ...prev, workouts }));
   };
 
@@ -85,7 +88,7 @@ const CalendarPage = () => {
 
     const { data, error } = await supabase
       .from('workouts')
-      .select('id, workout_date')
+      .select('id, workout_date, template_id, workout_templates(icon)')
       .eq('user_id', user.id)
       .gte('workout_date', formatDate(firstDay))
       .lte('workout_date', formatDate(lastDay));
@@ -93,7 +96,10 @@ const CalendarPage = () => {
     if (error) {
       console.error('Error fetching workouts:', error);
     } else {
-      const workoutsData = (data as Workout[]) || [];
+      const workoutsData: WorkoutWithIcon[] = (data || []).map((w: any) => ({
+        ...w,
+        template_icon: w.workout_templates?.icon || null,
+      }));
       setWorkouts(workoutsData);
       calendarCache.set(cacheKey, {
         workouts: workoutsData,
@@ -160,7 +166,8 @@ const CalendarPage = () => {
     setHasInitialData(false);
   };
 
-  const workoutDates = new Set(workouts.map(w => w.workout_date));
+  const workoutsByDate = new Map<string, WorkoutWithIcon>();
+  workouts.forEach(w => workoutsByDate.set(w.workout_date, w));
 
   return (
     <div className="px-4 pt-4 pb-4 w-full max-w-5xl mx-auto flex flex-col items-center">
@@ -190,19 +197,36 @@ const CalendarPage = () => {
             {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
               const isToday = day === today.getDate() && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear();
               const dateString = formatDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
-              const hasWorkout = workoutDates.has(dateString);
+              const workout = workoutsByDate.get(dateString);
+              const hasWorkout = !!workout;
+              const iconType = workout?.template_icon as WorkoutIconType | null;
+              const iconData = iconType ? WORKOUT_ICONS[iconType] : null;
 
               return (
                 <div
                   key={day}
                   onClick={() => handleDayClick(day)}
-                  className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 lg:h-14 lg:w-14 rounded-full cursor-pointer mx-auto overflow-visible"
+                  className="relative flex flex-col items-center justify-center h-12 w-10 sm:h-13 sm:w-11 md:h-14 md:w-12 lg:h-16 lg:w-14 cursor-pointer mx-auto overflow-visible"
                 >
                   <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full border ${isToday ? 'bg-blue-600 text-white border-transparent' : 'text-gray-100 border-transparent hover:border-white active:border-white'} transition-colors`}>
                     {day}
                   </span>
                   {hasWorkout && (
-                    <div className="pointer-events-none absolute bottom-0 translate-y-1/2 h-1.5 w-1.5 bg-blue-500 rounded-full" />
+                    <div className="pointer-events-none absolute -bottom-0.5 flex items-center justify-center">
+                      {iconData ? (
+                        <div
+                          className="flex items-center justify-center"
+                          style={{ color: iconData.color }}
+                        >
+                          {React.createElement(iconData.component, {
+                            size: 16,
+                            className: 'opacity-90',
+                          })}
+                        </div>
+                      ) : (
+                        <div className="h-1.5 w-1.5 bg-blue-500 rounded-full" />
+                      )}
+                    </div>
                   )}
                 </div>
               );

@@ -11,6 +11,7 @@ import { generateShareLink } from '../utils/template-sharing';
 import TemplateSavedDialog from '../components/template-saved-dialog';
 import { WorkoutLoadingOverlay } from '../components/workout-loading-overlay';
 import { useWorkoutActionsMenu } from '../hooks/use-workout-actions-menu';
+import { WORKOUT_ICONS, WorkoutIconType } from '../components/workout-icons';
 
 import ImportIcon from '../src/assets/icons/import.svg';
 
@@ -158,7 +159,7 @@ const TemplatesPage = () => {
 
     const { data, error } = await supabase
       .from('workout_templates')
-      .select('id, name, created_at, user_id')
+      .select('id, name, created_at, user_id, icon')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -255,7 +256,7 @@ const TemplatesPage = () => {
           if (!user) return;
           const { data } = await supabase
             .from('workout_templates')
-            .select('id, name, created_at, user_id')
+            .select('id, name, created_at, user_id, icon')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
           setTemplates(data || []);
@@ -298,8 +299,13 @@ const TemplatesPage = () => {
             >
                 <button
                   onClick={() => window.location.hash = `#/templates/${template.id}`}
-                  className="text-left flex-1 hover:opacity-90"
+                  className="text-left flex-1 hover:opacity-90 flex items-center gap-3"
                 >
+                  {template.icon && WORKOUT_ICONS[template.icon as WorkoutIconType] && (
+                    <div style={{ color: WORKOUT_ICONS[template.icon as WorkoutIconType].color }}>
+                      {React.createElement(WORKOUT_ICONS[template.icon as WorkoutIconType].component, { size: 24 })}
+                    </div>
+                  )}
                   <h2 className="font-semibold text-lg text-gray-100">{template.name}</h2>
                 </button>
                 <TemplateDeleteButton 
@@ -318,7 +324,9 @@ const TemplatesPage = () => {
           to="/templates/new"
           className="glass-button-create"
         >
-          Создать
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
         </Link>
         <button
           onClick={() => navigate('/templates/import')}
