@@ -52,7 +52,9 @@ const ProgressPage = () => {
   const [customFrom, setCustomFrom] = useState<string | null>(null);
   const [customTo, setCustomTo] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const monthDropdownRef = useRef<HTMLDivElement>(null);
 
   // Cardio tab state
   const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -161,13 +163,16 @@ const ProgressPage = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsDropdownOpen(false);
       }
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target as Node)) {
+        setIsMonthDropdownOpen(false);
+      }
     };
 
-    if (isDropdownOpen) {
+    if (isDropdownOpen || isMonthDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isDropdownOpen]);
+  }, [isDropdownOpen, isMonthDropdownOpen]);
 
   // Save active tab
   useEffect(() => {
@@ -744,17 +749,54 @@ const ProgressPage = () => {
               <div className="glass card-dark p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Прогресс по неделям</h3>
-                  <select
-                    value={selectedCardioMonth}
-                    onChange={(e) => setSelectedCardioMonth(e.target.value)}
-                    className="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-0 focus:border-green-400/60"
-                  >
-                    {monthOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value} className="bg-zinc-900">
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div ref={monthDropdownRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
+                      className="flex items-center justify-between gap-2 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white hover:bg-white/15 transition-colors min-w-[160px]"
+                    >
+                      <span>
+                        {monthOptions.find((o) => o.value === selectedCardioMonth)?.label || 'Выберите месяц'}
+                      </span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-4 w-4 text-gray-400 transition-transform ${isMonthDropdownOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {isMonthDropdownOpen && (
+                      <div 
+                        className="absolute top-full right-0 mt-1 w-full min-w-[160px] max-h-60 overflow-y-auto rounded-lg shadow-lg border border-white/10 z-50" 
+                        style={{ 
+                          background: 'rgba(24,24,27,0.95)', 
+                          backdropFilter: 'saturate(160%) blur(36px)', 
+                          WebkitBackdropFilter: 'saturate(160%) blur(24px)' 
+                        }}
+                      >
+                        {monthOptions.map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => {
+                              setSelectedCardioMonth(opt.value);
+                              setIsMonthDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2.5 text-sm transition-colors border-b border-white/5 last:border-0 ${
+                              selectedCardioMonth === opt.value
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'text-gray-200 hover:bg-white/10'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Прогресс по неделям */}

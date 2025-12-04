@@ -19,129 +19,125 @@ interface IconProps {
   size?: number;
 }
 
-// Верхняя часть тела (торс + руки)
+// Верхняя часть тела (торс)
 export const UpperBodyIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="4" r="2.5" />
-    <path d="M12 6.5v6" />
-    <path d="M8 8.5l-4 3v4" />
-    <path d="M16 8.5l4 3v4" />
-    <path d="M9 12.5h6" />
+    <path d="M12 4c-4 0-6 2-6 5v5h12V9c0-3-2-5-6-5z" />
+    <path d="M6 14v6h12v-6" />
+    <path d="M9 4v2" />
+    <path d="M15 4v2" />
   </svg>
 );
 
-// Нижняя часть тела (ноги)
+// Нижняя часть тела (ноги/штаны)
 export const LowerBodyIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 4h8" />
-    <path d="M9 4v5c0 1-1 2-1 4v7" />
-    <path d="M15 4v5c0 1 1 2 1 4v7" />
-    <circle cx="8" cy="21" r="1" />
-    <circle cx="16" cy="21" r="1" />
+    <path d="M6 4h12v3l-1 13h-4l-1-8-1 8h-4l-1-13V4z" />
+    <path d="M6 7h12" />
   </svg>
 );
 
-// Push (толкающие)
+// Push (Жим / Грудь+Трицепс+Плечи) - Штанга над грудью (Bench Press)
 export const PushIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14" />
-    <path d="M12 5l7 7-7 7" />
+    <path d="M4 18h16" />
+    <path d="M6 18v-3a3 3 0 0 1 6 0v3" />
+    <path d="M12 18v-3a3 3 0 0 1 6 0v3" />
+    <path d="M3 8h18" />
+    <path d="M6 8v4" />
+    <path d="M18 8v4" />
+    <rect x="4" y="6" width="2" height="4" rx="1" />
+    <rect x="18" y="6" width="2" height="4" rx="1" />
   </svg>
 );
 
-// Pull (тянущие)
+// Pull (Тяга / Спина+Бицепс) - Подтягивания
 export const PullIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 12H5" />
-    <path d="M12 5l-7 7 7 7" />
+    <path d="M3 5h18" />
+    <path d="M6 5v5c0 3 2 5 6 5s6-2 6-5V5" />
+    <path d="M12 15v6" />
+    <path d="M9 21h6" />
   </svg>
 );
 
-// Ноги
+// Ноги (Квадрицепсы)
 export const LegsIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 3c0 0-1 4-1 8s1 7 1 10c0 1-1 2-2 2" />
-    <path d="M14 3c0 0 1 4 1 8s-1 7-1 10c0 1 1 2 2 2" />
-    <ellipse cx="10" cy="10" rx="1.5" ry="3" />
-    <ellipse cx="14" cy="10" rx="1.5" ry="3" />
+    <path d="M12 4c-4 0-6 8-6 10s1 7 3 7h6c2 0 3-5 3-7s-2-10-6-10z" />
+    <path d="M12 4v17" />
+    <path d="M6 14c0 0 2-1 6-1s6 1 6 1" />
   </svg>
 );
 
-// Руки
+// Руки (Гантель)
 export const ArmsIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 8c-1 0-2.5.5-2.5 2.5S5 14 6 16c1 2 1.5 4.5 1.5 4.5" />
-    <path d="M18 8c1 0 2.5.5 2.5 2.5S19 14 18 16c-1 2-1.5 4.5-1.5 4.5" />
-    <ellipse cx="6" cy="11" rx="2" ry="3" />
-    <ellipse cx="18" cy="11" rx="2" ry="3" />
-    <path d="M9 5h6" />
+    <path d="M6 10v4" />
+    <path d="M18 10v4" />
+    <path d="M9 12h6" />
+    <rect x="4" y="8" width="2" height="8" rx="1" />
+    <rect x="18" y="8" width="2" height="8" rx="1" />
+    <path d="M2 9h2v6H2z" />
+    <path d="M20 9h2v6h-2z" />
   </svg>
 );
 
-// Плечи
+// Плечи (Акцент на дельты)
 export const ShouldersIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="5" r="2" />
-    <path d="M12 7v4" />
-    <path d="M6 9c-2 0-3 1.5-3 3" />
-    <path d="M18 9c2 0 3 1.5 3 3" />
-    <circle cx="5" cy="9" r="2" />
-    <circle cx="19" cy="9" r="2" />
-    <path d="M7 9h10" />
+    <path d="M12 5c-4 0-8 3-8 7v8h16v-8c0-4-4-7-8-7z" />
+    <path d="M4 12c0-2 2-4 4-4" />
+    <path d="M20 12c0-2-2-4-4-4" />
+    <path d="M12 5v4" />
   </svg>
 );
 
-// Грудь
+// Грудь (Грудные мышцы)
 export const ChestIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 10c0-3 3-5 8-5s8 2 8 5c0 2-1 4-3 5l-1 4H8l-1-4c-2-1-3-3-3-5z" />
-    <path d="M9 10a2 2 0 1 0 0 4" />
-    <path d="M15 10a2 2 0 1 1 0 4" />
-    <path d="M12 8v6" />
+    <rect x="5" y="5" width="14" height="16" rx="2" />
+    <path d="M5 10h14" />
+    <path d="M12 5v16" />
+    <path d="M8 10c0 2 1 3 4 3s4-1 4-3" />
   </svg>
 );
 
-// Спина
+// Спина (V-shape)
 export const BackIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3c-4 0-7 2-7 5v8c0 2 2 4 4 5h6c2-1 4-3 4-5V8c0-3-3-5-7-5z" />
-    <path d="M12 3v18" />
-    <path d="M7 8c2 0 3 1 5 1s3-1 5-1" />
-    <path d="M8 13c1.5 0 2.5.5 4 .5s2.5-.5 4-.5" />
+    <path d="M7 5l-2 5 5 11h4l5-11-2-5H7z" />
+    <path d="M12 5v16" />
+    <path d="M8 10l4 4 4-4" />
   </svg>
 );
 
-// Пресс/Кор
+// Пресс (Кубики)
 export const CoreIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="7" y="4" width="10" height="16" rx="2" />
-    <path d="M7 8h10" />
-    <path d="M7 12h10" />
-    <path d="M7 16h10" />
+    <rect x="6" y="4" width="12" height="16" rx="2" />
+    <path d="M6 9h12" />
+    <path d="M6 14h12" />
     <path d="M12 4v16" />
   </svg>
 );
 
-// Кардио
+// Кардио (Пульс)
 export const CardioIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 21c-5-4-9-7.5-9-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 3.5-4 7-9 11z" />
-    <path d="M3 12h4l2-3 3 6 2-3h7" />
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
   </svg>
 );
 
 // Всё тело
 export const FullBodyIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="4" r="2.5" />
-    <path d="M12 6.5v5.5" />
-    <path d="M8 8l-4 3v3" />
-    <path d="M16 8l4 3v3" />
-    <path d="M9 12h6" />
-    <path d="M9 12v9" />
-    <path d="M15 12v9" />
-    <circle cx="9" cy="22" r="1" />
-    <circle cx="15" cy="22" r="1" />
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v10" />
+    <path d="M9 10h6" />
+    <path d="M9 21l3-4 3 4" />
+    <path d="M7 10l-2 4" />
+    <path d="M17 10l2 4" />
   </svg>
 );
 
