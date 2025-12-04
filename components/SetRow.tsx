@@ -228,7 +228,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, previousSet, onChange }) =>
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
-          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent ${textColor}`}
+          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
           style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
         />
       </div>
@@ -283,7 +283,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, previousSet, onChange }) =>
               persistLastNonMaxReps(value);
             }
           }}
-          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent ${textColor}`}
+          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
           style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
         />
       </div>
@@ -293,7 +293,7 @@ export const SetRow: React.FC<SetRowProps> = ({ set, previousSet, onChange }) =>
           checked={isMaxChecked}
           onChange={handleToggleMax}
           aria-label="Подход в отказ (макс.)"
-          className="h-6 w-6 rounded-md border border-gray-300 bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          className="h-6 w-6 rounded-md border border-gray-300 bg-white outline-none focus-visible:outline-none"
           style={{ accentColor: '#000000', color: '#0a0a0a' }}
         />
       </div>

@@ -182,6 +182,7 @@ export type Database = {
           user_id: string
           workout_date: string
           is_cardio: boolean
+          icon: string | null
         }
         Insert: {
           created_at?: string
@@ -191,6 +192,7 @@ export type Database = {
           user_id: string
           workout_date: string
           is_cardio?: boolean
+          icon?: string | null
         }
         Update: {
           created_at?: string
@@ -200,6 +202,7 @@ export type Database = {
           user_id?: string
           workout_date?: string
           is_cardio?: boolean
+          icon?: string | null
         }
         Relationships: [
           {

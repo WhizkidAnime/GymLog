@@ -21,6 +21,8 @@ import { useWorkoutActionsMenu } from '../hooks/use-workout-actions-menu';
 import { formatDateForDisplay, formatDate } from '../utils/date-helpers';
 import ConfirmDialog from '../components/confirm-dialog';
 import ReorderExercisesModal, { ReorderItem } from '../components/ReorderExercisesModal';
+import WorkoutIconPickerModal from '../components/workout-icon-picker-modal';
+import type { WorkoutIconType } from '../components/workout-icons';
 
 // Улучшенный кеш с timestamp для отслеживания актуальности
 const workoutCache = new Map<string, { 
@@ -45,6 +47,7 @@ type WorkoutPageState = {
   isSavingWorkoutName: boolean;
   isCardio: boolean;
   isSavingCardio: boolean;
+  workoutIcon: WorkoutIconType | null;
 };
 
 const normalizeDateParam = (value?: string): string | null => {
@@ -80,11 +83,12 @@ const WorkoutPage = () => {
       isSavingWorkoutName: false,
       isCardio: false,
       isSavingCardio: false,
+      workoutIcon: null,
     },
     ttl: 30 * 60 * 1000,
   });
 
-  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName, isCardio, isSavingCardio } = pageState;
+  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName, isCardio, isSavingCardio, workoutIcon } = pageState;
 
   const {
     isActionsOpen,
@@ -102,6 +106,7 @@ const WorkoutPage = () => {
     isSavingWorkoutName: false,
     isCardio: next?.is_cardio ?? false,
     isSavingCardio: false,
+    workoutIcon: (next?.icon as WorkoutIconType | null) ?? null,
   }));
   const setExercises = (
     next: WorkoutExerciseWithSets[] | ((prev: WorkoutExerciseWithSets[]) => WorkoutExerciseWithSets[])
@@ -122,12 +127,15 @@ const WorkoutPage = () => {
   const setIsSavingWorkoutName = (next: boolean) => setPageState(prev => ({ ...prev, isSavingWorkoutName: next }));
   const setIsCardio = (next: boolean) => setPageState(prev => ({ ...prev, isCardio: next }));
   const setIsSavingCardio = (next: boolean) => setPageState(prev => ({ ...prev, isSavingCardio: next }));
+  const setWorkoutIcon = (next: WorkoutIconType | null) => setPageState(prev => ({ ...prev, workoutIcon: next }));
 
   const [isDeleteWorkoutOpen, setIsDeleteWorkoutOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(workoutName);
+  const [editIconValue, setEditIconValue] = useState<WorkoutIconType | null>(workoutIcon);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isReorderOpen, setIsReorderOpen] = useState(false);
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
 
   const scrollKey = `scroll:workout:${normalizedDate ?? ''}`;
   const { isScrolling } = useWorkoutScrollAndFocus({
@@ -193,12 +201,33 @@ const WorkoutPage = () => {
       .order('created_at', { ascending: false })
       .limit(1);
 
-    const workoutData = workoutsData?.[0] ?? null;
+    let workoutData = workoutsData?.[0] ?? null;
 
     if (workoutError) {
       console.error('Error fetching workout:', workoutError);
     } else if (workoutData) {
-      setWorkout(workoutData);
+      // Если тренировка создана по шаблону и иконка в workouts ещё не сохранена,
+      // подтягиваем её из шаблона один раз и сохраняем обратно
+      if (workoutData.template_id && !workoutData.icon) {
+        try {
+          const { data: templateRow } = await db
+            .from('workout_templates')
+            .select('icon')
+            .eq('id', workoutData.template_id)
+            .single();
+
+          if (templateRow?.icon) {
+            workoutData = { ...workoutData, icon: templateRow.icon };
+            db
+              .from('workouts')
+              .update({ icon: templateRow.icon })
+              .eq('id', workoutData.id)
+              .then(() => {}, () => {});
+          }
+        } catch {}
+      }
+
+      setWorkout(workoutData as Workout);
       const { data: exercisesData, error: exercisesError } = await db
         .from('workout_exercises')
         .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, updated_at )')
@@ -217,7 +246,7 @@ const WorkoutPage = () => {
         setExercises(exercisesWithSets);
         // Кешируем в памяти с текущим timestamp
         workoutCache.set(cacheKey, { 
-          workout: workoutData, 
+          workout: workoutData as Workout, 
           exercises: exercisesWithSets,
           timestamp: now 
         });
@@ -248,7 +277,7 @@ const WorkoutPage = () => {
 
     db
       .from('workout_templates')
-      .select('id, name, created_at, user_id')
+      .select('id, name, created_at, user_id, icon')
       .eq('user_id', user.id)
       .then(({ data, error }) => {
         if (error) {
@@ -447,18 +476,32 @@ const WorkoutPage = () => {
     setIsCreating(true);
 
     try {
-      const { data: templateExercises } = await db
-        .from('template_exercises')
-        .select('*')
-        .eq('template_id', template.id);
+      const [
+        { data: templateExercises },
+        { data: templateRow },
+      ] = await Promise.all([
+        db
+          .from('template_exercises')
+          .select('*')
+          .eq('template_id', template.id),
+        db
+          .from('workout_templates')
+          .select('id, name, icon')
+          .eq('id', template.id)
+          .single(),
+      ]);
+
+      const templateIcon = (templateRow as any)?.icon ?? (template as any).icon ?? null;
+      const templateName = (templateRow as any)?.name ?? template.name;
 
       const { data: newWorkout } = await db
         .from('workouts')
         .insert({
           user_id: user.id,
           workout_date: normalizedDate,
-          name: template.name,
+          name: templateName,
           template_id: template.id,
+          icon: templateIcon,
         })
         .select()
         .single();
@@ -555,6 +598,7 @@ const WorkoutPage = () => {
 
   const handleStartEditName = () => {
     setEditNameValue(workoutName);
+    setEditIconValue(workoutIcon);
     setIsEditingName(true);
   };
 
@@ -564,11 +608,15 @@ const WorkoutPage = () => {
 
     if (trimmedName.length === 0) {
       setEditNameValue(workoutName);
+      setEditIconValue(workoutIcon);
       setIsEditingName(false);
       return;
     }
 
-    if (trimmedName === workout.name) {
+    const nameChanged = trimmedName !== workout.name;
+    const iconChanged = editIconValue !== (workout.icon as WorkoutIconType | null);
+
+    if (!nameChanged && !iconChanged) {
       setIsEditingName(false);
       return;
     }
@@ -576,9 +624,13 @@ const WorkoutPage = () => {
     setIsSavingWorkoutName(true);
 
     try {
+      const updateData: { name?: string; icon?: string | null } = {};
+      if (nameChanged) updateData.name = trimmedName;
+      if (iconChanged) updateData.icon = editIconValue;
+
       const { data: updatedWorkout, error } = await db
         .from('workouts')
-        .update({ name: trimmedName })
+        .update(updateData)
         .eq('id', workout.id)
         .select()
         .single();
@@ -588,11 +640,12 @@ const WorkoutPage = () => {
       }
 
       if (!updatedWorkout) {
-        throw new Error('Не удалось обновить название тренировки');
+        throw new Error('Не удалось обновить тренировку');
       }
 
       setWorkout(updatedWorkout as Workout);
       setEditNameValue(trimmedName);
+      setEditIconValue((updatedWorkout as Workout).icon as WorkoutIconType | null);
       setIsEditingName(false);
 
       const cacheKey = `${user.id}:${normalizedDate}`;
@@ -602,8 +655,8 @@ const WorkoutPage = () => {
         timestamp: Date.now(),
       });
     } catch (error: any) {
-      console.error('Failed to update workout name:', error);
-      alert('Не удалось сохранить название. Попробуйте снова.');
+      console.error('Failed to update workout:', error);
+      alert('Не удалось сохранить изменения. Попробуйте снова.');
     } finally {
       setIsSavingWorkoutName(false);
     }
@@ -611,7 +664,16 @@ const WorkoutPage = () => {
 
   const handleCancelEditName = () => {
     setEditNameValue(workoutName);
+    setEditIconValue(workoutIcon);
     setIsEditingName(false);
+  };
+
+  const handleOpenIconPicker = () => {
+    setIsIconPickerOpen(true);
+  };
+
+  const handleIconChange = (icon: WorkoutIconType | null) => {
+    setEditIconValue(icon);
   };
 
   const handleToggleCardio = async () => {
@@ -738,11 +800,22 @@ const WorkoutPage = () => {
     try {
       setIsCreating(true);
 
-      const { data: templateExercises, error: tErr } = await db
-        .from('template_exercises')
-        .select('*')
-        .eq('template_id', template.id);
+      const [
+        { data: templateExercises, error: tErr },
+        { data: templateRow, error: templateErr },
+      ] = await Promise.all([
+        db
+          .from('template_exercises')
+          .select('*')
+          .eq('template_id', template.id),
+        db
+          .from('workout_templates')
+          .select('id, name, icon')
+          .eq('id', template.id)
+          .single(),
+      ]);
       if (tErr) throw tErr;
+      if (templateErr) throw templateErr;
 
       const { data: existingExercises, error: exErr } = await db
         .from('workout_exercises')
@@ -766,9 +839,12 @@ const WorkoutPage = () => {
         if (exDelErr) throw exDelErr;
       }
 
+      // Копируем иконку из шаблона в воркаут
+      const templateIcon = (templateRow as any)?.icon ?? (template as any).icon ?? null;
+      const templateName = (templateRow as any)?.name ?? template.name;
       const { error: updErr } = await db
         .from('workouts')
-        .update({ name: template.name, template_id: template.id })
+        .update({ name: templateName, template_id: template.id, icon: templateIcon })
         .eq('id', workout.id);
       if (updErr) throw updErr;
 
@@ -994,6 +1070,9 @@ const WorkoutPage = () => {
         actionsRef={actionsRef}
         actionsBtnRef={actionsBtnRef}
         onToggleActions={toggleActions}
+        workoutIcon={workoutIcon}
+        editIconValue={editIconValue}
+        onOpenIconPicker={handleOpenIconPicker}
       />
 
       <div className="space-y-4">
@@ -1098,6 +1177,13 @@ const WorkoutPage = () => {
         cancelText="Отмена"
         variant="danger"
         onConfirm={confirmDeleteWorkout}
+      />
+
+      <WorkoutIconPickerModal
+        open={isIconPickerOpen}
+        value={editIconValue}
+        onClose={() => setIsIconPickerOpen(false)}
+        onChange={handleIconChange}
       />
 
       {isActionsOpen && menuPos && createPortal(

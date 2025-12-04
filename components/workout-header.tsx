@@ -1,6 +1,7 @@
 import React from 'react';
 import { BackButton } from './back-button';
 import { formatDateForDisplay } from '../utils/date-helpers';
+import { WORKOUT_ICONS, WorkoutIconType } from './workout-icons';
 
 interface WorkoutHeaderProps {
   normalizedDate: string;
@@ -17,6 +18,9 @@ interface WorkoutHeaderProps {
   actionsRef: React.RefObject<HTMLDivElement>;
   actionsBtnRef: React.RefObject<HTMLButtonElement>;
   onToggleActions: () => void;
+  workoutIcon?: WorkoutIconType | null;
+  editIconValue?: WorkoutIconType | null;
+  onOpenIconPicker?: () => void;
 }
 
 export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
@@ -34,13 +38,23 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   actionsRef,
   actionsBtnRef,
   onToggleActions,
+  workoutIcon,
+  editIconValue,
+  onOpenIconPicker,
 }) => {
+  const displayIcon = isEditingName ? editIconValue : workoutIcon;
+  const iconData = displayIcon ? WORKOUT_ICONS[displayIcon] : null;
   return (
     <div className={`glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
       <BackButton normalizedDate={normalizedDate} className="shrink-0" />
       <div className="flex-1 text-center">
         {!isEditingName ? (
           <div className="flex items-center justify-center gap-2">
+            {iconData && (
+              <div className="shrink-0 w-10 h-10 flex items-center justify-center">
+                <iconData.component size={32} />
+              </div>
+            )}
             <div>
               <h1 className="text-xl font-bold text-white">{workoutName}</h1>
               <p className="text-md transition-all duration-300" style={{ color: '#a1a1aa' }}>
@@ -70,39 +84,58 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
           </div>
         ) : (
           <div className="flex flex-col gap-2 w-full">
-            <div className="relative">
-              <input
-                ref={inputRef}
-                type="text"
-                value={editNameValue}
-                onChange={event => onChangeEditName(event.target.value)}
+            <div className="flex items-center gap-2">
+              {/* Кнопка выбора иконки */}
+              <button
+                type="button"
+                onClick={onOpenIconPicker}
                 disabled={isSavingWorkoutName}
-                className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 pr-9 py-2 transition-colors disabled:opacity-70"
-                placeholder="Название тренировки"
-              />
-              {editNameValue && (
-                <button
-                  type="button"
-                  onClick={() => onChangeEditName('')}
-                  aria-label="Очистить"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
+                className="shrink-0 w-12 h-12 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50"
+                title="Выбрать иконку"
+              >
+                {iconData ? (
+                  <iconData.component size={28} />
+                ) : (
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                    <circle cx="12" cy="12" r="9" strokeDasharray="4 2" />
+                    <path d="M12 8v8M8 12h8" />
                   </svg>
-                </button>
-              )}
+                )}
+              </button>
+              <div className="relative flex-1">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={editNameValue}
+                  onChange={event => onChangeEditName(event.target.value)}
+                  disabled={isSavingWorkoutName}
+                  className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 pr-9 py-2 transition-colors disabled:opacity-70"
+                  placeholder="Название тренировки"
+                />
+                {editNameValue && (
+                  <button
+                    type="button"
+                    onClick={() => onChangeEditName('')}
+                    aria-label="Очистить"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-center gap-2">
               <button

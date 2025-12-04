@@ -1,4 +1,16 @@
 import React from 'react';
+import upperSvg from '../src/assets/icons/workout-icons/upper.svg';
+import lowerBodyDaySvg from '../src/assets/icons/workout-icons/lower-body-day.svg';
+import pushDaySvg from '../src/assets/icons/workout-icons/push-day.svg';
+import pullDaySvg from '../src/assets/icons/workout-icons/pull-day.svg';
+import legDaySvg from '../src/assets/icons/workout-icons/leg-day.svg';
+import armDaySvg from '../src/assets/icons/workout-icons/arm-day.svg';
+import shouldersSvg from '../src/assets/icons/workout-icons/shoulders.svg';
+import chestSvg from '../src/assets/icons/workout-icons/chest.svg';
+import backSvg from '../src/assets/icons/workout-icons/back.svg';
+import absSvg from '../src/assets/icons/workout-icons/abs.svg';
+import cardioSvg from '../src/assets/icons/workout-icons/cardio.svg';
+import fullBodySvg from '../src/assets/icons/workout-icons/full-body.svg';
 
 export type WorkoutIconType = 
   | 'upper'
@@ -21,124 +33,122 @@ interface IconProps {
 
 // Верхняя часть тела (торс)
 export const UpperBodyIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 4c-4 0-6 2-6 5v5h12V9c0-3-2-5-6-5z" />
-    <path d="M6 14v6h12v-6" />
-    <path d="M9 4v2" />
-    <path d="M15 4v2" />
-  </svg>
+  <img
+    src={upperSvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Нижняя часть тела (ноги/штаны)
 export const LowerBodyIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 4h12v3l-1 13h-4l-1-8-1 8h-4l-1-13V4z" />
-    <path d="M6 7h12" />
-  </svg>
+  <img
+    src={lowerBodyDaySvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Push (Жим / Грудь+Трицепс+Плечи) - Штанга над грудью (Bench Press)
 export const PushIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 18h16" />
-    <path d="M6 18v-3a3 3 0 0 1 6 0v3" />
-    <path d="M12 18v-3a3 3 0 0 1 6 0v3" />
-    <path d="M3 8h18" />
-    <path d="M6 8v4" />
-    <path d="M18 8v4" />
-    <rect x="4" y="6" width="2" height="4" rx="1" />
-    <rect x="18" y="6" width="2" height="4" rx="1" />
-  </svg>
+  <img
+    src={pushDaySvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Pull (Тяга / Спина+Бицепс) - Подтягивания
 export const PullIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 5h18" />
-    <path d="M6 5v5c0 3 2 5 6 5s6-2 6-5V5" />
-    <path d="M12 15v6" />
-    <path d="M9 21h6" />
-  </svg>
+  <img
+    src={pullDaySvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Ноги (Квадрицепсы)
 export const LegsIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 4c-4 0-6 8-6 10s1 7 3 7h6c2 0 3-5 3-7s-2-10-6-10z" />
-    <path d="M12 4v17" />
-    <path d="M6 14c0 0 2-1 6-1s6 1 6 1" />
-  </svg>
+  <img
+    src={legDaySvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Руки (Гантель)
 export const ArmsIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 10v4" />
-    <path d="M18 10v4" />
-    <path d="M9 12h6" />
-    <rect x="4" y="8" width="2" height="8" rx="1" />
-    <rect x="18" y="8" width="2" height="8" rx="1" />
-    <path d="M2 9h2v6H2z" />
-    <path d="M20 9h2v6h-2z" />
-  </svg>
+  <img
+    src={armDaySvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Плечи (Акцент на дельты)
 export const ShouldersIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 5c-4 0-8 3-8 7v8h16v-8c0-4-4-7-8-7z" />
-    <path d="M4 12c0-2 2-4 4-4" />
-    <path d="M20 12c0-2-2-4-4-4" />
-    <path d="M12 5v4" />
-  </svg>
+  <img
+    src={shouldersSvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Грудь (Грудные мышцы)
 export const ChestIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="5" y="5" width="14" height="16" rx="2" />
-    <path d="M5 10h14" />
-    <path d="M12 5v16" />
-    <path d="M8 10c0 2 1 3 4 3s4-1 4-3" />
-  </svg>
+  <img
+    src={chestSvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Спина (V-shape)
 export const BackIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M7 5l-2 5 5 11h4l5-11-2-5H7z" />
-    <path d="M12 5v16" />
-    <path d="M8 10l4 4 4-4" />
-  </svg>
+  <img
+    src={backSvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Пресс (Кубики)
 export const CoreIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="6" y="4" width="12" height="16" rx="2" />
-    <path d="M6 9h12" />
-    <path d="M6 14h12" />
-    <path d="M12 4v16" />
-  </svg>
+  <img
+    src={absSvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Кардио (Пульс)
 export const CardioIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-  </svg>
+  <img
+    src={cardioSvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Всё тело
 export const FullBodyIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
-  <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="5" r="2" />
-    <path d="M12 7v10" />
-    <path d="M9 10h6" />
-    <path d="M9 21l3-4 3 4" />
-    <path d="M7 10l-2 4" />
-    <path d="M17 10l2 4" />
-  </svg>
+  <img
+    src={fullBodySvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
 );
 
 // Карта иконок по типу

@@ -7,7 +7,7 @@ import { getDaysInMonth, getFirstDayOfMonth, formatDate, getMonthYear } from '..
 import type { Workout } from '../types/database.types';
 import { WORKOUT_ICONS, WorkoutIconType } from '../components/workout-icons';
 
-type WorkoutWithIcon = Workout & { template_icon?: string | null };
+type WorkoutWithIcon = Workout & { template_icon?: string | null; workout_icon?: string | null };
 
 const calendarCache = new Map<string, {
   workouts: WorkoutWithIcon[];
@@ -88,7 +88,7 @@ const CalendarPage = () => {
 
     const { data, error } = await supabase
       .from('workouts')
-      .select('id, workout_date, template_id, workout_templates(icon)')
+      .select('id, workout_date, template_id, icon, workout_templates(icon)')
       .eq('user_id', user.id)
       .gte('workout_date', formatDate(firstDay))
       .lte('workout_date', formatDate(lastDay));
@@ -99,6 +99,7 @@ const CalendarPage = () => {
       const workoutsData: WorkoutWithIcon[] = (data || []).map((w: any) => ({
         ...w,
         template_icon: w.workout_templates?.icon || null,
+        workout_icon: w.icon || null,
       }));
       setWorkouts(workoutsData);
       calendarCache.set(cacheKey, {
@@ -199,7 +200,8 @@ const CalendarPage = () => {
               const dateString = formatDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
               const workout = workoutsByDate.get(dateString);
               const hasWorkout = !!workout;
-              const iconType = workout?.template_icon as WorkoutIconType | null;
+              // Приоритет: иконка воркаута (можно переопределить шаблон), затем иконка шаблона
+              const iconType = (workout?.workout_icon || workout?.template_icon) as WorkoutIconType | null;
               const iconData = iconType ? WORKOUT_ICONS[iconType] : null;
 
               return (
