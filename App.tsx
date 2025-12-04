@@ -15,10 +15,19 @@ const TemplateImportPage = React.lazy(() => import('./pages/TemplateImportPage')
 const ExerciseHistoryPage = React.lazy(() => import('./pages/ExerciseHistoryPage'));
 const ProgressPage = React.lazy(() => import('./pages/ProgressPage'));
 
-// Минимальный fallback для загрузки страниц
+// Минимальный fallback для загрузки страниц (используем только для /login)
 const PageLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
     <div className="relative w-10 h-10">
+      <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+    </div>
+  </div>
+);
+
+// Лоадер только в зоне контента (Layout и bottom-nav остаются на месте)
+const RouteLoader = () => (
+  <div className="w-full flex items-center justify-center py-8">
+    <div className="relative w-8 h-8">
       <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
     </div>
   </div>
@@ -61,38 +70,109 @@ const DefaultRedirect = () => {
 };
 
 const AppRoutes = () => {
-    return (
-        <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={
-                <ProtectedRoute>
-                    <Layout />
-                </ProtectedRoute>
-            }>
-                <Route index element={<DefaultRedirect />} />
-                <Route path="calendar" element={<CalendarPage />} />
-                <Route path="workout/:date" element={<WorkoutPage />} />
-                <Route path="templates" element={<TemplatesPage />} />
-                <Route path="templates/new" element={<TemplateEditorPage />} />
-                <Route path="templates/:id" element={<TemplateEditorPage />} />
-                <Route path="templates/import" element={<TemplateImportPage />} />
-                <Route path="profile" element={<ProfilePage />} />
-                <Route path="exercise-history" element={<ExerciseHistoryPage />} />
-                <Route path="progress" element={<ProgressPage />} />
-            </Route>
-        </Routes>
-    );
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <Suspense fallback={<PageLoader />}>
+            <LoginPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<DefaultRedirect />} />
+        <Route
+          path="calendar"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <CalendarPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="workout/:date"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <WorkoutPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="templates"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <TemplatesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="templates/new"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <TemplateEditorPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="templates/:id"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <TemplateEditorPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="templates/import"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <TemplateImportPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="profile"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <ProfilePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="exercise-history"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <ExerciseHistoryPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="progress"
+          element={
+            <Suspense fallback={<RouteLoader />}>
+              <ProgressPage />
+            </Suspense>
+          }
+        />
+      </Route>
+    </Routes>
+  );
 };
 
 const App = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <Suspense fallback={<PageLoader />}>
-          <div style={{ minHeight: '100svh' }}>
-            <AppRoutes />
-          </div>
-        </Suspense>
+        <div style={{ minHeight: '100svh' }}>
+          <AppRoutes />
+        </div>
       </AuthProvider>
     </HashRouter>
   );
