@@ -56,7 +56,7 @@ const setCachedLastPerformance = (key: string, data: LastPerformance | null) => 
   });
 };
 
-export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDate, onUpdateExercise, onDeleteExercise }) => {
+const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutDate, onUpdateExercise, onDeleteExercise }) => {
 
   const [nameInput, setNameInput] = useState(exercise.name);
   const [setsCount, setSetsCount] = useState<number>(exercise.sets);
@@ -563,3 +563,35 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({ exercise, workoutDat
     </div>
   );
 };
+
+// Мемоизация для предотвращения лишних ре-рендеров
+export const ExerciseCard = React.memo(ExerciseCardComponent, (prevProps, nextProps) => {
+  // Перерисовываем только если изменились ключевые данные
+  const prevEx = prevProps.exercise;
+  const nextEx = nextProps.exercise;
+  
+  if (prevEx.id !== nextEx.id) return false;
+  if (prevEx.name !== nextEx.name) return false;
+  if (prevEx.sets !== nextEx.sets) return false;
+  if (prevEx.rest_seconds !== nextEx.rest_seconds) return false;
+  if (prevEx.reps !== nextEx.reps) return false;
+  if (prevProps.workoutDate !== nextProps.workoutDate) return false;
+  
+  // Сравниваем workout_sets
+  if (prevEx.workout_sets.length !== nextEx.workout_sets.length) return false;
+  
+  for (let i = 0; i < prevEx.workout_sets.length; i++) {
+    const prevSet = prevEx.workout_sets[i];
+    const nextSet = nextEx.workout_sets[i];
+    if (
+      prevSet.id !== nextSet.id ||
+      prevSet.weight !== nextSet.weight ||
+      prevSet.reps !== nextSet.reps ||
+      prevSet.is_done !== nextSet.is_done
+    ) {
+      return false;
+    }
+  }
+  
+  return true;
+});

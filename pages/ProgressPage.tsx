@@ -32,6 +32,23 @@ type CardioMonthStats = {
   monthLabel: string;
 };
 
+// Кастомный тултип для графика — вынесен за пределы компонента для оптимизации
+const CustomTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.[0]) return null;
+  
+  const data = payload[0].payload as ProgressDataPoint;
+  
+  return (
+    <div className="glass card-dark p-3 rounded-lg shadow-lg border border-white/20">
+      <p className="text-sm text-gray-300 mb-1">{data.workoutName}</p>
+      <p className="text-base font-bold text-white">
+        {data.weight} кг × {data.reps || '?'}
+      </p>
+      <p className="text-xs text-gray-400 mt-1">{new Date(data.date).toLocaleDateString('ru')}</p>
+    </div>
+  );
+};
+
 const ProgressPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -100,23 +117,6 @@ const ProgressPage = () => {
     } else {
       navigate('/profile');
     }
-  };
-
-  // Кастомный тултип для графика
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload?.[0]) return null;
-    
-    const data = payload[0].payload as ProgressDataPoint;
-    
-    return (
-      <div className="glass card-dark p-3 rounded-lg shadow-lg border border-white/20">
-        <p className="text-sm text-gray-300 mb-1">{data.workoutName}</p>
-        <p className="text-base font-bold text-white">
-          {data.weight} кг × {data.reps || '?'}
-        </p>
-        <p className="text-xs text-gray-400 mt-1">{new Date(data.date).toLocaleDateString('ru')}</p>
-      </div>
-    );
   };
 
   useScrollRestoration({
@@ -490,52 +490,7 @@ const ProgressPage = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto pt-safe pb-4">
-      <style>{`
-        .header-container {
-          position: sticky;
-          top: 1rem;
-          z-index: 30;
-          will-change: transform, padding, gap;
-          transform: translateZ(0);
-          backface-visibility: hidden;
-          transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .header-container.scrolling {
-          padding: 0.35rem 1rem;
-          gap: 0.7rem;
-          top: 0.25rem;
-        }
-        @supports (top: calc(env(safe-area-inset-top) + 1px)) {
-          .header-container.scrolling {
-            top: calc(env(safe-area-inset-top) + 4px);
-          }
-        }
-        @supports (top: constant(safe-area-inset-top)) {
-          .header-container.scrolling {
-            top: calc(constant(safe-area-inset-top) + 4px);
-          }
-        }
-        .header-container h1 {
-          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: font-size;
-        }
-        .header-container.scrolling h1 {
-          font-size: 1.25rem;
-          line-height: 1.2;
-        }
-        .header-container p {
-          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: font-size;
-        }
-        .header-container.scrolling p {
-          font-size: 0.8rem;
-          line-height: 1.15;
-        }
-      `}</style>
+      {/* CSS стили вынесены в styles/header-scroll.css */}
       {/* Хедер */}
       <div className={`mb-6 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <button

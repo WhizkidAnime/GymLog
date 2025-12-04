@@ -22,6 +22,21 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        // Оптимизация бандла
+        cssMinify: 'esbuild',
+        minify: 'esbuild',
+        rollupOptions: {
+          output: {
+            // Разделение кода на чанки для параллельной загрузки
+            manualChunks: {
+              vendor: ['react', 'react-dom', 'react-router-dom'],
+              supabase: ['@supabase/supabase-js'],
+              charts: ['recharts'],
+            }
+          }
+        }
       }
     };
 });

@@ -1,18 +1,28 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import LoginPage from './pages/LoginPage';
-import CalendarPage from './pages/CalendarPage';
-import WorkoutPage from './pages/WorkoutPage';
-import TemplatesPage from './pages/TemplatesPage';
-import TemplateEditorPage from './pages/TemplateEditorPage';
-import ProfilePage from './pages/ProfilePage';
-import TemplateImportPage from './pages/TemplateImportPage';
-import ExerciseHistoryPage from './pages/ExerciseHistoryPage';
-import ProgressPage from './pages/ProgressPage';
+// Ленивая загрузка страниц для уменьшения начального бандла
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const CalendarPage = React.lazy(() => import('./pages/CalendarPage'));
+const WorkoutPage = React.lazy(() => import('./pages/WorkoutPage'));
+const TemplatesPage = React.lazy(() => import('./pages/TemplatesPage'));
+const TemplateEditorPage = React.lazy(() => import('./pages/TemplateEditorPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const TemplateImportPage = React.lazy(() => import('./pages/TemplateImportPage'));
+const ExerciseHistoryPage = React.lazy(() => import('./pages/ExerciseHistoryPage'));
+const ProgressPage = React.lazy(() => import('./pages/ProgressPage'));
+
+// Минимальный fallback для загрузки страниц
+const PageLoader = () => (
+  <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
+    <div className="relative w-10 h-10">
+      <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+    </div>
+  </div>
+);
 
 const DefaultRedirect = () => {
 
@@ -78,9 +88,11 @@ const App = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <div style={{ minHeight: '100svh' }}>
-          <AppRoutes />
-        </div>
+        <Suspense fallback={<PageLoader />}>
+          <div style={{ minHeight: '100svh' }}>
+            <AppRoutes />
+          </div>
+        </Suspense>
       </AuthProvider>
     </HashRouter>
   );

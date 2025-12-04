@@ -9,7 +9,7 @@ interface SetRowProps {
   onChange?: (updated: WorkoutSet) => void;
 }
 
-export const SetRow: React.FC<SetRowProps> = ({ set, previousSet, onChange }) => {
+const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) => {
   const storageKey = `workout_set_draft:${set.id}`;
   const lastNonMaxKey = `workout_set_last_non_max_reps:${set.id}`;
   // Внутреннее представление веса — всегда строка с запятой в качестве разделителя
@@ -301,3 +301,18 @@ export const SetRow: React.FC<SetRowProps> = ({ set, previousSet, onChange }) =>
     </div>
   );
 };
+
+// Мемоизация для предотвращения лишних ре-рендеров
+export const SetRow = React.memo(SetRowComponent, (prevProps, nextProps) => {
+  // Перерисовываем только если изменились важные поля
+  return (
+    prevProps.set.id === nextProps.set.id &&
+    prevProps.set.weight === nextProps.set.weight &&
+    prevProps.set.reps === nextProps.set.reps &&
+    prevProps.set.is_done === nextProps.set.is_done &&
+    prevProps.set.set_index === nextProps.set.set_index &&
+    prevProps.set.updated_at === nextProps.set.updated_at &&
+    prevProps.previousSet?.weight === nextProps.previousSet?.weight &&
+    prevProps.previousSet?.is_done === nextProps.previousSet?.is_done
+  );
+});

@@ -1,17 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Set up a timer to update the debounced value after the specified delay
-    const handler = setTimeout(() => {
+    // Очищаем предыдущий таймер если он есть
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    // Создаём новый таймер
+    timerRef.current = setTimeout(() => {
       setDebouncedValue(value);
+      timerRef.current = null;
     }, delay);
 
-    // Clean up the timer if the value changes before the delay has passed
+    // Очистка при размонтировании
     return () => {
-      clearTimeout(handler);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     };
   }, [value, delay]);
 

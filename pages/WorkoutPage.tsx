@@ -327,7 +327,7 @@ const WorkoutPage = () => {
     }
   }, [isEditingName]);
 
-  const handleUpdateExercise = (updatedExercise: WorkoutExerciseWithSets) => {
+  const handleUpdateExercise = useCallback((updatedExercise: WorkoutExerciseWithSets) => {
     setPageState(prev => {
       const updatedExercises = prev.exercises.map(ex => (ex.id === updatedExercise.id ? updatedExercise : ex));
 
@@ -342,7 +342,22 @@ const WorkoutPage = () => {
 
       return { ...prev, exercises: updatedExercises };
     });
-  };
+  }, [user, normalizedDate]);
+
+  const handleDeleteExercise = useCallback((exerciseId: number) => {
+    setPageState(prev => {
+      const filtered = prev.exercises.filter(ex => ex.id !== exerciseId);
+      if (user && normalizedDate && prev.workout) {
+        const cacheKey = `${user.id}:${normalizedDate}`;
+        workoutCache.set(cacheKey, {
+          workout: prev.workout,
+          exercises: filtered,
+          timestamp: Date.now(),
+        });
+      }
+      return { ...prev, exercises: filtered };
+    });
+  }, [user, normalizedDate]);
 
   const handleAddExercise = async () => {
     if (!user || !normalizedDate || !workout || isAddingExercise) return;
@@ -961,99 +976,7 @@ const WorkoutPage = () => {
       {/* Показываем индикатор при начальной загрузке или при обновлении страницы */}
       {loading && <WorkoutLoadingOverlay message="Загрузка тренировки..." />}
       
-      <style>{`
-        @keyframes slideDown {
-          from {
-            transform: translateY(-100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        .status-bar-blur {
-          position: fixed;
-          top: -68px;
-          left: 1rem;
-          right: 1rem;
-          height: calc(env(safe-area-inset-top, 0px) + 60px);
-          z-index: 29;
-          background: rgba(0, 0, 0, 0.5);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        @supports (height: constant(safe-area-inset-top)) {
-          .status-bar-blur {
-            height: constant(safe-area-inset-top);
-          }
-        }
-        .status-bar-blur.visible {
-          opacity: 1;
-        }
-        .header-container {
-          position: sticky;
-          top: 1rem;
-          z-index: 30;
-          will-change: transform, padding, gap;
-          transform: translateZ(0);
-          backface-visibility: hidden;
-          transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .header-container.scrolling {
-          padding: 0.35rem 1rem;
-          gap: 0.7rem;
-          /* При скролле прилипает ближе к верху на устройствах без выреза */
-          top: 0.25rem;
-        }
-        /* На устройствах с вырезом (iOS) ограничиваемся челкой */
-        @supports (top: calc(env(safe-area-inset-top) + 1px)) {
-          .header-container.scrolling {
-            top: calc(env(safe-area-inset-top) + 4px);
-          }
-        }
-        /* Старый синтаксис для ранних iOS */
-        @supports (top: constant(safe-area-inset-top)) {
-          .header-container.scrolling {
-            top: calc(constant(safe-area-inset-top) + 4px);
-          }
-        }
-        .header-container h1 {
-          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: font-size;
-        }
-        .header-container.scrolling h1 {
-          font-size: 1.25rem;
-          line-height: 1.2;
-        }
-        .header-container input {
-          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      pointer-events 0s 0.3s;
-          will-change: font-size;
-        }
-        .header-container.scrolling input {
-          font-size: 1.1rem;
-          pointer-events: none;
-          cursor: default;
-          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      pointer-events 0s;
-        }
-        .header-container p {
-          transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      line-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: font-size;
-        }
-        .header-container.scrolling p {
-          font-size: 0.8rem;
-          line-height: 1.15;
-        }
-      `}</style>
+      {/* CSS стили вынесены в styles/header-scroll.css */}
       <div className={`status-bar-blur ${isScrolling ? 'visible' : ''}`} />
       <WorkoutHeader
         normalizedDate={normalizedDate}
@@ -1082,20 +1005,7 @@ const WorkoutPage = () => {
             exercise={exercise}
             workoutDate={normalizedDate}
             onUpdateExercise={handleUpdateExercise}
-            onDeleteExercise={(exerciseId) => {
-              setPageState(prev => {
-                const filtered = prev.exercises.filter(ex => ex.id !== exerciseId);
-                if (user && normalizedDate && prev.workout) {
-                  const cacheKey = `${user.id}:${normalizedDate}`;
-                  workoutCache.set(cacheKey, {
-                    workout: prev.workout,
-                    exercises: filtered,
-                    timestamp: Date.now(),
-                  });
-                }
-                return { ...prev, exercises: filtered };
-              });
-            }}
+            onDeleteExercise={handleDeleteExercise}
           />
         ))}
       </div>

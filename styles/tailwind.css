@@ -1,5 +1,6 @@
+/* Импорт стилей для скроллящейся шапки - должен быть перед @tailwind */
+@import './header-scroll.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-
