@@ -1,5 +1,5 @@
-import React, { Suspense } from 'react';
-import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import { HashRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -32,6 +32,26 @@ const RouteLoader = () => (
     </div>
   </div>
 );
+
+const LastWorkoutTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const path = location.pathname;
+
+    if (!path.startsWith('/workout')) {
+      try {
+        window.localStorage.removeItem('lastWorkoutPath');
+        window.localStorage.removeItem('lastWorkoutTimestamp');
+      } catch {
+      }
+    }
+  }, [location.pathname]);
+
+  return null;
+};
 
 const DefaultRedirect = () => {
 
@@ -71,7 +91,9 @@ const DefaultRedirect = () => {
 
 const AppRoutes = () => {
   return (
-    <Routes>
+    <>
+      <LastWorkoutTracker />
+      <Routes>
       <Route
         path="/login"
         element={
@@ -162,7 +184,8 @@ const AppRoutes = () => {
           }
         />
       </Route>
-    </Routes>
+      </Routes>
+    </>
   );
 };
 
