@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 import { usePageState } from './usePageState';
@@ -17,6 +17,10 @@ export type ProgressPageState = {
 
 export function useProgress() {
   const { user } = useAuth();
+
+  const workoutIdsRef = useRef<string[] | null>(null);
+  const progressCacheRef = useRef<Map<string, { data: ExerciseProgress; ts: number }>>(new Map());
+  const progressCacheTtl = 5 * 60 * 1000;
 
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,18 +42,28 @@ export function useProgress() {
     setPageState(prev => ({ ...prev, selectedExercise: value }));
   };
 
+  const getWorkoutIds = useCallback(async (): Promise<string[]> => {
+    if (!user) return [];
+    if (workoutIdsRef.current) return workoutIdsRef.current;
+
+    const { data: workouts, error: wErr } = await supabase
+      .from('workouts')
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (wErr) throw wErr;
+
+    const workoutIds = (workouts || []).map((w: any) => w.id as string);
+    workoutIdsRef.current = workoutIds;
+    return workoutIds;
+  }, [user]);
+
   const fetchExercises = useCallback(async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      const { data: workouts, error: wErr } = await supabase
-        .from('workouts')
-        .select('id')
-        .eq('user_id', user.id);
-      if (wErr) throw wErr;
-
-      const workoutIds = (workouts || []).map((w: any) => w.id as string);
+      const workoutIds = await getWorkoutIds();
 
       if (workoutIds.length === 0) {
         setExercises([]);
@@ -128,16 +142,18 @@ export function useProgress() {
         return;
       }
 
+      const target = normalizeExerciseName(exerciseName);
+      const cached = progressCacheRef.current.get(target);
+      const now = Date.now();
+
+      if (cached && now - cached.ts < progressCacheTtl) {
+        setProgressData(cached.data);
+        return;
+      }
+
       setLoadingProgress(true);
       try {
-        const { data: workouts, error: wErr } = await supabase
-          .from('workouts')
-          .select('id')
-          .eq('user_id', user.id);
-
-        if (wErr) throw wErr;
-
-        const workoutIds = (workouts || []).map((w: any) => w.id as string);
+        const workoutIds = await getWorkoutIds();
 
         if (workoutIds.length === 0) {
           setProgressData({
@@ -146,6 +162,16 @@ export function useProgress() {
             totalSessions: 0,
             maxWeight: 0,
             minWeight: 0,
+          });
+          progressCacheRef.current.set(target, {
+            data: {
+              exerciseName,
+              dataPoints: [],
+              totalSessions: 0,
+              maxWeight: 0,
+              minWeight: 0,
+            },
+            ts: Date.now(),
           });
           return;
         }
@@ -156,8 +182,6 @@ export function useProgress() {
           .in('workout_id', workoutIds);
 
         if (exListErr) throw exListErr;
-
-        const target = normalizeExerciseName(exerciseName);
 
         const exerciseIds = new Set<string>();
 
@@ -199,6 +223,7 @@ export function useProgress() {
 
         const processed = processProgressData(exerciseName, rawData);
         setProgressData(processed);
+        progressCacheRef.current.set(target, { data: processed, ts: Date.now() });
       } catch (error: any) {
         console.error('Error loading progress data:', error);
         alert('Не удалось загрузить данные прогресса');
@@ -207,12 +232,17 @@ export function useProgress() {
         setLoadingProgress(false);
       }
     },
-    [user],
+    [user, getWorkoutIds, progressCacheTtl],
   );
 
   useEffect(() => {
     fetchExercises();
   }, [fetchExercises]);
+
+  useEffect(() => {
+    workoutIdsRef.current = null;
+    progressCacheRef.current.clear();
+  }, [user?.id]);
 
   return {
     exercises,

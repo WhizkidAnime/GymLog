@@ -5,6 +5,7 @@ import { deleteUserAccount } from '../lib/user';
 import { supabase } from '../lib/supabase';
 import ConfirmDialog from '../components/confirm-dialog';
 import TemplateSavedDialog from '../components/template-saved-dialog';
+import type { WorkoutIconType } from '../components/workout-icons';
 
 const ProfilePage = () => {
   const { user, signOut } = useAuth();
@@ -51,6 +52,18 @@ const ProfilePage = () => {
   const workoutsFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const templatesFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [isEmailSpoilerRevealed, setIsEmailSpoilerRevealed] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [timerStep, setTimerStep] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('settings:timerStep');
+      return saved ? Number(saved) : 30;
+    } catch {
+      return 30;
+    }
+  });
+  const [timerStepInput, setTimerStepInput] = useState<string>(() => String(timerStep));
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
+  const saveStatusTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const displayName = React.useMemo(() => {
     if (!user) return '';
@@ -86,6 +99,20 @@ const ProfilePage = () => {
     return { email, localPart, domain, visiblePart, hiddenPart };
   }, [user?.email]);
 
+  const WORKOUT_ICON_VALUES: WorkoutIconType[] = React.useMemo(
+    () => ['upper', 'lower', 'push', 'pull', 'legs', 'arms', 'shoulders', 'chest', 'back', 'core', 'cardio', 'full'],
+    [],
+  );
+
+  const sanitizeIcon = React.useCallback(
+    (icon: any): WorkoutIconType | null => {
+      if (typeof icon !== 'string') return null;
+      const trimmed = icon.trim() as WorkoutIconType;
+      return WORKOUT_ICON_VALUES.includes(trimmed) ? trimmed : null;
+    },
+    [WORKOUT_ICON_VALUES],
+  );
+
   const formatDateDDMMYYYY = (iso: string) => {
     if (!iso || typeof iso !== 'string') return iso;
     const parts = iso.split('-');
@@ -110,6 +137,14 @@ const ProfilePage = () => {
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [isMenuOpen]);
+
+  React.useEffect(() => {
+    return () => {
+      if (saveStatusTimeoutRef.current) {
+        clearTimeout(saveStatusTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -167,6 +202,7 @@ const ProfilePage = () => {
           `
           id,
           name,
+          icon,
           workout_date,
           is_cardio,
           template_id,
@@ -200,6 +236,7 @@ const ProfilePage = () => {
       const safeWorkouts = (workouts || []).map((w: any) => ({
         id: w.id,
         name: w.name,
+        icon: sanitizeIcon(w.icon),
         date: w.workout_date,
         isCardio: !!w.is_cardio,
         templateId: w.template_id,
@@ -261,6 +298,7 @@ const ProfilePage = () => {
           `
           id,
           name,
+          icon,
           created_at,
           template_exercises (
             id,
@@ -284,6 +322,7 @@ const ProfilePage = () => {
       const safeTemplates = (templates || []).map((t: any) => ({
         id: t.id,
         name: t.name,
+        icon: sanitizeIcon(t.icon),
         createdAt: t.created_at,
         exercises: (t.template_exercises || []).map((ex: any) => ({
           id: ex.id,
@@ -558,6 +597,7 @@ const ProfilePage = () => {
         .insert({
           user_id: user.id,
           name,
+          icon: sanitizeIcon(workout.icon),
           workout_date: date,
           is_cardio: !!workout.isCardio,
           template_id: null,
@@ -789,6 +829,7 @@ const ProfilePage = () => {
         .insert({
           user_id: user.id,
           name,
+          icon: sanitizeIcon(template.icon),
         })
         .select()
         .single();
@@ -1400,7 +1441,101 @@ const ProfilePage = () => {
         >
           Выйти
         </button>
+        
+        <button
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary flex items-center justify-center gap-2"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Настройки
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`h-4 w-4 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       </div>
+
+      {isSettingsOpen && (
+        <div className="glass card-dark rounded-lg p-4 space-y-4">
+          <h2 className="text-lg font-semibold text-white">Настройки</h2>
+          
+          <div className="space-y-2">
+            <label className="block text-sm text-gray-300">
+              Шаг таймера отдыха (секунды)
+            </label>
+            <p className="text-xs text-gray-500">
+              Значение, на которое изменяется таймер при нажатии +/-
+            </p>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <input
+                type="number"
+                min="1"
+                max="300"
+                value={timerStepInput}
+                onChange={(e) => setTimerStepInput(e.target.value)}
+                className="w-24 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (saveStatusTimeoutRef.current) {
+                    clearTimeout(saveStatusTimeoutRef.current);
+                  }
+                  const value = parseInt(timerStepInput, 10);
+                  if (!isNaN(value) && value >= 1 && value <= 300) {
+                    setSaveStatus('saving');
+                    setTimerStep(value);
+                    try {
+                      localStorage.setItem('settings:timerStep', String(value));
+                    } catch {}
+                    saveStatusTimeoutRef.current = setTimeout(() => {
+                      setSaveStatus('success');
+                      saveStatusTimeoutRef.current = setTimeout(() => {
+                        setSaveStatus('idle');
+                      }, 500);
+                    }, 350);
+                  } else {
+                    setTimerStepInput(String(timerStep));
+                    setSaveStatus('idle');
+                  }
+                }}
+                disabled={saveStatus === 'saving'}
+                className="btn-glass btn-glass-sm btn-glass-primary flex items-center justify-center gap-2 min-w-[120px]"
+              >
+                {saveStatus === 'saving' && (
+                  <span
+                    aria-label="Сохранение..."
+                    className="h-5 w-5 inline-block border-2 border-white/70 border-t-transparent rounded-full animate-spin"
+                  />
+                )}
+                {saveStatus === 'success' && (
+                  <svg
+                    aria-label="Сохранено"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                {saveStatus === 'idle' && 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <input
         ref={workoutsFileInputRef}

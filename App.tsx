@@ -2,6 +2,7 @@ import React, { Suspense, useEffect } from 'react';
 import { HashRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import Layout from './components/Layout';
+import { WorkoutLoadingOverlay } from './components/workout-loading-overlay';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Ленивая загрузка страниц для уменьшения начального бандла
@@ -15,20 +16,26 @@ const TemplateImportPage = React.lazy(() => import('./pages/TemplateImportPage')
 const ExerciseHistoryPage = React.lazy(() => import('./pages/ExerciseHistoryPage'));
 const ProgressPage = React.lazy(() => import('./pages/ProgressPage'));
 
-// Минимальный fallback для загрузки страниц (используем только для /login)
+// Минимальный fallback для загрузки страницы логина
 const PageLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
-    <div className="relative w-10 h-10">
-      <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative w-12 h-12">
+        <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+      </div>
+      <p className="text-white text-center">Загрузка...</p>
     </div>
   </div>
 );
 
-// Лоадер только в зоне контента (Layout и bottom-nav остаются на месте)
+// Лоадер для маршрутов - центрирован с надписью
 const RouteLoader = () => (
-  <div className="w-full flex items-center justify-center py-8">
-    <div className="relative w-8 h-8">
-      <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+  <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative w-12 h-12">
+        <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+      </div>
+      <p className="text-white text-center">Загрузка...</p>
     </div>
   </div>
 );
@@ -114,7 +121,7 @@ const AppRoutes = () => {
         <Route
           path="calendar"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={null}>
               <CalendarPage />
             </Suspense>
           }
@@ -130,7 +137,7 @@ const AppRoutes = () => {
         <Route
           path="templates"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={<WorkoutLoadingOverlay message="Загрузка шаблонов..." />}>
               <TemplatesPage />
             </Suspense>
           }
@@ -138,7 +145,7 @@ const AppRoutes = () => {
         <Route
           path="templates/new"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={null}>
               <TemplateEditorPage />
             </Suspense>
           }
@@ -146,7 +153,7 @@ const AppRoutes = () => {
         <Route
           path="templates/:id"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={null}>
               <TemplateEditorPage />
             </Suspense>
           }
@@ -178,7 +185,7 @@ const AppRoutes = () => {
         <Route
           path="progress"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={null}>
               <ProgressPage />
             </Suspense>
           }

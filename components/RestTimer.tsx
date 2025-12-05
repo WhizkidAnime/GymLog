@@ -4,6 +4,7 @@ interface RestTimerProps {
   restSeconds: number;
   exerciseId?: string;
   onAdjustRestSeconds?: (delta: number) => void;
+  timerStep?: number;
 }
 
 interface TimerState {
@@ -13,8 +14,38 @@ interface TimerState {
   savedAt: number;
 }
 
-export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, onAdjustRestSeconds }) => {
+const getTimerStepFromStorage = (): number => {
+  try {
+    const saved = localStorage.getItem('settings:timerStep');
+    return saved ? Number(saved) : 30;
+  } catch {
+    return 30;
+  }
+};
+
+export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, onAdjustRestSeconds, timerStep: timerStepProp }) => {
   const storageKey = exerciseId ? `rest_timer:${exerciseId}` : undefined;
+  const [timerStep, setTimerStep] = useState(() => timerStepProp ?? getTimerStepFromStorage());
+
+  useEffect(() => {
+    if (timerStepProp !== undefined) {
+      setTimerStep(timerStepProp);
+    } else {
+      const handleStorage = () => {
+        setTimerStep(getTimerStepFromStorage());
+      };
+      window.addEventListener('storage', handleStorage);
+      // Также проверяем при фокусе окна
+      const handleFocus = () => {
+        setTimerStep(getTimerStepFromStorage());
+      };
+      window.addEventListener('focus', handleFocus);
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('focus', handleFocus);
+      };
+    }
+  }, [timerStepProp]);
   const intervalRef = useRef<number | null>(null);
   const prevRestSecondsRef = useRef(restSeconds);
   const latestStateRef = useRef<{ time: number; isActive: boolean; endAt: number | null }>({
@@ -219,7 +250,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
     <div className="text-center">
       <div className="flex items-center justify-center gap-4">
         <button
-          onClick={() => adjustTime(-30)}
+          onClick={() => adjustTime(-timerStep)}
           disabled={time <= 0 && !isActive}
           className="btn-glass btn-glass-icon-round btn-glass-secondary"
         >-</button>
@@ -227,7 +258,7 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
           {formatTime(time)}
         </div>
         <button
-          onClick={() => adjustTime(30)}
+          onClick={() => adjustTime(timerStep)}
           className="btn-glass btn-glass-icon-round btn-glass-secondary"
         >+</button>
       </div>

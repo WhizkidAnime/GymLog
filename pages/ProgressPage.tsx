@@ -89,6 +89,8 @@ const ProgressPage = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+  const cardioCacheKey = 'progress:cardioCache';
+  const cardioCacheTtl = 30 * 60 * 1000;
   const cardioGoalLoadedRef = useRef(false);
 
   useModalScrollLock(isCardioInfoOpen);
@@ -253,12 +255,36 @@ const ProgressPage = () => {
     saveCardioGoal();
   }, [cardioGoal, user]);
 
-  // Fetch cardio workouts
+  // Fetch cardio workouts with кешем
   useEffect(() => {
     if (activeTab !== 'cardio' || !user) return;
 
-    const fetchCardioWorkouts = async () => {
-      setLoadingCardio(true);
+    const loadFromCache = () => {
+      try {
+        const raw = localStorage.getItem(cardioCacheKey);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as { data: { workout_date: string }[]; timestamp: number };
+        const age = Date.now() - (parsed.timestamp || 0);
+        if (age > cardioCacheTtl) return null;
+        return parsed.data || null;
+      } catch {
+        return null;
+      }
+    };
+
+    const saveToCache = (data: { workout_date: string }[]) => {
+      try {
+        localStorage.setItem(
+          cardioCacheKey,
+          JSON.stringify({ data, timestamp: Date.now() })
+        );
+      } catch {
+        // ignore
+      }
+    };
+
+    const fetchCardioWorkouts = async (silent = false) => {
+      if (!silent) setLoadingCardio(true);
       try {
         const { data, error } = await supabase
           .from('workouts')
@@ -268,16 +294,69 @@ const ProgressPage = () => {
           .order('workout_date', { ascending: false });
 
         if (error) throw error;
-        setCardioWorkouts(data || []);
+        const safe = data || [];
+        setCardioWorkouts(safe);
+        saveToCache(safe);
       } catch (error) {
         console.error('Error fetching cardio workouts:', error);
       } finally {
-        setLoadingCardio(false);
+        if (!silent) setLoadingCardio(false);
       }
     };
 
-    fetchCardioWorkouts();
-  }, [activeTab, user]);
+    const cached = loadFromCache();
+    if (cached) {
+      setCardioWorkouts(cached);
+      fetchCardioWorkouts(true); // фон обновление
+      return;
+    }
+
+    fetchCardioWorkouts(false);
+  }, [activeTab, user, cardioCacheKey, cardioCacheTtl]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (activeTab !== 'cardio' || !user) return;
+      // если долго в фоне — обновим молча
+      const raw = localStorage.getItem(cardioCacheKey);
+      let needRefresh = true;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as { timestamp: number };
+          const age = Date.now() - (parsed.timestamp || 0);
+          needRefresh = age > cardioCacheTtl;
+        } catch {
+          needRefresh = true;
+        }
+      }
+      if (needRefresh) {
+        // запустим без оверлея, чтобы не мигало
+        (async () => {
+          try {
+            const { data, error } = await supabase
+              .from('workouts')
+              .select('workout_date')
+              .eq('user_id', user.id)
+              .eq('is_cardio', true)
+              .order('workout_date', { ascending: false });
+            if (!error && data) {
+              setCardioWorkouts(data);
+              localStorage.setItem(
+                cardioCacheKey,
+                JSON.stringify({ data, timestamp: Date.now() })
+              );
+            }
+          } catch {
+            /* noop */
+          }
+        })();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [activeTab, user, cardioCacheKey, cardioCacheTtl]);
 
   // Calculate weeks for selected month
   const cardioWeeks = useMemo((): CardioWeek[] => {
@@ -625,12 +704,12 @@ const ProgressPage = () => {
       {activeTab === 'cardio' && !selectedExercise && (
         <div className="space-y-4">
           {loadingCardio ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
               <div className="flex flex-col items-center gap-4">
                 <div className="relative w-12 h-12">
                   <div className="absolute inset-0 border-4 border-transparent border-t-green-500 border-r-green-500 rounded-full animate-spin"></div>
                 </div>
-                <p className="text-white text-center">Загрузка данных...</p>
+                <p className="text-white text-center">Загрузка кардио...</p>
               </div>
             </div>
           ) : (
@@ -896,23 +975,27 @@ const ProgressPage = () => {
       {/* График прогресса */}
       {selectedExercise && (
         <div className="space-y-4">
-          {loadingProgress ? (
-            <div className="flex items-center justify-center py-12">
+          {loadingCardio ? (
+            <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
               <div className="flex flex-col items-center gap-4">
                 <div className="relative w-12 h-12">
-                  <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 border-4 border-transparent border-t-green-500 border-r-green-500 rounded-full animate-spin"></div>
                 </div>
-                <p className="text-white text-center">Загрузка данных...</p>
+                <p className="text-white text-center">Загрузка кардио...</p>
               </div>
             </div>
-          ) : progressData ? (
+          ) : cardioWorkouts.length === 0 ? (
             <>
               {/* Статистика */}
               <div className="glass card-dark p-4 rounded-lg">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-white">{visibleStats ? visibleStats.totalSessions : 0}</p>
-                    <p className="text-sm text-gray-400 mt-1">{pluralize(visibleStats?.totalSessions ?? 0, 'Тренировка', 'Тренировки', 'Тренировок')}</p>
+                    <p className="text-2xl font-bold text-white">
+                      {visibleStats?.totalSessions ?? 0}
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {pluralize(visibleStats?.totalSessions ?? 0, 'Тренировка', 'Тренировки', 'Тренировок')}
+                    </p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-400">
