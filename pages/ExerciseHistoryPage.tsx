@@ -61,7 +61,7 @@ const ExerciseHistoryPage = () => {
     <div className="p-4 space-y-4 max-w-4xl mx-auto pt-safe">
       <h1 className="text-3xl font-bold mb-6">История упражнений</h1>
 
-      <div className="glass card-dark rounded-full px-4 py-3">
+      <div className="glass card-dark rounded-full px-4 py-3 search-container">
         <div className="flex items-center gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 text-gray-400">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z" />
@@ -73,8 +73,7 @@ const ExerciseHistoryPage = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Поиск"
             aria-label="Поиск упражнений"
-            className="flex-1 bg-transparent !bg-transparent border-0 !border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-gray-500 text-base shadow-none"
-            style={{ background: 'transparent', backgroundColor: 'transparent', border: 0, boxShadow: 'none', outline: 'none' }}
+            className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
           />
           <button
             type="button"

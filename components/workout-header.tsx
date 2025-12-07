@@ -57,7 +57,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
             )}
             <div>
               <h1 className="text-xl font-bold text-white">{workoutName}</h1>
-              <p className="text-md transition-all duration-300" style={{ color: '#a1a1aa' }}>
+              <p className="text-md transition-all duration-300 workout-date-text">
                 Дата: {formatDateForDisplay(normalizedDate)}
               </p>
             </div>

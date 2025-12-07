@@ -240,7 +240,7 @@ const TemplateEditorPage = () => {
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div>
-          <label htmlFor="template-name" className="block text-xl font-semibold" style={{color:'#ffffffff'}}>Название дня</label>
+          <label htmlFor="template-name" className="block text-xl font-semibold template-label">Название дня</label>
           <div className="relative">
             <input
               id="template-name"
@@ -249,8 +249,7 @@ const TemplateEditorPage = () => {
               onChange={(e) => setName(e.target.value)}
               placeholder="Например, Push Day"
               required
-              className="mt-1 block w-full px-3 pr-9 py-2 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
+              className="mt-1 block w-full px-3 pr-9 py-2 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 template-input"
             />
             {name && (
               <button
@@ -293,8 +292,7 @@ const TemplateEditorPage = () => {
                           adjustTextareaHeight(e.currentTarget);
                         }}
                         rows={1}
-                        className="w-full px-3 pr-9 py-2 rounded-md resize-none overflow-y-hidden min-h-[2.5rem] leading-relaxed"
-                        style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46', fontFamily: 'inherit'}}
+                        className="w-full px-3 pr-9 py-2 rounded-md resize-none overflow-y-hidden min-h-[2.5rem] leading-relaxed template-input"
                     />
                     {ex.name && ex.name.trim() !== '' && (
                       <button
@@ -331,23 +329,22 @@ const TemplateEditorPage = () => {
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>
-                    <label className="text-xs" style={{color:'#e4e4e7'}}>Подходы</label>
-                    <input type="number" inputMode="numeric" placeholder="3" value={ex.sets ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'sets', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+                    <label className="text-xs template-sublabel">Подходы</label>
+                    <input type="number" inputMode="numeric" placeholder="3" value={ex.sets ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'sets', e.target.value)} className="w-full p-1 text-center rounded-md template-input" />
                   </div>
                   <div>
-                    <label className="text-xs" style={{color:'#e4e4e7'}}>Повторы</label>
+                    <label className="text-xs template-sublabel">Повторы</label>
                     <input 
                       type="text" 
                       placeholder="10-12"
                       value={ex.reps || ''} 
                       onChange={e => handleExerciseChange(ex._tempId, 'reps', e.target.value)} 
-                      className="w-full p-1 text-center rounded-md"
-                      style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}}
+                      className="w-full p-1 text-center rounded-md template-input"
                     />
                   </div>
                   <div>
-                     <label className="text-xs" style={{color:'#e4e4e7'}}>Отдых (сек)</label>
-                    <input type="number" inputMode="numeric" placeholder="60" value={ex.rest_seconds ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'rest_seconds', e.target.value)} className="w-full p-1 text-center rounded-md" style={{backgroundColor:'#18181b', color:'#fafafa', border:'1px solid #3f3f46'}} />
+                     <label className="text-xs template-sublabel">Отдых (сек)</label>
+                    <input type="number" inputMode="numeric" placeholder="60" value={ex.rest_seconds ?? ''} onChange={e => handleExerciseChange(ex._tempId, 'rest_seconds', e.target.value)} className="w-full p-1 text-center rounded-md template-input" />
                   </div>
                 </div>
               </div>

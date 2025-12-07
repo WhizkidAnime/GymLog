@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { usePageState } from '../hooks/usePageState';
+import { useDebounce } from '../hooks/useDebounce';
 import type {
   Workout,
   WorkoutTemplate,
@@ -48,6 +49,8 @@ type WorkoutPageState = {
   isCardio: boolean;
   isSavingCardio: boolean;
   workoutIcon: WorkoutIconType | null;
+  workoutNotes: string;
+  isSavingNotes: boolean;
 };
 
 const normalizeDateParam = (value?: string): string | null => {
@@ -84,11 +87,13 @@ const WorkoutPage = () => {
       isCardio: false,
       isSavingCardio: false,
       workoutIcon: null,
+      workoutNotes: '',
+      isSavingNotes: false,
     },
     ttl: 30 * 60 * 1000,
   });
 
-  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName, isCardio, isSavingCardio, workoutIcon } = pageState;
+  const { workout, exercises, templates, loading, isCreating, isSelectTemplateOpen, hasInitialData, isAddingExercise, workoutName, isSavingWorkoutName, isCardio, isSavingCardio, workoutIcon, workoutNotes, isSavingNotes } = pageState;
 
   const {
     isActionsOpen,
@@ -107,6 +112,8 @@ const WorkoutPage = () => {
     isCardio: next?.is_cardio ?? false,
     isSavingCardio: false,
     workoutIcon: (next?.icon as WorkoutIconType | null) ?? null,
+    workoutNotes: next?.notes ?? '',
+    isSavingNotes: false,
   }));
   const setExercises = (
     next: WorkoutExerciseWithSets[] | ((prev: WorkoutExerciseWithSets[]) => WorkoutExerciseWithSets[])
@@ -128,6 +135,8 @@ const WorkoutPage = () => {
   const setIsCardio = (next: boolean) => setPageState(prev => ({ ...prev, isCardio: next }));
   const setIsSavingCardio = (next: boolean) => setPageState(prev => ({ ...prev, isSavingCardio: next }));
   const setWorkoutIcon = (next: WorkoutIconType | null) => setPageState(prev => ({ ...prev, workoutIcon: next }));
+  const setWorkoutNotes = (next: string) => setPageState(prev => ({ ...prev, workoutNotes: next }));
+  const setIsSavingNotes = (next: boolean) => setPageState(prev => ({ ...prev, isSavingNotes: next }));
 
   const [isDeleteWorkoutOpen, setIsDeleteWorkoutOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -729,6 +738,46 @@ const WorkoutPage = () => {
       setIsSavingCardio(false);
     }
   };
+
+  const debouncedNotes = useDebounce(workoutNotes, 800);
+  const notesRef = useRef(workoutNotes);
+
+  useEffect(() => {
+    notesRef.current = workoutNotes;
+  }, [workoutNotes]);
+
+  useEffect(() => {
+    if (!user || !normalizedDate || !workout) return;
+    if (debouncedNotes === (workout.notes ?? '')) return;
+
+    const saveNotes = async () => {
+      setIsSavingNotes(true);
+      try {
+        const { error } = await db
+          .from('workouts')
+          .update({ notes: debouncedNotes || null })
+          .eq('id', workout.id);
+
+        if (error) throw error;
+
+        const cacheKey = `${user.id}:${normalizedDate}`;
+        const cached = workoutCache.get(cacheKey);
+        if (cached && cached.workout) {
+          workoutCache.set(cacheKey, {
+            ...cached,
+            workout: { ...cached.workout, notes: debouncedNotes || null },
+            timestamp: Date.now(),
+          });
+        }
+      } catch (error) {
+        console.error('Failed to save notes:', error);
+      } finally {
+        setIsSavingNotes(false);
+      }
+    };
+
+    saveNotes();
+  }, [debouncedNotes, user, normalizedDate, workout?.id]);
   
   const handleDeleteWorkout = () => {
     if (!workout) return;
@@ -1046,6 +1095,25 @@ const WorkoutPage = () => {
             Да
           </button>
         </div>
+      </div>
+
+      <div className="glass card-dark p-4 rounded-md">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-white text-lg font-bold">Заметки</p>
+          {isSavingNotes && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+              Сохранение...
+            </span>
+          )}
+        </div>
+        <textarea
+          value={workoutNotes}
+          onChange={(e) => setWorkoutNotes(e.target.value)}
+          placeholder="Как себя чувствовали, что получилось, над чем надо поработать"
+          rows={5}
+          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors"
+        />
       </div>
 
       <div>

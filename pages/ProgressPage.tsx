@@ -629,7 +629,7 @@ const ProgressPage = () => {
       {/* Список упражнений */}
       {!selectedExercise && activeTab === 'exercises' && (
         <div className="space-y-3">
-          <div className="glass card-dark rounded-full px-4 py-3">
+          <div className="glass card-dark rounded-full px-4 py-3 search-container">
             <div className="flex items-center gap-3">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 text-gray-400">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z" />
@@ -641,8 +641,7 @@ const ProgressPage = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск"
                 aria-label="Поиск упражнений"
-                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-gray-500 text-base shadow-none"
-                style={{ background: 'transparent', backgroundColor: 'transparent', border: 0, boxShadow: 'none', outline: 'none' }}
+                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
               />
               <button
                 type="button"
@@ -787,7 +786,7 @@ const ProgressPage = () => {
                     <button
                       type="button"
                       onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-                      className="flex items-center justify-between gap-2 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white hover:bg-white/15 transition-colors min-w-[160px]"
+                      className="flex items-center justify-between gap-2 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white hover:bg-white/15 transition-colors min-w-[160px] progress-dropdown-btn"
                     >
                       <span>
                         {monthOptions.find((o) => o.value === selectedCardioMonth)?.label || 'Выберите месяц'}
@@ -805,12 +804,7 @@ const ProgressPage = () => {
 
                     {isMonthDropdownOpen && (
                       <div 
-                        className="absolute top-full right-0 mt-1 w-full min-w-[160px] max-h-60 overflow-y-auto rounded-lg shadow-lg border border-white/10 z-50" 
-                        style={{ 
-                          background: 'rgba(24,24,27,0.95)', 
-                          backdropFilter: 'saturate(160%) blur(36px)', 
-                          WebkitBackdropFilter: 'saturate(160%) blur(24px)' 
-                        }}
+                        className="absolute top-full right-0 mt-1 w-full min-w-[160px] max-h-60 overflow-y-auto rounded-lg shadow-lg border border-white/10 z-50 progress-dropdown-menu"
                       >
                         {monthOptions.map((opt) => (
                           <button
@@ -1019,7 +1013,7 @@ const ProgressPage = () => {
                       <button
                         type="button"
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-xs text-gray-200 hover:bg-white/10 hover:border-white/25 transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-xs text-gray-200 hover:bg-white/10 hover:border-white/25 transition-colors progress-dropdown-btn"
                       >
                         <span className="hidden sm:inline text-gray-400">Период:</span>
                         <span className="font-medium">{currentPeriodLabel}</span>
@@ -1035,7 +1029,7 @@ const ProgressPage = () => {
                       </button>
 
                       {isDropdownOpen && (
-                        <div className="absolute top-full right-0 mt-1 w-48 rounded-lg shadow-lg border border-white/10 z-50 overflow-hidden" style={{ background: 'rgba(24,24,27,0.95)', backdropFilter: 'saturate(160%) blur(36px)', WebkitBackdropFilter: 'saturate(160%) blur(24px)' }}>
+                        <div className="absolute top-full right-0 mt-1 w-48 rounded-lg shadow-lg border border-white/10 z-50 overflow-hidden progress-dropdown-menu">
                           {periodOptions.map((opt) => (
                             <button
                               key={opt.id}

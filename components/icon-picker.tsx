@@ -11,7 +11,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
 
   return (
     <div>
-      <label className="block text-xl font-semibold mb-2" style={{ color: '#ffffffff' }}>
+      <label className="block text-xl font-semibold mb-2 template-label">
         Иконка дня
       </label>
       <div className="grid grid-cols-4 gap-2">
@@ -19,9 +19,9 @@ const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
         <button
           type="button"
           onClick={() => onChange(null)}
-          className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${
+          className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all icon-picker-btn ${
             value === null
-              ? 'bg-white/20 ring-2 ring-white/50'
+              ? 'icon-picker-selected'
               : 'bg-white/5 hover:bg-white/10'
           }`}
         >
@@ -30,7 +30,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
               <circle cx="12" cy="12" r="9" strokeDasharray="4 2" />
             </svg>
           </div>
-          <span className="text-[10px] mt-1 text-gray-400">Нет</span>
+          <span className="text-[10px] mt-1 text-gray-400 font-bold">Нет</span>
         </button>
 
         {iconTypes.map((iconType) => {
@@ -42,16 +42,16 @@ const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
               key={iconType}
               type="button"
               onClick={() => onChange(iconType)}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${
+              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all icon-picker-btn ${
                 isSelected
-                  ? 'bg-white/20 ring-2 ring-white/50'
+                  ? 'icon-picker-selected'
                   : 'bg-white/5 hover:bg-white/10'
               }`}
             >
               <div className="w-8 h-8 flex items-center justify-center" style={{ color }}>
                 <Icon size={24} />
               </div>
-              <span className="text-[10px] mt-1 text-gray-300">{label}</span>
+              <span className="text-[10px] mt-1 text-gray-300 font-bold">{label}</span>
             </button>
           );
         })}

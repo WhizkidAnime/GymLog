@@ -183,6 +183,7 @@ export type Database = {
           workout_date: string
           is_cardio: boolean
           icon: string | null
+          notes: string | null
         }
         Insert: {
           created_at?: string
@@ -193,6 +194,7 @@ export type Database = {
           workout_date: string
           is_cardio?: boolean
           icon?: string | null
+          notes?: string | null
         }
         Update: {
           created_at?: string
@@ -203,6 +205,7 @@ export type Database = {
           workout_date?: string
           is_cardio?: boolean
           icon?: string | null
+          notes?: string | null
         }
         Relationships: [
           {
@@ -342,3 +345,11 @@ export type WorkoutExerciseWithSets = WorkoutExercise & {
   workout_sets: WorkoutSet[];
 };
 export type WorkoutExercisePositionUpdate = Pick<WorkoutExercise, 'id' | 'position'>;
+
+export type UserBodyWeight = {
+  id: string;
+  user_id: string;
+  weight: number;
+  recorded_at: string;
+  created_at: string;
+};

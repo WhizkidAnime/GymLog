@@ -61,7 +61,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <div className="mb-3">
           <h2 className="text-lg font-semibold text-white">{title}</h2>
           {description && (
-            <p className="mt-1 text-sm" style={{ color: '#a1a1aa' }}>{description}</p>
+            <p className="mt-1 text-sm dialog-description">{description}</p>
           )}
         </div>
         {children && (

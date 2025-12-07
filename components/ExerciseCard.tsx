@@ -501,7 +501,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
             onAdjustRestSeconds={adjustRestSeconds}
           />
         </div>
-        <div className="flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.02)'}}>
+        <div className="flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
           <div className="flex items-center gap-3">
             <span className="whitespace-nowrap font-medium">Подходы:</span>
             <div className="inline-flex items-center gap-2">
@@ -524,7 +524,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
         </div>
       </div>
       <div className="space-y-3 pt-1">
-        <div className="grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden" style={{color:'#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)'}}>
+        <div className="grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden exercise-sets-header">
           <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">Подход</div>
           <div className="col-span-2 flex items-center justify-center whitespace-nowrap">Вес (кг)</div>
           <div className="col-span-2 flex items-center justify-center whitespace-nowrap">Повторы</div>

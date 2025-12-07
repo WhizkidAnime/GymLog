@@ -182,6 +182,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
 
   const doneBg = isDone ? 'bg-green-500' : 'bg-transparent';
   const textColor = isDone ? 'text-black' : 'text-inherit';
+  const inputBgClass = isDone ? 'setrow-input-done-white' : '';
 
   const isMaxMode = repsDisplayToDb(reps) === '0';
   const isMaxChecked = isFailure || isMaxMode;
@@ -228,8 +229,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
-          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
-          style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
+          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none setrow-input ${inputBgClass} ${textColor}`}
         />
       </div>
       {canCopyWeightFromPrev && (
@@ -283,8 +283,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
               persistLastNonMaxReps(value);
             }
           }}
-          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
-          style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
+          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none setrow-input ${inputBgClass} ${textColor}`}
         />
       </div>
       <div className="col-span-1 flex justify-center">
