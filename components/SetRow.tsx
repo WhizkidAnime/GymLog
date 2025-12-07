@@ -228,7 +228,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
-          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
+          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
           style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
         />
       </div>
@@ -283,7 +283,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
               persistLastNonMaxReps(value);
             }
           }}
-          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-500 focus:placeholder-transparent hover:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
+          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none ${textColor}`}
           style={{ backgroundColor: isDone ? '#ffffff' : '#18181b', color: isDone ? '#0a0a0a' : '#fafafa' }}
         />
       </div>
