@@ -1135,11 +1135,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Profile page */
 .profile-page {
-  background: #0a0a0b;
+  background: transparent;
 }
 
 .light-theme .profile-page {
-  background: var(--bg) !important;
+  background: transparent;
 }
 
 /* SetRow inputs */

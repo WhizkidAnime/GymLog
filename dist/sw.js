@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'gymlog-pwa-cache-v80';
+const CACHE_NAME = 'gymlog-pwa-cache-v82';
 const urlsToCache = [
   './',
   './index.html',

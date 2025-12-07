@@ -77,6 +77,7 @@ const ProfilePage = () => {
   const [deletingWeightId, setDeletingWeightId] = useState<string | null>(null);
   const [isDeleteWeightConfirmOpen, setIsDeleteWeightConfirmOpen] = useState(false);
   const [weightToDelete, setWeightToDelete] = useState<string | null>(null);
+  const weightDateInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -1590,6 +1591,9 @@ const ProfilePage = () => {
           onClick={() => navigate('/progress')}
           className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary flex items-center justify-center gap-2"
         >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
           Узнать прогресс
         </button>
 
@@ -2292,12 +2296,12 @@ const ProfilePage = () => {
       )}
 
       {isWeightTrackerOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/60"
             onClick={() => setIsWeightTrackerOpen(false)}
           />
-          <div className="relative w-full max-w-lg glass card-dark rounded-xl shadow-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-lg mx-4 glass card-dark rounded-xl shadow-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">Трекер веса тела</h2>
               <button
@@ -2333,13 +2337,33 @@ const ProfilePage = () => {
                 </div>
                 <div className="flex-1 min-w-[130px]">
                   <label className="block text-xs text-gray-400 mb-1">Дата</label>
-                  <input
-                    type="date"
-                    value={newWeightDate}
-                    onChange={(e) => setNewWeightDate(e.target.value)}
-                    max={new Date().toISOString().slice(0, 10)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onClick={() => {
+                        if (weightDateInputRef.current) {
+                          const input = weightDateInputRef.current as HTMLInputElement & { showPicker?: () => void };
+                          if (typeof input.showPicker === 'function') {
+                            input.showPicker();
+                          } else {
+                            input.focus();
+                            input.click();
+                          }
+                        }
+                      }}
+                    >
+                      {newWeightDate ? formatDateDDMMYYYY(newWeightDate) : 'Выберите дату'}
+                    </button>
+                    <input
+                      ref={weightDateInputRef}
+                      type="date"
+                      value={newWeightDate}
+                      onChange={(e) => setNewWeightDate(e.target.value)}
+                      max={new Date().toISOString().slice(0, 10)}
+                      className="sr-only"
+                    />
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -2440,11 +2464,7 @@ const ProfilePage = () => {
                           {Number(w.weight).toFixed(1).replace('.', ',')} кг
                         </span>
                         <span className="text-sm text-gray-400">
-                          {new Date(w.recorded_at).toLocaleDateString('ru', { 
-                            day: 'numeric', 
-                            month: 'short',
-                            year: 'numeric'
-                          })}
+                          {formatDateDDMMYYYY(new Date(w.recorded_at).toISOString().slice(0, 10))}
                         </span>
                       </div>
                       <button
