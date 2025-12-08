@@ -21,11 +21,11 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png">
 
   
-  <script type="module" crossorigin src="/GymLog/assets/index-CJw7GFC8.js"></script>
+  <script type="module" crossorigin src="/GymLog/assets/index-Bdz1zsQX.js"></script>
   <link rel="modulepreload" crossorigin href="/GymLog/assets/vendor-BVca5W6X.js">
   <link rel="modulepreload" crossorigin href="/GymLog/assets/supabase-CWpvgLJU.js">
   <link rel="modulepreload" crossorigin href="/GymLog/assets/charts-33RH-A39.js">
-  <link rel="stylesheet" crossorigin href="/GymLog/assets/index-D6ORyssh.css">
+  <link rel="stylesheet" crossorigin href="/GymLog/assets/index-D1dlx-A4.css">
 </head>
 <body>
   <script>
@@ -33,10 +33,31 @@
     (function() {
       try {
         var theme = localStorage.getItem('settings:theme');
-        if (theme === 'light') {
+        var resolvedTheme = theme;
+
+        if (theme !== 'light' && theme !== 'dark' && theme !== 'auto') {
+          resolvedTheme = 'auto';
+        }
+
+        if (resolvedTheme === 'auto') {
+          try {
+            var prefersLight =
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: light)').matches;
+            resolvedTheme = prefersLight ? 'light' : 'dark';
+          } catch (e) {
+            resolvedTheme = 'dark';
+          }
+        }
+
+        if (resolvedTheme === 'light') {
           document.documentElement.classList.add('light-theme');
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', '#f5f5f7');
+        } else {
+          document.documentElement.classList.remove('light-theme');
+          var metaDark = document.querySelector('meta[name="theme-color"]');
+          if (metaDark) metaDark.setAttribute('content', '#0a0a0b');
         }
       } catch(e) {}
     })();

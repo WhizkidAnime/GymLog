@@ -19,7 +19,6 @@ export type BodyWeightTrackerModalProps = {
   newWeightDate: string;
   savingWeight: boolean;
   deletingWeightId: string | null;
-  weightDateInputRef: React.RefObject<HTMLInputElement | null>;
   
   // Delete confirm
   isDeleteWeightConfirmOpen: boolean;
@@ -46,6 +45,20 @@ function formatDateDDMMYYYY(iso: string): string {
   return iso;
 }
 
+function formatDateInput(value: string): string {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '');
+  
+  // Auto-insert dots
+  if (digits.length <= 2) {
+    return digits;
+  } else if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  } else {
+    return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 8)}`;
+  }
+}
+
 export function BodyWeightTrackerModal({
   isOpen,
   onClose,
@@ -57,7 +70,6 @@ export function BodyWeightTrackerModal({
   newWeightDate,
   savingWeight,
   deletingWeightId,
-  weightDateInputRef,
   isDeleteWeightConfirmOpen,
   weightToDelete,
   setNewWeight,
@@ -92,66 +104,48 @@ export function BodyWeightTrackerModal({
         {/* Форма добавления */}
         <div className="space-y-3 p-3 rounded-lg bg-white/5 border border-white/10">
           <p className="text-sm text-gray-300 font-medium">Добавить запись</p>
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <div className="flex-1 min-w-[100px]">
-                <label className="block text-xs text-gray-400 mb-1">Вес (кг)</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={newWeight}
-                  onChange={(e) => {
-                    const val = e.target.value.replace('.', ',');
-                    if (/^[0-9]*[,]?[0-9]*$/.test(val)) {
-                      setNewWeight(val);
-                    }
-                  }}
-                  placeholder="70,5"
-                  className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div className="flex-1 min-w-[130px]">
-                <label className="block text-xs text-gray-400 mb-1">Дата</label>
-                <div 
-                  className="relative w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-left"
-                >
-                  <span className="block text-sm pointer-events-none truncate pr-7">
-                    {formatDateDDMMYYYY(newWeightDate)}
-                  </span>
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md bg-white/5 hover:bg-white/20 text-gray-300 hover:text-white transition-colors border border-white/10 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      weightDateInputRef.current?.showPicker();
-                    }}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                  <input
-                    ref={weightDateInputRef}
-                    type="date"
-                    value={newWeightDate}
-                    onChange={(e) => setNewWeightDate(e.target.value)}
-                    max={new Date().toISOString().slice(0, 10)}
-                    className="absolute bottom-0 left-0 w-0 h-0 opacity-0 pointer-events-none"
-                    tabIndex={-1}
-                  />
-                </div>
-              </div>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">Вес (кг)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={newWeight}
+                onChange={(e) => {
+                  const val = e.target.value.replace('.', ',');
+                  if (/^[0-9]*[,]?[0-9]*$/.test(val)) {
+                    setNewWeight(val);
+                  }
+                }}
+                placeholder="70,5"
+                className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={handleAddWeight}
-                disabled={!newWeight || savingWeight}
-                className="btn-glass btn-glass-sm btn-glass-primary disabled:opacity-50"
-              >
-                {savingWeight ? '...' : 'Добавить'}
-              </button>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-400 mb-1">Дата</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={newWeightDate}
+                onChange={(e) => {
+                  const formatted = formatDateInput(e.target.value);
+                  setNewWeightDate(formatted);
+                }}
+                placeholder="08.12.2025"
+                maxLength={10}
+                className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
+          </div>
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={handleAddWeight}
+              disabled={!newWeight || !newWeightDate || savingWeight}
+              className="btn-glass btn-glass-sm btn-glass-primary disabled:opacity-50"
+            >
+              {savingWeight ? '...' : 'Добавить'}
+            </button>
           </div>
         </div>
 

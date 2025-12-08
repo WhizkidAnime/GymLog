@@ -28,10 +28,31 @@
     (function() {
       try {
         var theme = localStorage.getItem('settings:theme');
-        if (theme === 'light') {
+        var resolvedTheme = theme;
+
+        if (theme !== 'light' && theme !== 'dark' && theme !== 'auto') {
+          resolvedTheme = 'auto';
+        }
+
+        if (resolvedTheme === 'auto') {
+          try {
+            var prefersLight =
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: light)').matches;
+            resolvedTheme = prefersLight ? 'light' : 'dark';
+          } catch (e) {
+            resolvedTheme = 'dark';
+          }
+        }
+
+        if (resolvedTheme === 'light') {
           document.documentElement.classList.add('light-theme');
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', '#f5f5f7');
+        } else {
+          document.documentElement.classList.remove('light-theme');
+          var metaDark = document.querySelector('meta[name="theme-color"]');
+          if (metaDark) metaDark.setAttribute('content', '#0a0a0b');
         }
       } catch(e) {}
     })();

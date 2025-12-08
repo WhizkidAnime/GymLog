@@ -267,7 +267,7 @@ const ProfilePage = () => {
         saveStatus={profileSettings.saveStatus}
         saveTimerStep={profileSettings.saveTimerStep}
         theme={profileSettings.theme}
-        handleThemeToggle={profileSettings.handleThemeToggle}
+        handleThemeChange={profileSettings.handleThemeChange}
       />
 
       {/* Hidden file inputs */}
@@ -420,8 +420,7 @@ const ProfilePage = () => {
         newWeightDate={bodyWeightTracker.newWeightDate}
         savingWeight={bodyWeightTracker.savingWeight}
         deletingWeightId={bodyWeightTracker.deletingWeightId}
-        weightDateInputRef={bodyWeightTracker.weightDateInputRef}
-        isDeleteWeightConfirmOpen={bodyWeightTracker.isDeleteWeightConfirmOpen}
+                isDeleteWeightConfirmOpen={bodyWeightTracker.isDeleteWeightConfirmOpen}
         weightToDelete={bodyWeightTracker.weightToDelete}
         setNewWeight={bodyWeightTracker.setNewWeight}
         setNewWeightDate={bodyWeightTracker.setNewWeightDate}

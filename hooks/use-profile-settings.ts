@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'auto';
 
 export type UseProfileSettingsReturn = {
   // Timer step
@@ -12,7 +12,7 @@ export type UseProfileSettingsReturn = {
 
   // Theme
   theme: Theme;
-  handleThemeToggle: () => void;
+  handleThemeChange: (newTheme: Theme) => void;
 
   // Settings panel
   isSettingsOpen: boolean;
@@ -36,10 +36,14 @@ export function useProfileSettings(): UseProfileSettingsReturn {
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const saved = localStorage.getItem('settings:theme');
-      return saved === 'light' ? 'light' : 'dark';
+      if (saved === 'light' || saved === 'dark' || saved === 'auto') {
+        return saved;
+      }
     } catch {
-      return 'dark';
+      // ignore
     }
+
+    return 'auto';
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -53,28 +57,81 @@ export function useProfileSettings(): UseProfileSettingsReturn {
     };
   }, []);
 
-  // Apply theme to document
+  // Apply theme to document with support for system preference
   useEffect(() => {
     const root = document.documentElement;
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (theme === 'light') {
-      root.classList.add('light-theme');
-      if (meta) meta.setAttribute('content', '#f5f5f7');
-    } else {
-      root.classList.remove('light-theme');
-      if (meta) meta.setAttribute('content', '#0a0a0b');
+
+    const applyTheme = (mode: Theme, prefersLight: boolean) => {
+      const resolvedTheme =
+        mode === 'auto'
+          ? prefersLight
+            ? 'light'
+            : 'dark'
+          : mode;
+
+      if (resolvedTheme === 'light') {
+        root.classList.add('light-theme');
+        if (meta) {
+          meta.setAttribute('content', '#f5f5f7');
+        }
+      } else {
+        root.classList.remove('light-theme');
+        if (meta) {
+          meta.setAttribute('content', '#0a0a0b');
+        }
+      }
+    };
+
+    const getPrefersLight = () => {
+      if (typeof window === 'undefined' || !window.matchMedia) {
+        return false;
+      }
+
+      try {
+        return window.matchMedia('(prefers-color-scheme: light)').matches;
+      } catch {
+        return false;
+      }
+    };
+
+    const prefersLight = getPrefersLight();
+    applyTheme(theme, prefersLight);
+
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return;
     }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+    const handleChange = (event: MediaQueryListEvent) => {
+      applyTheme(theme, event.matches);
+    };
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => {
+        mediaQuery.removeEventListener('change', handleChange);
+      };
+    }
+
+    if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(handleChange);
+      return () => {
+        mediaQuery.removeListener(handleChange);
+      };
+    }
+
+    return undefined;
   }, [theme]);
 
-  const handleThemeToggle = useCallback(() => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
+  const handleThemeChange = useCallback((newTheme: Theme) => {
     setTheme(newTheme);
     try {
       localStorage.setItem('settings:theme', newTheme);
     } catch {
       // ignore
     }
-  }, [theme]);
+  }, []);
 
   const saveTimerStep = useCallback(() => {
     if (saveStatusTimeoutRef.current) {
@@ -108,7 +165,7 @@ export function useProfileSettings(): UseProfileSettingsReturn {
     saveStatus,
     saveTimerStep,
     theme,
-    handleThemeToggle,
+    handleThemeChange,
     isSettingsOpen,
     setIsSettingsOpen,
   };

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { UserBodyWeight } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 
@@ -17,7 +17,6 @@ export type UseBodyWeightTrackerReturn = {
   deletingWeightId: string | null;
   isDeleteWeightConfirmOpen: boolean;
   weightToDelete: string | null;
-  weightDateInputRef: React.RefObject<HTMLInputElement | null>;
   
   // Computed
   weightChartData: Array<{ date: string; weight: number; fullDate: string }>;
@@ -41,12 +40,17 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
   const [bodyWeights, setBodyWeights] = useState<UserBodyWeight[]>([]);
   const [loadingWeights, setLoadingWeights] = useState(false);
   const [newWeight, setNewWeight] = useState('');
-  const [newWeightDate, setNewWeightDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [newWeightDate, setNewWeightDate] = useState(() => {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    return `${dd}.${mm}.${yyyy}`;
+  });
   const [savingWeight, setSavingWeight] = useState(false);
   const [deletingWeightId, setDeletingWeightId] = useState<string | null>(null);
   const [isDeleteWeightConfirmOpen, setIsDeleteWeightConfirmOpen] = useState(false);
   const [weightToDelete, setWeightToDelete] = useState<string | null>(null);
-  const weightDateInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadBodyWeights = useCallback(async () => {
     if (!userId) return;
@@ -68,12 +72,55 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
     }
   }, [userId, db]);
 
+  const parseAndValidateDate = useCallback((dateStr: string): string | null => {
+    // Expected format: dd.mm.yyyy
+    const match = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (!match) return null;
+    
+    const [, dd, mm, yyyy] = match;
+    const day = parseInt(dd, 10);
+    const month = parseInt(mm, 10);
+    const year = parseInt(yyyy, 10);
+    
+    // Basic validation
+    if (month < 1 || month > 12) return null;
+    if (day < 1 || day > 31) return null;
+    if (year < 1900 || year > 2100) return null;
+    
+    // Check valid day for month
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (day > daysInMonth) return null;
+    
+    // Check not in future
+    const inputDate = new Date(year, month - 1, day);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (inputDate > today) return null;
+    
+    // Return ISO format
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
+  const formatTodayDate = useCallback((): string => {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    return `${dd}.${mm}.${yyyy}`;
+  }, []);
+
   const handleAddWeight = useCallback(async () => {
     if (!userId || !newWeight || savingWeight) return;
 
     const weightValue = parseFloat(newWeight.replace(',', '.'));
     if (isNaN(weightValue) || weightValue <= 0 || weightValue > 500) {
       alert('Введите корректный вес (от 0.1 до 500 кг)');
+      return;
+    }
+
+    const isoDate = parseAndValidateDate(newWeightDate);
+    if (!isoDate) {
+      alert('Введите корректную дату в формате дд.мм.гггг (не в будущем)');
       return;
     }
 
@@ -84,7 +131,7 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
         .upsert({
           user_id: userId,
           weight: weightValue,
-          recorded_at: newWeightDate,
+          recorded_at: isoDate,
         }, { onConflict: 'user_id,recorded_at' })
         .select()
         .single();
@@ -92,20 +139,20 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
       if (error) throw error;
 
       setBodyWeights(prev => {
-        const filtered = prev.filter(w => w.recorded_at !== newWeightDate);
+        const filtered = prev.filter(w => w.recorded_at !== isoDate);
         return [data, ...filtered].sort((a, b) =>
           new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
         );
       });
       setNewWeight('');
-      setNewWeightDate(new Date().toISOString().slice(0, 10));
+      setNewWeightDate(formatTodayDate());
     } catch (error) {
       console.error('Error saving weight:', error);
       alert('Не удалось сохранить вес');
     } finally {
       setSavingWeight(false);
     }
-  }, [userId, newWeight, newWeightDate, savingWeight, db]);
+  }, [userId, newWeight, newWeightDate, savingWeight, db, parseAndValidateDate, formatTodayDate]);
 
   const handleDeleteWeight = useCallback(async (id: string) => {
     if (!userId || deletingWeightId) return;
@@ -165,7 +212,6 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
     deletingWeightId,
     isDeleteWeightConfirmOpen,
     weightToDelete,
-    weightDateInputRef,
     weightChartData,
     weightStats,
     setIsWeightTrackerOpen,
