@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { UserBodyWeight } from '../types/database.types';
 import { useAuth } from '../hooks/useAuth';
@@ -2295,7 +2296,7 @@ const ProfilePage = () => {
         </div>
       )}
 
-      {isWeightTrackerOpen && (
+      {isWeightTrackerOpen && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/60"
@@ -2318,61 +2319,46 @@ const ProfilePage = () => {
             {/* Форма добавления */}
             <div className="space-y-3 p-3 rounded-lg bg-white/5 border border-white/10">
               <p className="text-sm text-gray-300 font-medium">Добавить запись</p>
-              <div className="flex gap-2 items-end flex-wrap">
-                <div className="flex-1 min-w-[100px]">
-                  <label className="block text-xs text-gray-400 mb-1">Вес (кг)</label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={newWeight}
-                    onChange={(e) => {
-                      const val = e.target.value.replace('.', ',');
-                      if (/^[0-9]*[,]?[0-9]*$/.test(val)) {
-                        setNewWeight(val);
-                      }
-                    }}
-                    placeholder="70,5"
-                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="flex-1 min-w-[130px]">
-                  <label className="block text-xs text-gray-400 mb-1">Дата</label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      onClick={() => {
-                        if (weightDateInputRef.current) {
-                          const input = weightDateInputRef.current as HTMLInputElement & { showPicker?: () => void };
-                          if (typeof input.showPicker === 'function') {
-                            input.showPicker();
-                          } else {
-                            input.focus();
-                            input.click();
-                          }
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-1 min-w-[100px]">
+                    <label className="block text-xs text-gray-400 mb-1">Вес (кг)</label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={newWeight}
+                      onChange={(e) => {
+                        const val = e.target.value.replace('.', ',');
+                        if (/^[0-9]*[,]?[0-9]*$/.test(val)) {
+                          setNewWeight(val);
                         }
                       }}
-                    >
-                      {newWeightDate ? formatDateDDMMYYYY(newWeightDate) : 'Выберите дату'}
-                    </button>
+                      placeholder="70,5"
+                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[130px]">
+                    <label className="block text-xs text-gray-400 mb-1">Дата</label>
                     <input
                       ref={weightDateInputRef}
                       type="date"
                       value={newWeightDate}
                       onChange={(e) => setNewWeightDate(e.target.value)}
                       max={new Date().toISOString().slice(0, 10)}
-                      className="sr-only"
+                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
                     />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleAddWeight}
-                  disabled={!newWeight || savingWeight}
-                  className="btn-glass btn-glass-sm btn-glass-primary disabled:opacity-50"
-                >
-                  {savingWeight ? '...' : 'Добавить'}
-                </button>
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleAddWeight}
+                    disabled={!newWeight || savingWeight}
+                    className="btn-glass btn-glass-sm btn-glass-primary disabled:opacity-50"
+                  >
+                    {savingWeight ? '...' : 'Добавить'}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2487,7 +2473,8 @@ const ProfilePage = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <ConfirmDialog
