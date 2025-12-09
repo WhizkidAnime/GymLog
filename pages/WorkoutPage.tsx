@@ -239,7 +239,7 @@ const WorkoutPage = () => {
       setWorkout(workoutData as Workout);
       const { data: exercisesData, error: exercisesError } = await db
         .from('workout_exercises')
-        .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, updated_at )')
+        .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, is_dropset, parent_set_index, updated_at )')
         .eq('workout_id', workoutData.id)
         .order('position');
         
@@ -249,7 +249,20 @@ const WorkoutPage = () => {
         const exercisesWithSets = (exercisesData as unknown as WorkoutExerciseWithSets[]) || [];
         exercisesWithSets.forEach(exercise => {
           if (exercise.workout_sets) {
-            exercise.workout_sets.sort((a, b) => a.set_index - b.set_index);
+            // Сортировка: сначала по родительскому индексу (для дропсетов) или set_index (для обычных),
+            // затем дропсеты идут после обычных подходов с тем же индексом,
+            // затем по set_index для определения порядка дропсетов
+            exercise.workout_sets.sort((a, b) => {
+              const aIsDropset = a.is_dropset ?? false;
+              const bIsDropset = b.is_dropset ?? false;
+              const aKey = aIsDropset ? (a.parent_set_index ?? a.set_index) : a.set_index;
+              const bKey = bIsDropset ? (b.parent_set_index ?? b.set_index) : b.set_index;
+              if (aKey !== bKey) return aKey - bKey;
+              // Обычный подход первее дропсета
+              if (aIsDropset !== bIsDropset) return aIsDropset ? 1 : -1;
+              // Среди дропсетов одного родителя — по set_index
+              return a.set_index - b.set_index;
+            });
           }
         });
         setExercises(exercisesWithSets);
@@ -406,9 +419,10 @@ const WorkoutPage = () => {
           weight: null,
           reps: null,
           is_done: false,
+          is_dropset: false,
           updated_at: new Date().toISOString(),
         })
-        .select('id, workout_exercise_id, set_index, weight, reps, is_done, updated_at');
+        .select('id, workout_exercise_id, set_index, weight, reps, is_done, is_dropset, updated_at');
 
       if (insertSetError) {
         throw insertSetError;

@@ -94,6 +94,8 @@ export type Database = {
           updated_at: string
           weight: number | null
           workout_exercise_id: string
+          is_dropset: boolean
+          parent_set_index: number | null
         }
         Insert: {
           id?: string
@@ -103,6 +105,8 @@ export type Database = {
           updated_at?: string
           weight?: number | null
           workout_exercise_id: string
+          is_dropset?: boolean
+          parent_set_index?: number | null
         }
         Update: {
           id?: string
@@ -112,6 +116,8 @@ export type Database = {
           updated_at?: string
           weight?: number | null
           workout_exercise_id?: string
+          is_dropset?: boolean
+          parent_set_index?: number | null
         }
         Relationships: [
           {

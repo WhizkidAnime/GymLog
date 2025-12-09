@@ -72,6 +72,12 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const prevExerciseNameRef = useRef(exercise.name);
 
+  // Ref для актуального exercise, чтобы избежать stale closure в callbacks
+  const exerciseRef = useRef(exercise);
+  useEffect(() => {
+    exerciseRef.current = exercise;
+  }, [exercise]);
+
   const adjustNameInputHeight = useCallback(() => {
     const element = nameInputRef.current;
     if (!element) return;
@@ -335,10 +341,11 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
     setBusy(true);
     try {
       if (next > setsCount) {
-        // Добавляем недостающие подходы
+        // Добавляем недостающие подходы (обычные, не дропсеты)
         const toAdd = Array.from({ length: next - setsCount }, (_, i) => ({
           workout_exercise_id: exercise.id,
           set_index: setsCount + i + 1,
+          is_dropset: false,
         }));
         const { data: inserted, error: addErr } = await (supabase as any)
           .from('workout_sets')
@@ -346,21 +353,56 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
           .select();
         if (addErr) throw addErr;
 
-        const updatedSets = [...exercise.workout_sets, ...(inserted || [])].sort((a, b) => a.set_index - b.set_index);
+        const updatedSets = [...exercise.workout_sets, ...(inserted || [])].sort((a, b) => {
+          // Сортировка: дропсеты после родительского подхода
+          const aIsDropset = a.is_dropset ?? false;
+          const bIsDropset = b.is_dropset ?? false;
+          const aKey = aIsDropset ? (a.parent_set_index ?? a.set_index) : a.set_index;
+          const bKey = bIsDropset ? (b.parent_set_index ?? b.set_index) : b.set_index;
+          if (aKey !== bKey) return aKey - bKey;
+          // Обычный подход первее дропсета
+          if (aIsDropset !== bIsDropset) return aIsDropset ? 1 : -1;
+          // Среди дропсетов одного родителя — по set_index
+          return a.set_index - b.set_index;
+        });
         // Обновим количество в упражнении
         await (supabase as any).from('workout_exercises').update({ sets: next }).eq('id', exercise.id);
         const updated: WorkoutExerciseWithSets = { ...exercise, sets: next, workout_sets: updatedSets };
         onUpdateExercise(updated);
       } else {
-        // Удаляем «хвост»
-        const { error: delErr } = await supabase
-          .from('workout_sets')
-          .delete()
-          .eq('workout_exercise_id', exercise.id)
-          .gt('set_index', next);
-        if (delErr) throw delErr;
+        // Удаляем «хвост» — только обычные подходы (не дропсеты) с set_index > next
+        // Дропсеты привязаны к конкретному подходу и удаляются вместе с ним
+        const setsToDelete = exercise.workout_sets.filter(
+          s => !s.is_dropset && s.set_index > next
+        );
+        const idsToDelete = setsToDelete.map(s => s.id);
+        
+        // Также удаляем все дропсеты, которые были привязаны к удаляемым подходам
+        // (дропсеты находятся в массиве сразу после своего родительского подхода)
+        const allIdsToDelete = new Set(idsToDelete);
+        let currentIndex = 0;
+        for (const set of exercise.workout_sets) {
+          if (!set.is_dropset && set.set_index > next) {
+            // Удаляем этот подход и все следующие за ним дропсеты
+            allIdsToDelete.add(set.id);
+            let nextIdx = currentIndex + 1;
+            while (nextIdx < exercise.workout_sets.length && exercise.workout_sets[nextIdx].is_dropset) {
+              allIdsToDelete.add(exercise.workout_sets[nextIdx].id);
+              nextIdx++;
+            }
+          }
+          currentIndex++;
+        }
 
-        const updatedSets = exercise.workout_sets.filter(s => s.set_index <= next);
+        if (allIdsToDelete.size > 0) {
+          const { error: delErr } = await supabase
+            .from('workout_sets')
+            .delete()
+            .in('id', Array.from(allIdsToDelete));
+          if (delErr) throw delErr;
+        }
+
+        const updatedSets = exercise.workout_sets.filter(s => !allIdsToDelete.has(s.id));
         await (supabase as any).from('workout_exercises').update({ sets: next }).eq('id', exercise.id);
         const updated: WorkoutExerciseWithSets = { ...exercise, sets: next, workout_sets: updatedSets };
         onUpdateExercise(updated);
@@ -437,6 +479,114 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
 
     return <span className="text-gray-500">До этой даты нет данных по этому упражнению</span>;
   };
+
+  // Стабильный callback для обновления подхода, использует ref для актуального exercise
+  const handleSetChange = useCallback((updated: WorkoutExerciseWithSets['workout_sets'][0]) => {
+    const currentExercise = exerciseRef.current;
+    const updatedExercise: WorkoutExerciseWithSets = {
+      ...currentExercise,
+      workout_sets: currentExercise.workout_sets.map((s) => (s.id === updated.id ? updated : s)),
+    };
+    onUpdateExercise(updatedExercise);
+  }, [onUpdateExercise]);
+
+  // Добавление дропсета после указанного подхода
+  const handleAddDropset = useCallback(async (afterSetId: string) => {
+    const currentExercise = exerciseRef.current;
+    const afterSetIndex = currentExercise.workout_sets.findIndex(s => s.id === afterSetId);
+    if (afterSetIndex === -1) return;
+
+    const afterSet = currentExercise.workout_sets[afterSetIndex];
+
+    try {
+      // Определяем parent_set_index:
+      // - Если afterSet — обычный подход, то parent = afterSet.set_index
+      // - Если afterSet — дропсет, то parent = afterSet.parent_set_index (тот же родитель)
+      const parentSetIndex = afterSet.is_dropset 
+        ? (afterSet.parent_set_index ?? afterSet.set_index)
+        : afterSet.set_index;
+
+      const maxSetIndex = Math.max(...currentExercise.workout_sets.map(s => s.set_index));
+      const newSetIndex = maxSetIndex + 1;
+
+      const { data: insertedSet, error } = await (supabase as any)
+        .from('workout_sets')
+        .insert({
+          workout_exercise_id: currentExercise.id,
+          set_index: newSetIndex,
+          weight: null, // Вес не копируется, пользователь вводит сам
+          reps: null,
+          is_done: false,
+          is_dropset: true,
+          parent_set_index: parentSetIndex, // Связь с родительским подходом
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Вставляем дропсет сразу после родительского подхода (или после последнего дропсета этой группы)
+      let insertPosition = afterSetIndex + 1;
+      while (
+        insertPosition < currentExercise.workout_sets.length &&
+        currentExercise.workout_sets[insertPosition].is_dropset
+      ) {
+        insertPosition++;
+      }
+
+      const newSets = [...currentExercise.workout_sets];
+      newSets.splice(insertPosition, 0, insertedSet);
+
+      const updatedExercise: WorkoutExerciseWithSets = {
+        ...currentExercise,
+        workout_sets: newSets,
+      };
+      onUpdateExercise(updatedExercise);
+    } catch (e) {
+      console.error('Failed to add dropset', e);
+      alert('Не удалось добавить дропсет');
+    }
+  }, [onUpdateExercise]);
+
+  // Удаление дропсета
+  const handleDeleteDropset = useCallback(async (setId: string) => {
+    const currentExercise = exerciseRef.current;
+    const setToDelete = currentExercise.workout_sets.find(s => s.id === setId);
+    if (!setToDelete || !setToDelete.is_dropset) return;
+
+    try {
+      const { error } = await supabase
+        .from('workout_sets')
+        .delete()
+        .eq('id', setId);
+
+      if (error) throw error;
+
+      const updatedExercise: WorkoutExerciseWithSets = {
+        ...currentExercise,
+        workout_sets: currentExercise.workout_sets.filter(s => s.id !== setId),
+      };
+      onUpdateExercise(updatedExercise);
+    } catch (e) {
+      console.error('Failed to delete dropset', e);
+      alert('Не удалось удалить дропсет');
+    }
+  }, [onUpdateExercise]);
+
+  // Функция для определения, является ли подход последним в своей группе (для показа кнопки "+")
+  const isLastInGroup = useCallback((set: WorkoutExerciseWithSets['workout_sets'][0], index: number, allSets: WorkoutExerciseWithSets['workout_sets']) => {
+    const nextSet = allSets[index + 1];
+    
+    // Для обычного подхода: показываем "+" если следующий — не дропсет или это конец списка
+    if (!set.is_dropset) {
+      return !nextSet || !nextSet.is_dropset;
+    }
+    
+    // Для дропсета: показываем "+" если это последний дропсет в группе
+    // (следующий — обычный подход или конец списка)
+    return !nextSet || !nextSet.is_dropset;
+  }, []);
 
   return (
     <div id={`exercise-${exercise.id}`} className="glass card-dark p-4 exercise-card">
@@ -532,19 +682,26 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
         </div>
         <div className="space-y-2">
           {exercise.workout_sets.map((set, index, allSets) => {
-            const previousSet = index > 0 ? allSets[index - 1] : undefined;
+            // Для обычного подхода ищем предыдущий ОБЫЧНЫЙ подход (пропуская дропсеты)
+            // Для дропсета previousSet не нужен (кнопка копирования веса не показывается)
+            let previousSet: typeof set | undefined = undefined;
+            if (!set.is_dropset) {
+              for (let i = index - 1; i >= 0; i--) {
+                if (!allSets[i].is_dropset) {
+                  previousSet = allSets[i];
+                  break;
+                }
+              }
+            }
             return (
               <SetRow
                 key={set.id}
                 set={set}
                 previousSet={previousSet}
-                onChange={(updated) => {
-                  const updatedExercise: WorkoutExerciseWithSets = {
-                    ...exercise,
-                    workout_sets: exercise.workout_sets.map((s) => (s.id === updated.id ? updated : s)),
-                  };
-                  onUpdateExercise(updatedExercise);
-                }}
+                onChange={handleSetChange}
+                onAddDropset={handleAddDropset}
+                onDeleteDropset={handleDeleteDropset}
+                isLastInGroup={isLastInGroup(set, index, allSets)}
               />
             );
           })}
@@ -587,7 +744,9 @@ export const ExerciseCard = React.memo(ExerciseCardComponent, (prevProps, nextPr
       prevSet.id !== nextSet.id ||
       prevSet.weight !== nextSet.weight ||
       prevSet.reps !== nextSet.reps ||
-      prevSet.is_done !== nextSet.is_done
+      prevSet.is_done !== nextSet.is_done ||
+      prevSet.is_dropset !== nextSet.is_dropset ||
+      prevSet.parent_set_index !== nextSet.parent_set_index
     ) {
       return false;
     }

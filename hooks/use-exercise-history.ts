@@ -14,6 +14,8 @@ export type ExerciseHistoryItem = {
     weight: number | null;
     reps: string | null;
     isDone: boolean;
+    isDropset: boolean;
+    parentSetIndex: number | null;
   }>;
 };
 
@@ -122,7 +124,9 @@ export function useExerciseHistory() {
             set_index,
             weight,
             reps,
-            is_done
+            is_done,
+            is_dropset,
+            parent_set_index
           ),
           workouts!inner (
             id,
@@ -152,8 +156,17 @@ export function useExerciseHistory() {
                 weight: set.weight,
                 reps: set.reps,
                 isDone: set.is_done,
+                isDropset: set.is_dropset ?? false,
+                parentSetIndex: set.parent_set_index ?? null,
               }))
-              .sort((a: any, b: any) => a.setIndex - b.setIndex);
+              .sort((a: any, b: any) => {
+                // Сортировка: дропсеты после родительского подхода
+                const aKey = a.isDropset ? (a.parentSetIndex ?? a.setIndex) : a.setIndex;
+                const bKey = b.isDropset ? (b.parentSetIndex ?? b.setIndex) : b.setIndex;
+                if (aKey !== bKey) return aKey - bKey;
+                if (a.isDropset !== b.isDropset) return a.isDropset ? 1 : -1;
+                return a.setIndex - b.setIndex;
+              });
 
             groupedResults.push({
               exerciseName: exercise.name,

@@ -139,7 +139,11 @@ const ExerciseHistoryPage = () => {
                     {item.sets.map((set, setIndex) => (
                       <div
                         key={setIndex}
-                        className="grid grid-cols-[96px_1fr_1fr] items-center gap-2 px-3 py-2 rounded bg-gray-800/30 border border-gray-700/60"
+                        className={`grid grid-cols-[96px_1fr_1fr] items-center gap-2 px-3 py-2 rounded border ${
+                          set.isDropset 
+                            ? 'bg-purple-500/10 border-purple-500/30 ml-4' 
+                            : 'bg-gray-800/30 border-gray-700/60'
+                        }`}
                       >
                         <div className="flex items-center gap-2 whitespace-nowrap">
                           {set.isDone && (
@@ -147,7 +151,13 @@ const ExerciseHistoryPage = () => {
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           )}
-                          <span className="text-sm text-gray-400">Подход {set.setIndex}</span>
+                          {set.isDropset ? (
+                            <span className="text-sm text-purple-400 flex items-center gap-1">
+                              <span className="text-xs">↳</span> Дроп
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400">Подход {set.setIndex}</span>
+                          )}
                         </div>
                         <div className="text-sm flex items-baseline gap-1 whitespace-nowrap tabular-nums">
                           <span className="text-gray-400">Вес:</span>

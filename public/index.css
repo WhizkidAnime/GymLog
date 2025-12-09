@@ -722,6 +722,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #1d1d1f;
 }
 
+.calendar-day,
+.calendar-day-today {
+  color: #ffffff;
+}
+
+.light-theme .calendar-day {
+  color: #1d1d1f;
+}
+
+.light-theme .calendar-day-today {
+  color: #ffffff !important;
+}
+
 .light-theme .text-gray-100 {
   color: #3d3d3f;
 }
@@ -1133,6 +1146,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
+.light-theme .exercise-card input.setrow-input-done-white {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
 /* Profile page */
 .profile-page {
   background: transparent;
@@ -1446,3 +1464,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .light-theme .search-container svg {
   color: #6b7280 !important;
 }
+
+/* Dropset indicators */
+.dropset-indicator,
+.dropset-btn {
+  color: #ffffff;
+}
+
+.light-theme .dropset-indicator,
+.light-theme .dropset-btn {
+  color: #000000;
+}
+
+/* Когда подход завершен, цвет всегда черный */
+.dropset-indicator.is-done,
+.dropset-btn.is-done {
+  color: #000000 !important;
+}
+

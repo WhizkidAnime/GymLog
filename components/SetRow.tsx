@@ -7,9 +7,19 @@ interface SetRowProps {
   set: WorkoutSet;
   previousSet?: WorkoutSet;
   onChange?: (updated: WorkoutSet) => void;
+  onAddDropset?: (afterSetId: string) => void;
+  onDeleteDropset?: (setId: string) => void;
+  isLastInGroup?: boolean;
 }
 
-const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) => {
+const SetRowComponent: React.FC<SetRowProps> = ({
+  set,
+  previousSet,
+  onChange,
+  onAddDropset,
+  onDeleteDropset,
+  isLastInGroup,
+}) => {
   const storageKey = `workout_set_draft:${set.id}`;
   const lastNonMaxKey = `workout_set_last_non_max_reps:${set.id}`;
   // Внутреннее представление веса — всегда строка с запятой в качестве разделителя
@@ -68,7 +78,10 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
   const debouncedWeight = useDebounce(weight, 500);
   const debouncedReps = useDebounce(reps, 500);
  
+  // Кнопка копирования веса только для обычных подходов, не для дропсетов
+  const isDropsetLocal = set.is_dropset ?? false;
   const canCopyWeightFromPrev =
+    !isDropsetLocal &&
     !!previousSet &&
     previousSet.is_done &&
     previousSet.weight !== null &&
@@ -126,6 +139,12 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
     }
   }, [set.reps, lastNonMaxKey]);
   
+  // Сохраняем onChange в ref, чтобы всегда использовать актуальную версию
+  const onChangeRef = React.useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   useEffect(() => {
     const saveSet = async () => {
       // Только если действительно что-то изменилось
@@ -151,7 +170,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
         } else {
           // Успешно сохранили — черновик больше не нужен
           try { localStorage.removeItem(storageKey); } catch {}
-          // Сообщим вверх об изменении
+          // Сообщим вверх об изменении, используя актуальный callback из ref
           const updatedSet: WorkoutSet = {
             ...set,
             weight: weightNum,
@@ -159,7 +178,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
             is_done: isDone,
             updated_at: new Date().toISOString(),
           };
-          onChange?.(updatedSet);
+          onChangeRef.current?.(updatedSet);
         }
         setTimeout(() => setIsSaving(false), 500);
       }
@@ -219,9 +238,35 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
     }
   };
 
+  const isDropset = set.is_dropset ?? false;
+
+  // Визуальные стили для дропсета
+  const dropsetBg = isDropset ? 'bg-purple-500/10 border-l-2 border-purple-500/50 ml-3' : '';
+  const dropsetDoneBg = isDropset && isDone ? 'bg-purple-500/80' : '';
+  const finalBg = isDone ? (isDropset ? dropsetDoneBg : doneBg) : dropsetBg;
+
   return (
-    <div className={`relative grid grid-cols-6 gap-3 items-center p-2 rounded-md transition-colors duration-300 ${doneBg}`}>
-      <div className={`col-span-1 text-center font-medium ${textColor}`}>{set.set_index}</div>
+    <div className={`relative grid grid-cols-6 gap-3 items-center p-2 rounded-md transition-colors duration-300 ${finalBg || doneBg}`}>
+      <div className={`col-span-1 text-center font-medium ${textColor} flex items-center justify-center`}>
+        {isDropset && (
+          <span className={`text-xs mr-0.5 dropset-indicator ${isDone ? 'is-done' : ''}`}>↳</span>
+        )}
+        <span>{isDropset ? 'ДС' : set.set_index}</span>
+        {/* Кнопка добавления дропсета для обычных подходов — абсолютное позиционирование */}
+        {!isDropset && isLastInGroup && onAddDropset && (
+          <button
+            type="button"
+            onClick={() => onAddDropset(set.id)}
+            aria-label="Добавить дропсет"
+            className={`absolute left-12 w-5 h-5 flex items-center justify-center rounded transition-colors flex-shrink-0 dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/10'}`}
+            title="Добавить дропсет"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+            </svg>
+          </button>
+        )}
+      </div>
       <div className="col-span-2 flex justify-center">
         <input
           type="text"
@@ -286,15 +331,53 @@ const SetRowComponent: React.FC<SetRowProps> = ({ set, previousSet, onChange }) 
           className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none setrow-input ${inputBgClass} ${textColor}`}
         />
       </div>
-      <div className="col-span-1 flex justify-center">
-        <input
-          type="checkbox"
-          checked={isMaxChecked}
-          onChange={handleToggleMax}
-          aria-label="Подход в отказ (макс.)"
-          className="h-6 w-6 rounded-md border border-gray-300 bg-white outline-none focus-visible:outline-none"
-          style={{ accentColor: '#000000', color: '#0a0a0a' }}
-        />
+      <div className="col-span-1 flex items-center justify-center">
+        {/* Чекбокс только для обычных подходов, не для дропсетов */}
+        {!isDropset && (
+          <input
+            type="checkbox"
+            checked={isMaxChecked}
+            onChange={handleToggleMax}
+            aria-label="Подход в отказ (макс.)"
+            className="h-6 w-6 rounded-md border border-gray-300 bg-white outline-none focus-visible:outline-none flex-shrink-0"
+            style={{ accentColor: '#000000', color: '#0a0a0a' }}
+          />
+        )}
+        {/* Кнопки для дропсета: + и - с фиксированной шириной */}
+        {isDropset && (
+          <div className="flex items-center justify-end gap-1 w-14">
+            {/* Кнопка добавления дропсета */}
+            {isLastInGroup && onAddDropset ? (
+              <button
+                type="button"
+                onClick={() => onAddDropset(set.id)}
+                aria-label="Добавить дропсет"
+                className={`w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
+                title="Добавить дропсет"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+              </button>
+            ) : (
+              <div className="w-6 h-6 flex-shrink-0" />
+            )}
+            {/* Кнопка удаления дропсета */}
+            {onDeleteDropset && (
+              <button
+                type="button"
+                onClick={() => onDeleteDropset(set.id)}
+                aria-label="Удалить дропсет"
+                className={`w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
+                title="Удалить дропсет"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <path fillRule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
       </div>
       {isSaving && <div className="absolute right-2 top-2 h-2 w-2 bg-blue-500 rounded-full animate-ping"></div>}
     </div>
@@ -311,7 +394,12 @@ export const SetRow = React.memo(SetRowComponent, (prevProps, nextProps) => {
     prevProps.set.is_done === nextProps.set.is_done &&
     prevProps.set.set_index === nextProps.set.set_index &&
     prevProps.set.updated_at === nextProps.set.updated_at &&
+    prevProps.set.is_dropset === nextProps.set.is_dropset &&
+    prevProps.set.parent_set_index === nextProps.set.parent_set_index &&
     prevProps.previousSet?.weight === nextProps.previousSet?.weight &&
-    prevProps.previousSet?.is_done === nextProps.previousSet?.is_done
+    prevProps.previousSet?.is_done === nextProps.previousSet?.is_done &&
+    prevProps.isLastInGroup === nextProps.isLastInGroup &&
+    prevProps.onAddDropset === nextProps.onAddDropset &&
+    prevProps.onDeleteDropset === nextProps.onDeleteDropset
   );
 });

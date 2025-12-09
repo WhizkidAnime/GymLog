@@ -211,7 +211,7 @@ const CalendarPage = () => {
                   className="relative flex flex-col items-center justify-center h-12 w-10 sm:h-13 sm:w-11 md:h-14 md:w-12 lg:h-16 lg:w-14 cursor-pointer mx-auto overflow-visible focus:outline-none"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full ${isToday ? 'bg-blue-600 text-white' : 'text-gray-100'} transition-colors`}>
+                  <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full font-bold calendar-day ${isToday ? 'bg-blue-600 calendar-day-today' : ''} transition-colors`}>
                     {day}
                   </span>
                   {hasWorkout && (
@@ -222,12 +222,12 @@ const CalendarPage = () => {
                           style={{ color: iconData.color }}
                         >
                           {React.createElement(iconData.component, {
-                            size: 16,
+                            size: 22,
                             className: 'opacity-90',
                           })}
                         </div>
                       ) : (
-                        <div className="h-1.5 w-1.5 bg-blue-500 rounded-full" />
+                        <div className="h-2 w-2 bg-blue-500 rounded-full" />
                       )}
                     </div>
                   )}
