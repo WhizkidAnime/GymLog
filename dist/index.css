@@ -12,6 +12,7 @@
   --sal: env(safe-area-inset-left);
   --sar: env(safe-area-inset-right);
   --dock-total-h: 96px;
+  --keyboard-offset: 0px;
 }
 
 html, body, #root { height: 100%; }
@@ -224,6 +225,8 @@ body::before {
   display: flex;
   justify-content: center;
   pointer-events: none;
+  transform: translateY(var(--keyboard-offset, 0px));
+  transition: transform .18s ease-out;
 }
 
 .glass-dock {

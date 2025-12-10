@@ -82,24 +82,28 @@ export function BodyWeightTrackerModal({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-lg mx-4 glass card-dark rounded-xl shadow-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Трекер веса тела</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 text-gray-400 hover:text-white transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      <div
+        className="relative glass card-dark p-5 rounded-2xl max-w-md w-full max-h-[80vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <h2 className="text-xl font-semibold text-white pr-10">Трекер веса тела</h2>
+
+        <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
 
         {/* Форма добавления */}
         <div className="space-y-3 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -117,7 +121,7 @@ export function BodyWeightTrackerModal({
                     setNewWeight(val);
                   }
                 }}
-                placeholder="70,5"
+                placeholder="70,25"
                 className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -154,20 +158,20 @@ export function BodyWeightTrackerModal({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="p-3 rounded-lg bg-white/5 text-center">
               <p className="text-xs text-gray-400">Текущий</p>
-              <p className="text-lg font-bold text-white">{weightStats.current.toFixed(1).replace('.', ',')} кг</p>
+              <p className="text-lg font-bold text-white">{weightStats.current.toFixed(2).replace('.', ',')} кг</p>
             </div>
             <div className="p-3 rounded-lg bg-white/5 text-center">
               <p className="text-xs text-gray-400">Мин</p>
-              <p className="text-lg font-bold text-green-400">{weightStats.min.toFixed(1).replace('.', ',')} кг</p>
+              <p className="text-lg font-bold text-green-400">{weightStats.min.toFixed(2).replace('.', ',')} кг</p>
             </div>
             <div className="p-3 rounded-lg bg-white/5 text-center">
               <p className="text-xs text-gray-400">Макс</p>
-              <p className="text-lg font-bold text-orange-400">{weightStats.max.toFixed(1).replace('.', ',')} кг</p>
+              <p className="text-lg font-bold text-orange-400">{weightStats.max.toFixed(2).replace('.', ',')} кг</p>
             </div>
             <div className="p-3 rounded-lg bg-white/5 text-center">
               <p className="text-xs text-gray-400">Изменение</p>
               <p className={`text-lg font-bold ${weightStats.change > 0 ? 'text-red-400' : weightStats.change < 0 ? 'text-green-400' : 'text-gray-400'}`}>
-                {weightStats.change > 0 ? '+' : ''}{weightStats.change.toFixed(1).replace('.', ',')} кг
+                {weightStats.change > 0 ? '+' : ''}{weightStats.change.toFixed(2).replace('.', ',')} кг
               </p>
             </div>
           </div>
@@ -190,7 +194,7 @@ export function BodyWeightTrackerModal({
                   tick={{ fill: '#9ca3af', fontSize: 10 }} 
                   axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                   tickLine={false}
-                  tickFormatter={(v) => `${v}`}
+                  tickFormatter={(v) => Number(v).toFixed(2).replace('.', ',')}
                 />
                 <Tooltip 
                   contentStyle={{ 
@@ -199,7 +203,7 @@ export function BodyWeightTrackerModal({
                     borderRadius: '8px',
                     color: '#fff'
                   }}
-                  formatter={(value: number) => [`${value.toFixed(1).replace('.', ',')} кг`, 'Вес']}
+                  formatter={(value: number) => [`${value.toFixed(2).replace('.', ',')} кг`, 'Вес']}
                 />
                 <Line 
                   type="monotone" 
@@ -234,7 +238,7 @@ export function BodyWeightTrackerModal({
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-white font-medium">
-                      {Number(w.weight).toFixed(1).replace('.', ',')} кг
+                      {Number(w.weight).toFixed(2).replace('.', ',')} кг
                     </span>
                     <span className="text-sm text-gray-400">
                       {formatDateDDMMYYYY(new Date(w.recorded_at).toISOString().slice(0, 10))}
@@ -258,6 +262,7 @@ export function BodyWeightTrackerModal({
               ))}
             </div>
           )}
+        </div>
         </div>
       </div>
 
