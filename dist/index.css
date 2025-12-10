@@ -12,7 +12,6 @@
   --sal: env(safe-area-inset-left);
   --sar: env(safe-area-inset-right);
   --dock-total-h: 96px;
-  --keyboard-offset: 0px;
 }
 
 html, body, #root { height: 100%; }
@@ -220,13 +219,18 @@ body::before {
 .bottom-dock-wrapper {
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  z-index: 40;
+  z-index: 9999;
   padding: 8px 9.6px calc(8px + var(--sab));
   display: flex;
   justify-content: center;
   pointer-events: none;
-  transform: translateY(var(--keyboard-offset, 0px));
-  transition: transform .18s ease-out;
+  /* iOS PWA keyboard fix */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+  contain: layout style;
 }
 
 .glass-dock {
@@ -1483,5 +1487,58 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .dropset-indicator.is-done,
 .dropset-btn.is-done {
   color: #000000 !important;
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR
+   ======================================== */
+
+/* Кастомный скроллбар для модальных окон */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 8px 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* На мобильных устройствах скрываем скроллбар */
+@media (max-width: 768px) and (hover: none) {
+  .custom-scrollbar {
+    scrollbar-width: none;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Светлая тема */
+.light-theme .custom-scrollbar {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.light-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.light-theme .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 

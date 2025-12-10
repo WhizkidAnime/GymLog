@@ -1,6 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { UserBodyWeight } from '../types/database.types';
 import { supabase } from '../lib/supabase';
+import { usePageState } from './usePageState';
+
+const BODY_WEIGHTS_CACHE_KEY = 'body-weights-data';
+const BODY_WEIGHTS_TTL = 10 * 60 * 1000; // 10 минут
 
 export type UseBodyWeightTrackerProps = {
   userId: string | undefined;
@@ -35,9 +39,18 @@ export type UseBodyWeightTrackerReturn = {
 
 export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): UseBodyWeightTrackerReturn {
   const db = supabase as any;
+  const hasFetched = useRef(false);
 
   const [isWeightTrackerOpen, setIsWeightTrackerOpen] = useState(false);
-  const [bodyWeights, setBodyWeights] = useState<UserBodyWeight[]>([]);
+  
+  // Кэшируем данные веса через usePageState
+  const [cachedWeights, setCachedWeights, saveCachedWeights] = usePageState<UserBodyWeight[]>({
+    key: userId ? `${BODY_WEIGHTS_CACHE_KEY}-${userId}` : BODY_WEIGHTS_CACHE_KEY,
+    initialState: [],
+    ttl: BODY_WEIGHTS_TTL,
+  });
+  
+  const [bodyWeights, setBodyWeights] = useState<UserBodyWeight[]>(cachedWeights);
   const [loadingWeights, setLoadingWeights] = useState(false);
   const [newWeight, setNewWeight] = useState('');
   const [newWeightDate, setNewWeightDate] = useState(() => {
@@ -52,8 +65,30 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
   const [isDeleteWeightConfirmOpen, setIsDeleteWeightConfirmOpen] = useState(false);
   const [weightToDelete, setWeightToDelete] = useState<string | null>(null);
 
-  const loadBodyWeights = useCallback(async () => {
+  // Инициализация из кэша при монтировании
+  useEffect(() => {
+    if (cachedWeights.length > 0 && bodyWeights.length === 0) {
+      setBodyWeights(cachedWeights);
+      hasFetched.current = true;
+    }
+  }, []);
+
+  const loadBodyWeights = useCallback(async (force = false) => {
     if (!userId) return;
+    
+    // Если уже загружали и есть кэш - не загружаем повторно
+    if (!force && hasFetched.current && cachedWeights.length > 0) {
+      setBodyWeights(cachedWeights);
+      return;
+    }
+    
+    // Если есть кэш и не форсируем - используем кэш
+    if (!force && cachedWeights.length > 0) {
+      setBodyWeights(cachedWeights);
+      hasFetched.current = true;
+      return;
+    }
+    
     setLoadingWeights(true);
     try {
       const { data, error } = await db
@@ -64,23 +99,26 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
         .limit(100);
 
       if (error) throw error;
-      setBodyWeights(data || []);
+      const weights = data || [];
+      setBodyWeights(weights);
+      setCachedWeights(weights);
+      hasFetched.current = true;
     } catch (error) {
       console.error('Error loading body weights:', error);
     } finally {
       setLoadingWeights(false);
     }
-  }, [userId, db]);
+  }, [userId, db, cachedWeights, setCachedWeights]);
 
   const parseAndValidateDate = useCallback((dateStr: string): string | null => {
-    // Expected format: dd.mm.yyyy
-    const match = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    // Поддерживаем формат д.мм.гггг или дд.мм.гггг
+    const match = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
     if (!match) return null;
     
-    const [, dd, mm, yyyy] = match;
-    const day = parseInt(dd, 10);
-    const month = parseInt(mm, 10);
-    const year = parseInt(yyyy, 10);
+    const [, dayStr, monthStr, yearStr] = match;
+    const day = parseInt(dayStr, 10);
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
     
     // Basic validation
     if (month < 1 || month > 12) return null;
@@ -97,8 +135,10 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
     today.setHours(23, 59, 59, 999);
     if (inputDate > today) return null;
     
-    // Return ISO format
-    return `${yyyy}-${mm}-${dd}`;
+    // Return ISO format с ведущими нулями
+    const dd = String(day).padStart(2, '0');
+    const mm = String(month).padStart(2, '0');
+    return `${year}-${mm}-${dd}`;
   }, []);
 
   const formatTodayDate = useCallback((): string => {
@@ -120,7 +160,7 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
 
     const isoDate = parseAndValidateDate(newWeightDate);
     if (!isoDate) {
-      alert('Введите корректную дату в формате дд.мм.гггг (не в будущем)');
+      alert('Введите корректную дату в формате д.мм.гггг (не в будущем)');
       return;
     }
 
@@ -138,12 +178,14 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
 
       if (error) throw error;
 
-      setBodyWeights(prev => {
-        const filtered = prev.filter(w => w.recorded_at !== isoDate);
+      const newWeights = (() => {
+        const filtered = bodyWeights.filter(w => w.recorded_at !== isoDate);
         return [data, ...filtered].sort((a, b) =>
           new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime()
         );
-      });
+      })();
+      setBodyWeights(newWeights);
+      setCachedWeights(newWeights);
       setNewWeight('');
       setNewWeightDate(formatTodayDate());
     } catch (error) {
@@ -152,7 +194,7 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
     } finally {
       setSavingWeight(false);
     }
-  }, [userId, newWeight, newWeightDate, savingWeight, db, parseAndValidateDate, formatTodayDate]);
+  }, [userId, newWeight, newWeightDate, savingWeight, db, parseAndValidateDate, formatTodayDate, bodyWeights, setCachedWeights]);
 
   const handleDeleteWeight = useCallback(async (id: string) => {
     if (!userId || deletingWeightId) return;
@@ -165,7 +207,9 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
         .eq('id', id);
 
       if (error) throw error;
-      setBodyWeights(prev => prev.filter(w => w.id !== id));
+      const newWeights = bodyWeights.filter(w => w.id !== id);
+      setBodyWeights(newWeights);
+      setCachedWeights(newWeights);
       setIsDeleteWeightConfirmOpen(false);
       setWeightToDelete(null);
     } catch (error) {
@@ -174,7 +218,7 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
     } finally {
       setDeletingWeightId(null);
     }
-  }, [userId, deletingWeightId, db]);
+  }, [userId, deletingWeightId, db, bodyWeights, setCachedWeights]);
 
   const handleOpenDeleteWeightConfirm = useCallback((id: string) => {
     setWeightToDelete(id);

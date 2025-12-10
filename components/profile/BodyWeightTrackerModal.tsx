@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import type { UserBodyWeight } from '../../types/database.types';
 import ConfirmDialog from '../confirm-dialog';
 
@@ -45,17 +45,42 @@ function formatDateDDMMYYYY(iso: string): string {
   return iso;
 }
 
-function formatDateInput(value: string): string {
-  // Remove all non-digits
-  const digits = value.replace(/\D/g, '');
+function formatDateInput(value: string, prevValue: string): string {
+  // Разрешаем ввод в формате д.мм.гггг или дд.мм.гггг
+  const cleanValue = value.replace(/[^0-9.]/g, '');
   
-  // Auto-insert dots
-  if (digits.length <= 2) {
-    return digits;
-  } else if (digits.length <= 4) {
-    return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  // Разбиваем по точкам
+  const parts = cleanValue.split('.');
+  
+  // Ограничиваем части: день (1-2 цифры), месяц (1-2 цифры), год (до 4 цифр)
+  let day = parts[0] || '';
+  let month = parts[1] || '';
+  let year = parts[2] || '';
+  
+  // Ограничиваем длину каждой части
+  day = day.slice(0, 2);
+  month = month.slice(0, 2);
+  year = year.slice(0, 4);
+  
+  // Автоматически добавляем точку после ввода 2 цифр дня или месяца
+  // только если пользователь добавляет символы (не удаляет)
+  const isAdding = cleanValue.length > prevValue.replace(/[^0-9.]/g, '').length;
+  
+  if (parts.length === 1 && day.length === 2 && isAdding) {
+    return `${day}.`;
+  }
+  
+  if (parts.length === 2 && month.length === 2 && isAdding) {
+    return `${day}.${month}.`;
+  }
+  
+  // Собираем результат
+  if (parts.length === 1) {
+    return day;
+  } else if (parts.length === 2) {
+    return `${day}.${month}`;
   } else {
-    return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4, 8)}`;
+    return `${day}.${month}.${year}`;
   }
 }
 
@@ -79,16 +104,33 @@ export function BodyWeightTrackerModal({
   handleDeleteWeight,
   handleOpenDeleteWeightConfirm,
 }: BodyWeightTrackerModalProps): React.ReactElement | null {
+  const [activeTooltip, setActiveTooltip] = useState<{ date: string; weight: number } | null>(null);
+
+  const handleDotClick = useCallback((e: any, payload: any) => {
+    e?.stopPropagation?.();
+    if (payload) {
+      setActiveTooltip({
+        date: payload.date,
+        weight: payload.weight,
+      });
+    }
+  }, []);
+
+  const handleChartClick = useCallback(() => {
+    setActiveTooltip(null);
+  }, []);
+
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-8 px-4" style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom))' }}>
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       <div
-        className="relative glass card-dark p-5 rounded-2xl max-w-md w-full max-h-[80vh]"
+        className="relative glass card-dark p-5 rounded-2xl max-w-md w-full my-auto"
+        style={{ maxHeight: 'calc(100dvh - 120px - env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -103,7 +145,7 @@ export function BodyWeightTrackerModal({
 
         <h2 className="text-xl font-semibold text-white pr-10">Трекер веса тела</h2>
 
-        <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="mt-4 space-y-4 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100dvh - 200px - env(safe-area-inset-bottom))' }}>
 
         {/* Форма добавления */}
         <div className="space-y-3 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -132,10 +174,10 @@ export function BodyWeightTrackerModal({
                 inputMode="numeric"
                 value={newWeightDate}
                 onChange={(e) => {
-                  const formatted = formatDateInput(e.target.value);
+                  const formatted = formatDateInput(e.target.value, newWeightDate);
                   setNewWeightDate(formatted);
                 }}
-                placeholder="08.12.2025"
+                placeholder="8.12.2025"
                 maxLength={10}
                 className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -179,42 +221,79 @@ export function BodyWeightTrackerModal({
 
         {/* График */}
         {weightChartData.length > 1 && (
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weightChartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fill: '#9ca3af', fontSize: 10 }} 
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  domain={['dataMin - 2', 'dataMax + 2']}
-                  tick={{ fill: '#9ca3af', fontSize: 10 }} 
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  tickLine={false}
-                  tickFormatter={(v) => Number(v).toFixed(2).replace('.', ',')}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(24,24,27,0.95)', 
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px',
-                    color: '#fff'
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(2).replace('.', ',')} кг`, 'Вес']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="weight" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2}
-                  dot={{ fill: '#3b82f6', strokeWidth: 0, r: 3 }}
-                  activeDot={{ r: 5, fill: '#60a5fa' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="relative" onClick={handleChartClick}>
+            <div className="overflow-x-auto pb-2">
+              <div style={{ minWidth: `${Math.max(weightChartData.length * 50, 100)}px`, height: '192px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={weightChartData} margin={{ top: 15, right: 20, left: -20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fill: '#9ca3af', fontSize: 10 }} 
+                      axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      domain={['dataMin - 2', 'dataMax + 2']}
+                      tick={{ fill: '#9ca3af', fontSize: 10 }} 
+                      axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                      tickLine={false}
+                      tickFormatter={(v) => Number(v).toFixed(2).replace('.', ',')}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="weight" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      dot={({ cx, cy, payload, index }) => (
+                        <circle
+                          key={`dot-${index}`}
+                          cx={cx}
+                          cy={cy}
+                          r={4}
+                          fill="#3b82f6"
+                          stroke="none"
+                          style={{ cursor: 'pointer' }}
+                          onClick={(e) => handleDotClick(e, payload)}
+                        />
+                      )}
+                      activeDot={({ cx, cy, payload, index }) => (
+                        <circle
+                          key={`active-dot-${index}`}
+                          cx={cx}
+                          cy={cy}
+                          r={6}
+                          fill="#60a5fa"
+                          stroke="#fff"
+                          strokeWidth={2}
+                          style={{ cursor: 'pointer' }}
+                          onClick={(e) => handleDotClick(e, payload)}
+                        />
+                      )}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            {activeTooltip && (
+              <div 
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                style={{
+                  background: 'rgba(24,24,27,0.95)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  color: '#fff',
+                  zIndex: 10
+                }}
+              >
+                <p className="text-sm text-gray-300">{activeTooltip.date}</p>
+                <p className="text-sm font-medium">
+                  <span className="text-gray-400">Вес : </span>
+                  <span className="text-green-400">{activeTooltip.weight.toFixed(2).replace('.', ',')} кг</span>
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -230,7 +309,7 @@ export function BodyWeightTrackerModal({
               Пока нет записей. Добавьте свой первый вес выше.
             </p>
           ) : (
-            <div className="max-h-48 overflow-y-auto space-y-1">
+            <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar pr-1">
               {bodyWeights.slice(0, 20).map((w) => (
                 <div
                   key={w.id}

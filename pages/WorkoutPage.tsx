@@ -967,7 +967,7 @@ const WorkoutPage = () => {
   };
   
   if (!hasInitialData) {
-    return <WorkoutLoadingOverlay message="Загрузка тренировки..." />;
+    return <WorkoutLoadingOverlay message="Загрузка..." />;
   }
   
   if (!normalizedDate) {
@@ -1036,9 +1036,7 @@ const WorkoutPage = () => {
 
   return (
     <div className="relative px-4 space-y-4 pt-4 pb-10">
-      {/* Показываем индикатор при начальной загрузке или при обновлении страницы */}
-      {loading && <WorkoutLoadingOverlay message="Загрузка тренировки..." />}
-      
+      {/* Основной контент страницы тренировки */}
       {/* CSS стили вынесены в styles/header-scroll.css */}
       <div className={`status-bar-blur ${isScrolling ? 'visible' : ''}`} />
       <WorkoutHeader
