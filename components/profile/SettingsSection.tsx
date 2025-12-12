@@ -46,7 +46,7 @@ export function SettingsSection({
             type="button"
             onClick={saveTimerStep}
             disabled={saveStatus === 'saving'}
-            className="btn-glass btn-glass-sm btn-glass-primary flex items-center justify-center gap-2 min-w-[120px]"
+            className="btn-glass btn-glass-primary flex items-center justify-center gap-2 !py-2 !px-4 min-w-[104px]"
           >
             {saveStatus === 'saving' && (
               <span

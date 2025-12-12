@@ -889,6 +889,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: #1d1d1f;
 }
 
+.light-theme .cardio-warning {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  border-color: rgba(245, 158, 11, 0.38) !important;
+}
+
+.light-theme .cardio-warning-title {
+  color: #92400e !important;
+}
+
+.light-theme .cardio-warning-text {
+  color: rgba(120, 53, 15, 0.92) !important;
+}
+
 /* Loader */
 .light-theme .border-t-blue-500 {
   border-top-color: #3b82f6;

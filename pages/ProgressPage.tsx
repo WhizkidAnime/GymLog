@@ -932,7 +932,7 @@ const ProgressPage = () => {
                   <li><b>Stair Master</b> — имитация подъёма по лестнице</li>
                   <li><b>Эллипсоид</b> — щадящая нагрузка на суставы</li>
                   <li><b>Велотренажёр</b> — подходит для начинающих</li>
-                  <li><b>Беговая дорожка</b> — быстрая ходьба или бег</li>
+                  <li><b>Беговая дорожка</b> — быстрая ходьба</li>
                 </ul>
               </div>
 
@@ -955,9 +955,9 @@ const ProgressPage = () => {
                 </ul>
               </div>
 
-              <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                <h3 className="text-yellow-400 font-semibold mb-2">⚠️ Предупреждение</h3>
-                <p className="text-yellow-200/80">
+              <div className="cardio-warning p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <h3 className="cardio-warning-title text-yellow-400 font-semibold mb-2">⚠️ Предупреждение</h3>
+                <p className="cardio-warning-text text-yellow-200/80">
                   При проблемах с сердцем, суставами или давлением — проконсультируйтесь с врачом перед началом кардио тренировок.
                 </p>
               </div>

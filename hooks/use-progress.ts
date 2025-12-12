@@ -15,15 +15,27 @@ export type ProgressPageState = {
   selectedExercise: string | null;
 };
 
+export type ProgressExercisesCacheState = {
+  loaded: boolean;
+  exercises: ExerciseOption[];
+};
+
 export function useProgress() {
   const { user } = useAuth();
 
   const workoutIdsRef = useRef<string[] | null>(null);
   const progressCacheRef = useRef<Map<string, { data: ExerciseProgress; ts: number }>>(new Map());
   const progressCacheTtl = 5 * 60 * 1000;
+  const didInitExercisesFetchRef = useRef(false);
+  const prevUserIdRef = useRef<string | undefined>(undefined);
 
-  const [exercises, setExercises] = useState<ExerciseOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [exercisesCache, setExercisesCache] = usePageState<ProgressExercisesCacheState>({
+    key: 'progress-page:exercises',
+    initialState: { loaded: false, exercises: [] },
+    ttl: 10 * 60 * 1000,
+  });
+
+  const [loading, setLoading] = useState(() => !exercisesCache.loaded);
   const [progressData, setProgressData] = useState<ExerciseProgress | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(false);
   const [pageState, setPageState] = usePageState<ProgressPageState>({
@@ -58,15 +70,17 @@ export function useProgress() {
     return workoutIds;
   }, [user]);
 
-  const fetchExercises = useCallback(async () => {
+  const fetchExercises = useCallback(async (silent = false) => {
     if (!user) return;
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const workoutIds = await getWorkoutIds();
 
       if (workoutIds.length === 0) {
-        setExercises([]);
+        setExercisesCache({ loaded: true, exercises: [] });
         return;
       }
 
@@ -87,7 +101,7 @@ export function useProgress() {
       });
 
       if (statsByExerciseId.size === 0) {
-        setExercises([]);
+        setExercisesCache({ loaded: true, exercises: [] });
         return;
       }
 
@@ -125,15 +139,19 @@ export function useProgress() {
         .map(({ name, total }) => ({ name, totalSets: total }))
         .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
-      setExercises(options);
+      setExercisesCache({ loaded: true, exercises: options });
     } catch (error: any) {
       console.error('Error fetching progress exercises:', error);
-      alert('Не удалось загрузить список упражнений');
-      setExercises([]);
+      if (!silent) {
+        alert('Не удалось загрузить список упражнений');
+        setExercisesCache({ loaded: true, exercises: [] });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  }, [user]);
+  }, [user, getWorkoutIds, setExercisesCache]);
 
   const loadProgress = useCallback(
     async (exerciseName: string | null) => {
@@ -236,16 +254,32 @@ export function useProgress() {
   );
 
   useEffect(() => {
-    fetchExercises();
-  }, [fetchExercises]);
+    if (!user) return;
+    if (didInitExercisesFetchRef.current) return;
+    didInitExercisesFetchRef.current = true;
+    fetchExercises(exercisesCache.loaded);
+  }, [fetchExercises, exercisesCache.loaded, user]);
 
   useEffect(() => {
-    workoutIdsRef.current = null;
-    progressCacheRef.current.clear();
-  }, [user?.id]);
+    const currentUserId = user?.id;
+
+    if (prevUserIdRef.current === undefined) {
+      prevUserIdRef.current = currentUserId;
+      return;
+    }
+
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      workoutIdsRef.current = null;
+      progressCacheRef.current.clear();
+      didInitExercisesFetchRef.current = false;
+      setExercisesCache({ loaded: false, exercises: [] });
+      setLoading(true);
+    }
+  }, [user?.id, setExercisesCache]);
 
   return {
-    exercises,
+    exercises: exercisesCache.exercises,
     loading,
     progressData,
     loadingProgress,
