@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import type { UserBodyWeight } from '../../types/database.types';
@@ -104,33 +104,114 @@ export function BodyWeightTrackerModal({
   handleDeleteWeight,
   handleOpenDeleteWeightConfirm,
 }: BodyWeightTrackerModalProps): React.ReactElement | null {
-  const [activeTooltip, setActiveTooltip] = useState<{ date: string; weight: number } | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<{ date: string; weight: number; x: number; y: number } | null>(null);
+  const [historyPage, setHistoryPage] = useState(0);
+  const ITEMS_PER_PAGE = 7;
+  const chartWrapperRef = useRef<HTMLDivElement | null>(null);
+  const TOOLTIP_WIDTH_PX = 144;
+  const TOOLTIP_MARGIN_PX = 8;
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    setHistoryPage(0);
+  }, [bodyWeights.length]);
 
   const handleDotClick = useCallback((e: any, payload: any) => {
     e?.stopPropagation?.();
-    if (payload) {
-      setActiveTooltip({
-        date: payload.date,
-        weight: payload.weight,
-      });
-    }
-  }, []);
+    if (!payload) return;
+    const wrapper = chartWrapperRef.current;
+    const target = e?.currentTarget as Element | null;
+    if (!wrapper || !target || typeof (target as any).getBoundingClientRect !== 'function') return;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const targetRect = (target as any).getBoundingClientRect() as DOMRect;
+    const rawX = targetRect.left + targetRect.width / 2 - wrapperRect.left;
+    const y = targetRect.top + targetRect.height / 2 - wrapperRect.top;
+    const half = TOOLTIP_WIDTH_PX / 2;
+    const x = Math.max(half + TOOLTIP_MARGIN_PX, Math.min(rawX, wrapperRect.width - half - TOOLTIP_MARGIN_PX));
+
+    setActiveTooltip({
+      date: payload.date,
+      weight: payload.weight,
+      x,
+      y,
+    });
+  }, [TOOLTIP_MARGIN_PX, TOOLTIP_WIDTH_PX]);
 
   const handleChartClick = useCallback(() => {
     setActiveTooltip(null);
   }, []);
 
+  const renderDot = useCallback((props: any) => {
+    const { cx, cy, payload, index } = props;
+    return (
+      <circle
+        key={`dot-${index}`}
+        cx={cx}
+        cy={cy}
+        r={4}
+        fill="#3b82f6"
+        stroke="none"
+        style={{ cursor: 'pointer' }}
+        onClick={(e) => handleDotClick(e, payload)}
+      />
+    );
+  }, [handleDotClick]);
+
+  const renderActiveDot = useCallback((props: any) => {
+    const { cx, cy, payload, index } = props;
+    return (
+      <circle
+        key={`active-dot-${index}`}
+        cx={cx}
+        cy={cy}
+        r={6}
+        fill="#60a5fa"
+        stroke="#fff"
+        strokeWidth={2}
+        style={{ cursor: 'pointer' }}
+        onClick={(e) => handleDotClick(e, payload)}
+      />
+    );
+  }, [handleDotClick]);
+
+  const totalPages = Math.ceil(bodyWeights.length / ITEMS_PER_PAGE);
+  const paginatedWeights = bodyWeights.slice(
+    historyPage * ITEMS_PER_PAGE,
+    (historyPage + 1) * ITEMS_PER_PAGE
+  );
+
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-8 px-4" style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom))' }}>
+    <div 
+      className="fixed inset-0 z-[100] flex items-start justify-center px-4"
+      style={{ 
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+        paddingBottom: 'calc(96px + env(safe-area-inset-bottom))'
+      }}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
+        onTouchMove={(e) => e.preventDefault()}
       />
       <div
-        className="relative glass card-dark p-5 rounded-2xl max-w-md w-full my-auto"
-        style={{ maxHeight: 'calc(100dvh - 120px - env(safe-area-inset-bottom))' }}
+        className="relative glass card-dark p-5 rounded-2xl max-w-md w-full my-auto overflow-y-auto custom-scrollbar"
+        style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom) - 120px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -145,7 +226,7 @@ export function BodyWeightTrackerModal({
 
         <h2 className="text-xl font-semibold text-white pr-10">Трекер веса тела</h2>
 
-        <div className="mt-4 space-y-4 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100dvh - 200px - env(safe-area-inset-bottom))' }}>
+        <div className="mt-4 space-y-4">
 
         {/* Форма добавления */}
         <div className="space-y-3 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -221,7 +302,7 @@ export function BodyWeightTrackerModal({
 
         {/* График */}
         {weightChartData.length > 1 && (
-          <div className="relative" onClick={handleChartClick}>
+          <div className="relative" onClick={handleChartClick} ref={chartWrapperRef}>
             <div className="overflow-x-auto pb-2">
               <div style={{ minWidth: `${Math.max(weightChartData.length * 50, 100)}px`, height: '192px' }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -245,31 +326,9 @@ export function BodyWeightTrackerModal({
                       dataKey="weight" 
                       stroke="#3b82f6" 
                       strokeWidth={2}
-                      dot={({ cx, cy, payload, index }) => (
-                        <circle
-                          key={`dot-${index}`}
-                          cx={cx}
-                          cy={cy}
-                          r={4}
-                          fill="#3b82f6"
-                          stroke="none"
-                          style={{ cursor: 'pointer' }}
-                          onClick={(e) => handleDotClick(e, payload)}
-                        />
-                      )}
-                      activeDot={({ cx, cy, payload, index }) => (
-                        <circle
-                          key={`active-dot-${index}`}
-                          cx={cx}
-                          cy={cy}
-                          r={6}
-                          fill="#60a5fa"
-                          stroke="#fff"
-                          strokeWidth={2}
-                          style={{ cursor: 'pointer' }}
-                          onClick={(e) => handleDotClick(e, payload)}
-                        />
-                      )}
+                      dot={renderDot}
+                      activeDot={renderActiveDot}
+                      isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -277,20 +336,24 @@ export function BodyWeightTrackerModal({
             </div>
             {activeTooltip && (
               <div 
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                className="absolute pointer-events-none w-36 text-center"
                 style={{
-                  background: 'rgba(24,24,27,0.95)',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  left: `${activeTooltip.x}px`,
+                  top: `${activeTooltip.y}px`,
+                  transform: 'translate(-50%, calc(-100% - 12px))',
+                  background: 'rgba(255,255,255,0.98)',
+                  border: '1px solid rgba(0,0,0,0.08)',
                   borderRadius: '8px',
                   padding: '8px 12px',
-                  color: '#fff',
-                  zIndex: 10
+                  color: '#111827',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+                  zIndex: 20
                 }}
               >
-                <p className="text-sm text-gray-300">{activeTooltip.date}</p>
-                <p className="text-sm font-medium">
-                  <span className="text-gray-400">Вес : </span>
-                  <span className="text-green-400">{activeTooltip.weight.toFixed(2).replace('.', ',')} кг</span>
+                <p className="text-sm text-gray-600 truncate">{activeTooltip.date}</p>
+                <p className="text-sm font-medium truncate">
+                  <span className="text-gray-500">Вес : </span>
+                  <span className="text-green-600">{activeTooltip.weight.toFixed(2).replace('.', ',')} кг</span>
                 </p>
               </div>
             )}
@@ -299,7 +362,36 @@ export function BodyWeightTrackerModal({
 
         {/* История */}
         <div className="space-y-2">
-          <p className="text-sm text-gray-300 font-medium">История ({bodyWeights.length})</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-300 font-medium">История ({bodyWeights.length})</p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                  disabled={historyPage === 0}
+                  className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition-colors flex items-center justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-xs text-gray-400 min-w-[40px] text-center">
+                  {historyPage + 1} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setHistoryPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={historyPage >= totalPages - 1}
+                  className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition-colors flex items-center justify-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
           {loadingWeights ? (
             <div className="flex justify-center py-4">
               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -309,8 +401,8 @@ export function BodyWeightTrackerModal({
               Пока нет записей. Добавьте свой первый вес выше.
             </p>
           ) : (
-            <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar pr-1">
-              {bodyWeights.slice(0, 20).map((w) => (
+            <div className="space-y-1">
+              {paginatedWeights.map((w) => (
                 <div
                   key={w.id}
                   className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
