@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { useI18n } from '../../hooks/use-i18n';
 
 export type CleanDataDialogProps = {
@@ -24,7 +25,7 @@ export function CleanDataDialog({
 
   const isLoading = isLoadingWorkoutsForDeletion || isLoadingTemplatesForDeletion;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/60"
@@ -33,7 +34,10 @@ export function CleanDataDialog({
           onClose();
         }}
       />
-      <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5 space-y-4">
+      <div
+        className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-lg font-semibold text-white">{t.cleanData.title}</h2>
         <p className="text-sm text-gray-300">
           {t.cleanData.description}
@@ -70,6 +74,7 @@ export function CleanDataDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

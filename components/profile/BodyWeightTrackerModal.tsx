@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import type { UserBodyWeight } from '../../types/database.types';
 import ConfirmDialog from '../confirm-dialog';
+import { useI18n } from '../../hooks/use-i18n';
 
 export type BodyWeightTrackerModalProps = {
   isOpen: boolean;
@@ -104,12 +105,23 @@ export function BodyWeightTrackerModal({
   handleDeleteWeight,
   handleOpenDeleteWeightConfirm,
 }: BodyWeightTrackerModalProps): React.ReactElement | null {
+  const { t, language } = useI18n();
   const [activeTooltip, setActiveTooltip] = useState<{ date: string; weight: number; x: number; y: number } | null>(null);
   const [historyPage, setHistoryPage] = useState(0);
+  const [isLightTheme, setIsLightTheme] = useState(false);
   const ITEMS_PER_PAGE = 7;
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
   const TOOLTIP_WIDTH_PX = 144;
   const TOOLTIP_MARGIN_PX = 8;
+
+  const formatChartDate = useCallback((iso: string): string => {
+    try {
+      const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+      return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+    } catch {
+      return iso;
+    }
+  }, [language]);
 
   useEffect(() => {
     if (isOpen) {
@@ -124,6 +136,26 @@ export function BodyWeightTrackerModal({
       document.body.style.touchAction = '';
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    const update = () => {
+      try {
+        setIsLightTheme(document.documentElement.classList.contains('light-theme'));
+      } catch {
+        setIsLightTheme(false);
+      }
+    };
+
+    update();
+
+    try {
+      const observer = new MutationObserver(update);
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+      return () => observer.disconnect();
+    } catch {
+      return undefined;
+    }
+  }, []);
 
   useEffect(() => {
     setHistoryPage(0);
@@ -143,7 +175,7 @@ export function BodyWeightTrackerModal({
     const x = Math.max(half + TOOLTIP_MARGIN_PX, Math.min(rawX, wrapperRect.width - half - TOOLTIP_MARGIN_PX));
 
     setActiveTooltip({
-      date: payload.date,
+      date: payload.fullDate,
       weight: payload.weight,
       x,
       y,
@@ -224,16 +256,16 @@ export function BodyWeightTrackerModal({
           </svg>
         </button>
 
-        <h2 className="text-xl font-semibold text-white pr-10">Трекер веса тела</h2>
+        <h2 className="text-xl font-semibold text-white pr-10">{t.bodyWeight.title}</h2>
 
         <div className="mt-4 space-y-4 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
 
         {/* Форма добавления */}
         <div className="space-y-3 p-3 rounded-lg bg-white/5 border border-white/10">
-          <p className="text-sm text-gray-300 font-medium">Добавить запись</p>
+          <p className="text-sm text-gray-300 font-medium">{t.bodyWeight.addWeight}</p>
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1">Вес (кг)</label>
+              <label className="block text-xs text-gray-400 mb-1">{t.bodyWeight.weight}</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -244,12 +276,12 @@ export function BodyWeightTrackerModal({
                     setNewWeight(val);
                   }
                 }}
-                placeholder="70,25"
+                placeholder={t.bodyWeight.weightPlaceholder}
                 className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-1">Дата</label>
+              <label className="block text-xs text-gray-400 mb-1">{t.bodyWeight.date}</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -258,7 +290,7 @@ export function BodyWeightTrackerModal({
                   const formatted = formatDateInput(e.target.value, newWeightDate);
                   setNewWeightDate(formatted);
                 }}
-                placeholder="8.12.2025"
+                placeholder={t.bodyWeight.datePlaceholder}
                 maxLength={10}
                 className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -271,7 +303,7 @@ export function BodyWeightTrackerModal({
               disabled={!newWeight || !newWeightDate || savingWeight}
               className="btn-glass btn-glass-sm btn-glass-primary disabled:opacity-50"
             >
-              {savingWeight ? '...' : 'Добавить'}
+              {savingWeight ? t.bodyWeight.saving : t.bodyWeight.addWeight}
             </button>
           </div>
         </div>
@@ -280,21 +312,21 @@ export function BodyWeightTrackerModal({
         {weightStats && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="p-3 rounded-lg bg-white/5 text-center">
-              <p className="text-xs text-gray-400">Текущий</p>
-              <p className="text-lg font-bold text-white">{weightStats.current.toFixed(2).replace('.', ',')} кг</p>
+              <p className="text-xs text-gray-400">{t.bodyWeight.stats.current}</p>
+              <p className="text-lg font-bold text-white">{weightStats.current.toFixed(2).replace('.', ',')} {t.common.kg}</p>
             </div>
             <div className="p-3 rounded-lg bg-white/5 text-center">
-              <p className="text-xs text-gray-400">Мин</p>
-              <p className="text-lg font-bold text-green-400">{weightStats.min.toFixed(2).replace('.', ',')} кг</p>
+              <p className="text-xs text-gray-400">{t.bodyWeight.stats.min}</p>
+              <p className="text-lg font-bold text-green-400">{weightStats.min.toFixed(2).replace('.', ',')} {t.common.kg}</p>
             </div>
             <div className="p-3 rounded-lg bg-white/5 text-center">
-              <p className="text-xs text-gray-400">Макс</p>
-              <p className="text-lg font-bold text-orange-400">{weightStats.max.toFixed(2).replace('.', ',')} кг</p>
+              <p className="text-xs text-gray-400">{t.bodyWeight.stats.max}</p>
+              <p className="text-lg font-bold text-orange-400">{weightStats.max.toFixed(2).replace('.', ',')} {t.common.kg}</p>
             </div>
             <div className="p-3 rounded-lg bg-white/5 text-center">
-              <p className="text-xs text-gray-400">Изменение</p>
+              <p className="text-xs text-gray-400">{t.bodyWeight.stats.change}</p>
               <p className={`text-lg font-bold ${weightStats.change > 0 ? 'text-red-400' : weightStats.change < 0 ? 'text-green-400' : 'text-gray-400'}`}>
-                {weightStats.change > 0 ? '+' : ''}{weightStats.change.toFixed(2).replace('.', ',')} кг
+                {weightStats.change > 0 ? '+' : ''}{weightStats.change.toFixed(2).replace('.', ',')} {t.common.kg}
               </p>
             </div>
           </div>
@@ -307,9 +339,10 @@ export function BodyWeightTrackerModal({
               <div style={{ minWidth: `${Math.max(weightChartData.length * 50, 100)}px`, height: '192px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={weightChartData} margin={{ top: 15, right: 20, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={isLightTheme ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.1)'} />
                     <XAxis 
-                      dataKey="date" 
+                      dataKey="fullDate" 
+                      tickFormatter={(v) => formatChartDate(String(v))}
                       tick={{ fill: '#9ca3af', fontSize: 10 }} 
                       axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                       tickLine={false}
@@ -350,10 +383,10 @@ export function BodyWeightTrackerModal({
                   zIndex: 20
                 }}
               >
-                <p className="text-sm text-gray-600 truncate">{activeTooltip.date}</p>
+                <p className="text-sm text-gray-600 truncate">{formatChartDate(activeTooltip.date)}</p>
                 <p className="text-sm font-medium truncate">
-                  <span className="text-gray-500">Вес : </span>
-                  <span className="text-green-600">{activeTooltip.weight.toFixed(2).replace('.', ',')} кг</span>
+                  <span className="text-gray-500">{t.bodyWeight.tooltipWeight}: </span>
+                  <span className="text-green-600">{activeTooltip.weight.toFixed(2).replace('.', ',')} {t.common.kg}</span>
                 </p>
               </div>
             )}
@@ -363,7 +396,7 @@ export function BodyWeightTrackerModal({
         {/* История */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-300 font-medium">История ({bodyWeights.length})</p>
+            <p className="text-sm text-gray-300 font-medium">{t.bodyWeight.history} ({bodyWeights.length})</p>
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <button
@@ -398,7 +431,7 @@ export function BodyWeightTrackerModal({
             </div>
           ) : bodyWeights.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-4">
-              Пока нет записей. Добавьте свой первый вес выше.
+              {t.bodyWeight.noData}. {t.bodyWeight.addFirstWeight}.
             </p>
           ) : (
             <div className="space-y-1">
@@ -408,7 +441,7 @@ export function BodyWeightTrackerModal({
                   className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
                 >
                   <span className="text-white font-medium tabular-nums">
-                    {Number(w.weight).toFixed(2).replace('.', ',')} кг
+                    {Number(w.weight).toFixed(2).replace('.', ',')} {t.common.kg}
                   </span>
                   <span className="text-sm text-gray-400 tabular-nums text-right">
                     {formatDateDDMMYYYY(new Date(w.recorded_at).toISOString().slice(0, 10))}
@@ -438,10 +471,10 @@ export function BodyWeightTrackerModal({
       <ConfirmDialog
         open={isDeleteWeightConfirmOpen}
         onOpenChange={setIsDeleteWeightConfirmOpen}
-        title="Удалить запись о весе?"
-        description="Это действие необратимо."
-        confirmText="Удалить"
-        cancelText="Отмена"
+        title={t.bodyWeight.deleteConfirm}
+        description={t.bodyWeight.deleteConfirmDesc}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         variant="danger"
         onConfirm={() => {
           if (weightToDelete) {

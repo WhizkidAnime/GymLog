@@ -88,7 +88,7 @@ export function SettingsSection({
             } w-full !py-2 !px-3 font-medium transition-all duration-200 ease-out`}
           >
             <span className="flex items-center justify-center gap-2">
-              🇷🇺 {t.settings.languageRu}
+              {t.settings.languageRu}
             </span>
           </button>
           <button
@@ -99,7 +99,7 @@ export function SettingsSection({
             } w-full !py-2 !px-3 font-medium transition-all duration-200 ease-out`}
           >
             <span className="flex items-center justify-center gap-2">
-              🇬🇧 {t.settings.languageEn}
+              {t.settings.languageEn}
             </span>
           </button>
         </div>
