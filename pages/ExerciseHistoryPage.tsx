@@ -4,9 +4,11 @@ import { useDebounce } from '../hooks/useDebounce';
 import { formatDateForDisplay } from '../utils/date-helpers';
 import { useScrollRestoration } from '../hooks/use-scroll-restoration';
 import { useExerciseHistory } from '../hooks/use-exercise-history';
+import { useI18n } from '../hooks/use-i18n';
 
 const ExerciseHistoryPage = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const {
     pageState,
     searchQuery,
@@ -59,7 +61,7 @@ const ExerciseHistoryPage = () => {
 
   return (
     <div className="p-4 space-y-4 max-w-4xl mx-auto pt-safe">
-      <h1 className="text-3xl font-bold mb-6">История упражнений</h1>
+      <h1 className="text-3xl font-bold mb-6">{t.exerciseHistory.title}</h1>
 
       <div className="glass card-dark rounded-full px-4 py-3 search-container">
         <div className="flex items-center gap-3">
@@ -71,14 +73,14 @@ const ExerciseHistoryPage = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск"
-            aria-label="Поиск упражнений"
+            placeholder={t.exerciseHistory.searchPlaceholder}
+            aria-label={t.exerciseHistory.searchAriaLabel}
             className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
           />
           <button
             type="button"
             onClick={() => { clearSearch(); inputRef.current?.focus(); }}
-            aria-label="Очистить"
+            aria-label={t.common.clear}
             aria-hidden={!searchQuery}
             className={`shrink-0 w-7 h-7 grid place-items-center rounded-full text-gray-400 hover:text-gray-200 hover:bg-white/10 transition ${searchQuery ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
           >
@@ -95,15 +97,15 @@ const ExerciseHistoryPage = () => {
             <div className="relative w-12 h-12">
               <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
             </div>
-            <p className="text-white text-center">Поиск...</p>
+            <p className="text-white text-center">{t.exerciseHistory.searching}</p>
           </div>
         </div>
       )}
 
       {!loading && hasSearched && results.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-lg">Упражнения не найдены</p>
-          <p className="text-gray-500 text-sm mt-2">Попробуйте изменить запрос</p>
+          <p className="text-gray-400 text-lg">{t.exerciseHistory.notFound}</p>
+          <p className="text-gray-500 text-sm mt-2">{t.exerciseHistory.notFoundHint}</p>
         </div>
       )}
 
@@ -112,8 +114,8 @@ const ExerciseHistoryPage = () => {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <p className="text-gray-400 text-lg">Начните вводить название упражнения</p>
-          <p className="text-gray-500 text-sm mt-2">Вы увидите историю всех тренировок с этим упражнением</p>
+          <p className="text-gray-400 text-lg">{t.exerciseHistory.emptyTitle}</p>
+          <p className="text-gray-500 text-sm mt-2">{t.exerciseHistory.emptyHint}</p>
         </div>
       )}
 
@@ -153,25 +155,25 @@ const ExerciseHistoryPage = () => {
                           )}
                           {set.isDropset ? (
                             <span className="text-sm text-purple-400 flex items-center gap-1">
-                              <span className="text-xs">↳</span> Дроп
+                              <span className="text-xs">↓</span> {t.exerciseHistory.drop}
                             </span>
                           ) : (
-                            <span className="text-sm text-gray-400">Подход {set.setIndex}</span>
+                            <span className="text-sm text-gray-400">{t.exerciseHistory.set} {set.setIndex}</span>
                           )}
                         </div>
                         <div className="text-sm flex items-baseline gap-1 whitespace-nowrap tabular-nums">
-                          <span className="text-gray-400">Вес:</span>
-                          <span className="text-white">{set.weight !== null ? `${set.weight} кг` : '—'}</span>
+                          <span className="text-gray-400">{t.exerciseHistory.weight}:</span>
+                          <span className="text-white">{set.weight !== null ? `${set.weight} ${t.common.kg}` : '—'}</span>
                         </div>
                         <div className="text-sm flex items-baseline gap-1 whitespace-nowrap tabular-nums">
-                          <span className="text-gray-400">Повторы:</span>
+                          <span className="text-gray-400">{t.exerciseHistory.reps}:</span>
                           <span className="text-white">{set.reps ?? '—'}</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Нет данных о подходах</p>
+                  <p className="text-sm text-gray-500">{t.exerciseHistory.noSetsData}</p>
                 )}
               </div>
             </div>

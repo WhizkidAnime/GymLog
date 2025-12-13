@@ -5,6 +5,7 @@ import { CalendarDays, Search, FileText, User2, type LucideIcon } from 'lucide-r
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useTabNavigation } from '../hooks/useTabNavigation';
+import { useI18n } from '../hooks/use-i18n';
 
 type CssVars = React.CSSProperties & Record<string, string | number>;
 
@@ -16,17 +17,18 @@ type TabConfig = {
   icon: LucideIcon;
 };
 
-const tabs: TabConfig[] = [
-  { key: 'calendar', label: 'Календарь', icon: CalendarDays },
-  { key: 'search', label: 'Поиск', icon: Search },
-  { key: 'templates', label: 'Шаблоны', icon: FileText },
-  { key: 'profile', label: 'Профиль', icon: User2 },
-];
-
 const BottomNav = () => {
   const location = useLocation();
   const { navigateToTab } = useTabNavigation();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useI18n();
+
+  const tabs: TabConfig[] = useMemo(() => [
+    { key: 'calendar', label: t.nav.calendar, icon: CalendarDays },
+    { key: 'search', label: t.nav.search, icon: Search },
+    { key: 'templates', label: t.nav.templates, icon: FileText },
+    { key: 'profile', label: t.nav.profile, icon: User2 },
+  ], [t]);
 
   const activeIndex = useMemo(() => {
     const p = location.pathname;
@@ -72,7 +74,7 @@ const BottomNav = () => {
   }, []);
 
   return (
-    <nav ref={wrapperRef} className="bottom-dock-wrapper" aria-label="Нижняя навигация">
+    <nav ref={wrapperRef} className="bottom-dock-wrapper" aria-label={t.nav.bottomNavLabel}>
       <div
         className="bottom-dock glass-dock"
         role="tablist"
@@ -81,9 +83,9 @@ const BottomNav = () => {
         style={cssVars}
       >
         <div className="dock-track">
-          {tabs.map((t, i) => {
+          {tabs.map((tab, i) => {
             const isActive = i === activeIndex;
-            const Icon = t.icon;
+            const Icon = tab.icon;
 
             const className = twMerge(
               'dock-item',
@@ -92,8 +94,8 @@ const BottomNav = () => {
 
             return (
               <button
-                key={t.key}
-                onClick={() => navigateToTab(t.key)}
+                key={tab.key}
+                onClick={() => navigateToTab(tab.key)}
                 className={className}
                 role="tab"
                 aria-selected={isActive}
@@ -125,7 +127,7 @@ const BottomNav = () => {
                   />
                 </span>
 
-                <span className="label">{t.label}</span>
+                <span className="label">{tab.label}</span>
               </button>
             );
           })}

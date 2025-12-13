@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { WorkoutIconType } from '../components/workout-icons';
+import { getTranslations } from './use-i18n';
 
 export type ToastVariant = 'success' | 'error';
 
@@ -56,6 +57,33 @@ function sanitizeIcon(icon: any): WorkoutIconType | null {
   return WORKOUT_ICON_VALUES.includes(trimmed) ? trimmed : null;
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return null;
+    const n = Number(trimmed.replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function toFiniteInteger(value: unknown): number | null {
+  const n = toFiniteNumber(value);
+  if (n === null) return null;
+  const i = Math.trunc(n);
+  if (i !== n) return null;
+  return i;
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 export function useWorkoutsImportExport({
   userId,
   userEmail,
@@ -85,7 +113,7 @@ export function useWorkoutsImportExport({
     const workouts = Array.isArray(payload.workouts) ? payload.workouts : [];
     if (workouts.length === 0) {
       setToastVariant('error');
-      setImportSuccessMessage('В файле нет тренировок для импорта.');
+      setImportSuccessMessage(getTranslations().hooks.noWorkoutsToImport);
       setIsImportSuccessOpen(true);
       return;
     }
@@ -160,11 +188,24 @@ export function useWorkoutsImportExport({
     for (const workout of workouts) {
       const name = typeof workout.name === 'string' && workout.name.trim().length > 0
         ? workout.name.trim()
-        : 'Импортированная тренировка';
+        : getTranslations().hooks.importedWorkout;
 
       const date = typeof workout.date === 'string' && workout.date
         ? workout.date
+        : typeof workout.workout_date === 'string' && workout.workout_date
+          ? workout.workout_date
         : new Date().toISOString().slice(0, 10);
+
+      const isCardio = typeof workout.isCardio === 'boolean'
+        ? workout.isCardio
+        : typeof workout.is_cardio === 'boolean'
+          ? workout.is_cardio
+          : false;
+
+      const notes =
+        normalizeOptionalString(workout.notes) ??
+        normalizeOptionalString(workout.workoutNotes) ??
+        null;
 
       const { data: newWorkout, error: insertWorkoutError } = await db
         .from('workouts')
@@ -173,14 +214,15 @@ export function useWorkoutsImportExport({
           name,
           icon: sanitizeIcon(workout.icon),
           workout_date: date,
-          is_cardio: !!workout.isCardio,
+          is_cardio: isCardio,
           template_id: null,
+          notes,
         })
         .select()
         .single();
 
       if (insertWorkoutError || !newWorkout) {
-        throw insertWorkoutError || new Error('Не удалось создать тренировку при импорте.');
+        throw insertWorkoutError || new Error(getTranslations().hooks.failedToCreateWorkout);
       }
 
       const exercisesSource = Array.isArray(workout.exercises) ? workout.exercises : [];
@@ -191,18 +233,36 @@ export function useWorkoutsImportExport({
       const exercisesToInsert = exercisesSource.map((ex: any, index: number) => ({
         workout_id: newWorkout.id,
         name: typeof ex.name === 'string' ? ex.name : '',
-        position: typeof ex.position === 'number' ? ex.position : index + 1,
-        reps: typeof ex.reps === 'string' ? ex.reps : '',
+        position: toFiniteInteger(ex.position) ?? index + 1,
+        reps: typeof ex.reps === 'string'
+          ? ex.reps
+          : typeof ex.reps === 'number'
+            ? String(ex.reps)
+            : '',
         rest_seconds: typeof ex.restSeconds === 'number'
           ? ex.restSeconds
+          : typeof ex.restSeconds === 'string'
+            ? (toFiniteInteger(ex.restSeconds) ?? 150)
           : typeof ex.rest_seconds === 'number'
             ? ex.rest_seconds
+            : typeof ex.rest_seconds === 'string'
+              ? (toFiniteInteger(ex.rest_seconds) ?? 150)
             : 150,
         sets: typeof ex.setsPlanned === 'number'
           ? ex.setsPlanned
-          : Array.isArray(ex.sets)
-            ? ex.sets.length
-            : 1,
+          : typeof ex.setsPlanned === 'string'
+            ? (toFiniteInteger(ex.setsPlanned) ?? 1)
+          : typeof ex.sets === 'number'
+            ? ex.sets
+            : typeof ex.sets === 'string'
+              ? (toFiniteInteger(ex.sets) ?? 1)
+            : Array.isArray(ex.sets)
+              ? ex.sets.length
+              : Array.isArray(ex.workout_sets)
+                ? ex.workout_sets.length
+                : Array.isArray(ex.workoutSets)
+                  ? ex.workoutSets.length
+                  : 1,
       }));
 
       const { data: insertedExercises, error: exInsertError } = await db
@@ -211,7 +271,7 @@ export function useWorkoutsImportExport({
         .select();
 
       if (exInsertError || !insertedExercises) {
-        throw exInsertError || new Error('Не удалось создать упражнения при импорте.');
+        throw exInsertError || new Error(getTranslations().hooks.failedToCreateExercises);
       }
 
       const setsPayload: any[] = [];
@@ -232,17 +292,48 @@ export function useWorkoutsImportExport({
         const targetEx = sortedInsertedExercises[index];
         if (!targetEx) return;
 
-        const setsSource = Array.isArray(srcEx.sets) ? srcEx.sets : [];
+        const setsSource = Array.isArray(srcEx.sets)
+          ? srcEx.sets
+          : Array.isArray(srcEx.workout_sets)
+            ? srcEx.workout_sets
+            : Array.isArray(srcEx.workoutSets)
+              ? srcEx.workoutSets
+              : [];
         setsSource.forEach((s: any) => {
+          const setIndex =
+            toFiniteInteger(s.index) ??
+            toFiniteInteger(s.set_index) ??
+            toFiniteInteger(s.setIndex) ??
+            1;
+
+          const isDropset = typeof s.isDropset === 'boolean'
+            ? s.isDropset
+            : typeof s.is_dropset === 'boolean'
+              ? s.is_dropset
+              : false;
+
+          const parentSetIndex =
+            toFiniteInteger(s.parentSetIndex) ??
+            toFiniteInteger(s.parent_set_index) ??
+            null;
+
           setsPayload.push({
             workout_exercise_id: targetEx.id,
-            set_index: typeof s.index === 'number' ? s.index : 1,
-            weight: typeof s.weight === 'number' ? s.weight : null,
+            set_index: setIndex,
+            weight: toFiniteNumber(s.weight),
             reps: s.reps == null ? null : String(s.reps),
-            is_done: !!s.isDone,
+            is_done: typeof s.isDone === 'boolean'
+              ? s.isDone
+              : typeof s.is_done === 'boolean'
+                ? s.is_done
+                : false,
+            is_dropset: isDropset,
+            parent_set_index: parentSetIndex,
             updated_at: typeof s.updatedAt === 'string' && s.updatedAt
               ? s.updatedAt
-              : new Date().toISOString(),
+              : typeof s.updated_at === 'string' && s.updated_at
+                ? s.updated_at
+                : new Date().toISOString(),
           });
         });
       });
@@ -273,6 +364,7 @@ export function useWorkoutsImportExport({
           workout_date,
           is_cardio,
           template_id,
+          notes,
           workout_exercises (
             id,
             name,
@@ -286,6 +378,8 @@ export function useWorkoutsImportExport({
               weight,
               reps,
               is_done,
+              is_dropset,
+              parent_set_index,
               updated_at
             )
           )
@@ -295,7 +389,7 @@ export function useWorkoutsImportExport({
 
       if (workoutsError) {
         console.error('Error exporting workouts:', workoutsError);
-        alert('Не удалось загрузить данные тренировок для экспорта.');
+        alert(getTranslations().hooks.failedToLoadWorkouts);
         return;
       }
 
@@ -306,6 +400,7 @@ export function useWorkoutsImportExport({
         date: w.workout_date,
         isCardio: !!w.is_cardio,
         templateId: w.template_id,
+        notes: w.notes ?? null,
         exercises: (w.workout_exercises || []).map((ex: any) => ({
           id: ex.id,
           name: ex.name,
@@ -319,12 +414,15 @@ export function useWorkoutsImportExport({
             weight: s.weight,
             reps: s.reps,
             isDone: s.is_done,
+            isDropset: !!s.is_dropset,
+            parentSetIndex: s.parent_set_index ?? null,
             updatedAt: s.updated_at,
           })),
         })),
       }));
 
       const exportPayload = {
+        schemaVersion: 2,
         exportedAt: new Date().toISOString(),
         user: {
           id: userId,
@@ -347,7 +445,7 @@ export function useWorkoutsImportExport({
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Unexpected error while exporting workouts:', error);
-      alert('Произошла непредвиденная ошибка при экспорте данных.');
+      alert(getTranslations().hooks.unexpectedExportError);
     } finally {
       setIsExporting(false);
     }
@@ -375,14 +473,14 @@ export function useWorkoutsImportExport({
         parsed = JSON.parse(text);
       } catch {
         setToastVariant('error');
-        setImportSuccessMessage('Файл не является корректным JSON.');
+        setImportSuccessMessage(getTranslations().hooks.invalidJsonFile);
         setIsImportSuccessOpen(true);
         return;
       }
 
       if (!parsed || !Array.isArray(parsed.workouts)) {
         setToastVariant('error');
-        setImportSuccessMessage('Файл не похож на экспорт тренировок из GymLog.');
+        setImportSuccessMessage(getTranslations().hooks.notGymLogExport);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -412,7 +510,7 @@ export function useWorkoutsImportExport({
       if (existingErr) {
         console.error('Error checking existing workouts before import:', existingErr);
         setToastVariant('error');
-        setImportSuccessMessage('Не удалось проверить существующие тренировки перед импортом.');
+        setImportSuccessMessage(getTranslations().hooks.failedToCheckExisting);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -451,11 +549,11 @@ export function useWorkoutsImportExport({
         setIsImportingWorkouts(true);
         try {
           await performWorkoutsImport(parsed);
-          setImportSuccessMessage('Импорт тренировок завершён. Откройте календарь, чтобы посмотреть тренировки.');
+          setImportSuccessMessage(getTranslations().hooks.importComplete);
           setIsImportSuccessOpen(true);
         } catch (error: any) {
           console.error('Error importing workouts:', error);
-          alert('Не удалось импортировать тренировки: ' + (error?.message || String(error)));
+          alert(getTranslations().hooks.failedToImport + (error?.message || String(error)));
         } finally {
           setIsImportingWorkouts(false);
         }
@@ -464,9 +562,7 @@ export function useWorkoutsImportExport({
 
       if (newDates.length === 0) {
         setToastVariant('error');
-        setImportSuccessMessage(
-          'Все тренировки из файла уже есть в вашем календаре. Новых тренировок нет.',
-        );
+        setImportSuccessMessage(getTranslations().hooks.allWorkoutsExist);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -489,7 +585,7 @@ export function useWorkoutsImportExport({
       setIsWorkoutsImportDialogOpen(true);
     } catch (error) {
       console.error('Error reading workouts import file:', error);
-      alert('Не удалось прочитать файл тренировок.');
+      alert(getTranslations().hooks.failedToReadFile);
     } finally {
       event.target.value = '';
     }
@@ -508,11 +604,11 @@ export function useWorkoutsImportExport({
       setPendingWorkoutsNewDatesSummary([]);
       setIsWorkoutsImportDialogOpen(false);
       setToastVariant('success');
-      setImportSuccessMessage('Импорт тренировок завершён. Откройте календарь, чтобы посмотреть тренировки.');
+      setImportSuccessMessage(getTranslations().hooks.importComplete);
       setIsImportSuccessOpen(true);
     } catch (error: any) {
       console.error('Error importing workouts:', error);
-      alert('Не удалось импортировать тренировки: ' + (error?.message || String(error)));
+      alert(getTranslations().hooks.failedToImport + (error?.message || String(error)));
     } finally {
       setIsImportingWorkouts(false);
       setImportAction('none');
@@ -527,7 +623,7 @@ export function useWorkoutsImportExport({
       : [];
     if (sourceWorkouts.length === 0) {
       setToastVariant('error');
-      setImportSuccessMessage('В файле нет тренировок для импорта.');
+      setImportSuccessMessage(getTranslations().hooks.noWorkoutsToImport);
       setIsImportSuccessOpen(true);
       return;
     }
@@ -535,9 +631,7 @@ export function useWorkoutsImportExport({
     const newDatesSet = new Set(pendingWorkoutsNewDates);
     if (newDatesSet.size === 0) {
       setToastVariant('error');
-      setImportSuccessMessage(
-        'В файле нет новых тренировок с датами, которых ещё нет в вашем календаре.',
-      );
+      setImportSuccessMessage(getTranslations().hooks.noNewWorkoutsInFile);
       setIsImportSuccessOpen(true);
       return;
     }
@@ -553,9 +647,7 @@ export function useWorkoutsImportExport({
 
     if (filteredWorkouts.length === 0) {
       setToastVariant('error');
-      setImportSuccessMessage(
-        'Не удалось определить новые тренировки для импорта. Проверьте файл.',
-      );
+      setImportSuccessMessage(getTranslations().hooks.failedToDetermineNew);
       setIsImportSuccessOpen(true);
       return;
     }
@@ -570,14 +662,12 @@ export function useWorkoutsImportExport({
       setPendingWorkoutsNewDatesSummary([]);
       setIsWorkoutsImportDialogOpen(false);
       setToastVariant('success');
-      setImportSuccessMessage(
-        'Импорт новых тренировок завершён. Откройте календарь, чтобы посмотреть тренировки.',
-      );
+      setImportSuccessMessage(getTranslations().hooks.newWorkoutsImportComplete);
       setIsImportSuccessOpen(true);
     } catch (error: any) {
       console.error('Error importing only new workouts:', error);
       setToastVariant('error');
-      setImportSuccessMessage('Не удалось импортировать новые тренировки. Попробуйте ещё раз.');
+      setImportSuccessMessage(getTranslations().hooks.failedToImportNew);
       setIsImportSuccessOpen(true);
     } finally {
       setIsImportingWorkouts(false);
@@ -597,12 +687,12 @@ export function useWorkoutsImportExport({
       setPendingWorkoutsFileName(null);
       setIsWorkoutsImportDialogOpen(false);
       setToastVariant('success');
-      setImportSuccessMessage('Текущие тренировки сохранены, импорт завершён. Откройте календарь, чтобы посмотреть тренировки.');
+      setImportSuccessMessage(getTranslations().hooks.exportThenImportComplete);
       setIsImportSuccessOpen(true);
     } catch (error: any) {
       console.error('Error exporting and importing workouts:', error);
       setToastVariant('error');
-      setImportSuccessMessage('Не удалось выполнить экспорт и импорт тренировок. Попробуйте ещё раз.');
+      setImportSuccessMessage(getTranslations().hooks.failedExportThenImport);
       setIsImportSuccessOpen(true);
     } finally {
       setIsImportingWorkouts(false);

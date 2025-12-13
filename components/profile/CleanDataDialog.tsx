@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '../../hooks/use-i18n';
 
 export type CleanDataDialogProps = {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export function CleanDataDialog({
   openDeleteWorkoutsDialog,
   openDeleteTemplatesDialog,
 }: CleanDataDialogProps): React.ReactElement | null {
+  const { t } = useI18n();
+  
   if (!isOpen) return null;
 
   const isLoading = isLoadingWorkoutsForDeletion || isLoadingTemplatesForDeletion;
@@ -31,12 +34,12 @@ export function CleanDataDialog({
         }}
       />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Очистить данные</h2>
+        <h2 className="text-lg font-semibold text-white">{t.cleanData.title}</h2>
         <p className="text-sm text-gray-300">
-          Выберите, какие данные вы хотите удалить.
+          {t.cleanData.description}
         </p>
         {isLoading && (
-          <p className="text-xs text-gray-400">Загружаем данные...</p>
+          <p className="text-xs text-gray-400">{t.cleanData.loading}</p>
         )}
         <div className="mt-4 flex flex-col gap-2">
           <button
@@ -45,7 +48,7 @@ export function CleanDataDialog({
             disabled={isLoading}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary disabled:opacity-50"
           >
-            Удалить тренировки
+            {t.cleanData.deleteWorkouts}
           </button>
           <button
             type="button"
@@ -53,7 +56,7 @@ export function CleanDataDialog({
             disabled={isLoading}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary disabled:opacity-50"
           >
-            Удалить шаблоны тренировок
+            {t.cleanData.deleteTemplates}
           </button>
           <button
             type="button"
@@ -63,7 +66,7 @@ export function CleanDataDialog({
             }}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary bg-white/10 hover:bg-white/5"
           >
-            Отмена
+            {t.common.cancel}
           </button>
         </div>
       </div>

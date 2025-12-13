@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../hooks/use-i18n';
 import { usePageState } from '../hooks/usePageState';
 import { getDaysInMonth, getFirstDayOfMonth, formatDate, getMonthYear } from '../utils/date-helpers';
 import type { Workout } from '../types/database.types';
@@ -19,6 +20,7 @@ const CACHE_TTL = 30000;
 const CalendarPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t, language } = useI18n();
   const location = useLocation() as { state?: { removedDate?: string; refreshDate?: string } };
   const [pageState, setPageState] = usePageState({
     key: 'calendar-page',
@@ -153,7 +155,7 @@ const CalendarPage = () => {
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDayIndex = getFirstDayOfMonth(currentDate);
-  const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  const daysOfWeek = t.calendar.daysOfWeek;
   const today = new Date();
 
   const handleDayClick = (day: number) => {
@@ -178,14 +180,14 @@ const CalendarPage = () => {
             <div className="relative w-12 h-12">
               <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
             </div>
-            <p className="text-white text-center">Загрузка календаря...</p>
+            <p className="text-white text-center">{t.calendar.loading}</p>
           </div>
         </div>
       ) : (
         <>
           <div className="flex justify-between items-center mb-6 glass p-2 rounded-xl w-full max-w-xl">
             <button onClick={() => changeMonth(-1)} className="p-2 rounded-full text-white transition-colors focus:outline-none" style={{ WebkitTapHighlightColor: 'transparent' }}>&lt;</button>
-            <h1 className="text-xl font-bold text-center capitalize">{getMonthYear(currentDate)}</h1>
+            <h1 className="text-xl font-bold text-center capitalize">{getMonthYear(currentDate, language)}</h1>
             <button onClick={() => changeMonth(1)} className="p-2 rounded-full text-white transition-colors focus:outline-none" style={{ WebkitTapHighlightColor: 'transparent' }}>&gt;</button>
           </div>
 

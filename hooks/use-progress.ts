@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getTranslations } from './use-i18n';
 import { useAuth } from './useAuth';
 import { usePageState } from './usePageState';
 import { processProgressData, type ExerciseProgress } from '../utils/progress-helpers';
@@ -143,7 +144,7 @@ export function useProgress() {
     } catch (error: any) {
       console.error('Error fetching progress exercises:', error);
       if (!silent) {
-        alert('Не удалось загрузить список упражнений');
+        alert(getTranslations().hooks.failedToLoadExercises);
         setExercisesCache({ loaded: true, exercises: [] });
       }
     } finally {
@@ -244,7 +245,7 @@ export function useProgress() {
         progressCacheRef.current.set(target, { data: processed, ts: Date.now() });
       } catch (error: any) {
         console.error('Error loading progress data:', error);
-        alert('Не удалось загрузить данные прогресса');
+        alert(getTranslations().hooks.failedToLoadProgress);
         setProgressData(null);
       } finally {
         setLoadingProgress(false);

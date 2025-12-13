@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../hooks/use-i18n';
 
 // Fix: Changed props type from `{ children: JSX.Element }` to `{ children: React.ReactElement }`.
 // This resolves the "Cannot find namespace 'JSX'" error by using the type from the imported React object
@@ -9,11 +10,12 @@ import { useAuth } from '../hooks/useAuth';
 const ProtectedRoute = ({ children }: { children?: React.ReactElement }) => {
   const { session, loading } = useAuth();
   const location = useLocation();
+  const { t } = useI18n();
 
   if (loading) {
     return (
         <div className="flex items-center justify-center h-screen bg-background text-foreground">
-            <p>Загрузка...</p>
+            <p>{t.common.loading}</p>
         </div>
     );
   }

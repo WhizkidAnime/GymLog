@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../hooks/use-i18n';
 import { usePageState } from '../hooks/usePageState';
 import type { WorkoutTemplate } from '../types/database.types';
 import ConfirmDialog from '../components/confirm-dialog';
@@ -21,6 +22,7 @@ const TemplateDeleteButton: React.FC<{
   onDeleted: (id: string) => void;
   onShare: (id: string, name: string) => void;
 }> = ({ id, name, onDeleted, onShare }) => {
+  const { t } = useI18n();
   const [busy, setBusy] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const {
@@ -63,7 +65,7 @@ const TemplateDeleteButton: React.FC<{
       setOpen(false);
     } catch (e) {
       console.error('Error deleting template', e);
-      alert('Не удалось удалить шаблон.');
+      alert(t.templates.deleteError);
     } finally {
       setBusy(false);
     }
@@ -93,14 +95,14 @@ const TemplateDeleteButton: React.FC<{
               onClick={handleShareClick}
               className="w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-white/10 transition-colors rounded-lg"
             >
-              Поделиться
+              {t.templates.share}
             </button>
             <button
               onClick={handleDeleteClick}
               disabled={busy}
               className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors rounded-lg"
             >
-              {busy ? 'Удаление...' : 'Удалить'}
+              {busy ? t.templates.deleting : t.templates.delete}
             </button>
           </div>,
           document.body
@@ -109,10 +111,10 @@ const TemplateDeleteButton: React.FC<{
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
-        title="Удалить шаблон?"
-        description="Шаблон и все его упражнения будут удалены. Действие необратимо."
-        confirmText="Удалить"
-        cancelText="Отмена"
+        title={t.templates.deleteConfirm}
+        description={t.templates.deleteConfirmDesc}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         variant="danger"
         onConfirm={confirmDelete}
       />
@@ -123,6 +125,7 @@ const TemplateDeleteButton: React.FC<{
 const TemplatesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [sharing, setSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
   const [shareLinkModalOpen, setShareLinkModalOpen] = useState(false);
@@ -216,7 +219,7 @@ const TemplatesPage = () => {
       if (error) throw error;
 
       if (!exercises || exercises.length === 0) {
-        alert('Этот шаблон пуст. Добавьте упражнения перед тем, как делиться.');
+        alert(t.templates.emptyTemplateError);
         return;
       }
 
@@ -231,7 +234,7 @@ const TemplatesPage = () => {
       setCurrentTemplateName(templateName);
     } catch (error: any) {
       console.error('Error sharing template:', error);
-      alert('Не удалось сгенерировать ссылку: ' + (error?.message || String(error)));
+      alert(t.templates.shareError + (error?.message || String(error)));
     } finally {
       setSharing(false);
     }
@@ -272,7 +275,7 @@ const TemplatesPage = () => {
   return (
     <div className="p-4 pb-24">
       <div className="relative flex justify-start items-center mb-4">
-        <h1 className="text-3xl font-bold">Шаблоны</h1>
+        <h1 className="text-3xl font-bold">{t.templates.title}</h1>
         <div className="absolute right-0 -top-3 h-10 w-28" aria-hidden="true" />
       </div>
       
@@ -285,10 +288,10 @@ const TemplatesPage = () => {
       )}
 
       {loading ? (
-        <WorkoutLoadingOverlay message="Загрузка шаблонов..." />
+        <WorkoutLoadingOverlay message={t.templates.loading} />
       ) : templates.length === 0 ? (
         <div className="mt-4 p-8 text-center glass">
-          <p className="text-gray-500">У вас еще нет шаблонов. Создайте первый!</p>
+          <p className="text-gray-500">{t.templates.empty}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -344,7 +347,7 @@ const TemplatesPage = () => {
               <div className="relative w-12 h-12">
                 <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
               </div>
-              <p className="text-white">Генерация ссылки...</p>
+              <p className="text-white">{t.templates.generatingLink}</p>
             </div>
           </div>
         </div>
@@ -353,7 +356,7 @@ const TemplatesPage = () => {
       {shareLinkModalOpen && currentShareLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="glass card-dark p-6 rounded-xl max-w-lg w-[92%] max-h-[85vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-2">Скопировать ссылку, чтобы поделиться шаблоном</h3>
+            <h3 className="text-lg font-semibold mb-2">{t.templates.shareTitle}</h3>
             <textarea
               readOnly
               value={currentShareLink}
@@ -373,18 +376,18 @@ const TemplatesPage = () => {
                     setTimeout(() => setShareSuccess(null), 2000);
                     setShareLinkModalOpen(false);
                   } else {
-                    alert('Автокопирование не сработало. Скопируйте ссылку вручную: долгий тап → Копировать.\n\nОшибка: ' + (res as any).reason);
+                    alert(t.templates.copyError + '\n\nError: ' + (res as any).reason);
                   }
                 }}
                 className="glass-button-create"
               >
-                {copying ? 'Копирование...' : 'Копировать'}
+                {copying ? t.common.copying : t.common.copy}
               </button>
               <button
                 onClick={() => setShareLinkModalOpen(false)}
                 className="glass-button-danger"
               >
-                Закрыть
+                {t.common.close}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { getTranslations } from './use-i18n';
 import { workoutCache } from './use-workout-data';
 import type { Workout, WorkoutExerciseWithSets } from '../types/database.types';
 import type { WorkoutIconType } from '../components/workout-icons';
@@ -82,7 +83,7 @@ export function useWorkoutNameEditor({
         .single();
 
       if (error) throw error;
-      if (!updatedWorkout) throw new Error('Не удалось обновить тренировку');
+      if (!updatedWorkout) throw new Error(getTranslations().hooks.failedToUpdateWorkout);
 
       setWorkout(updatedWorkout as Workout);
       setEditNameValue(trimmedName);
@@ -97,7 +98,7 @@ export function useWorkoutNameEditor({
       });
     } catch (error: any) {
       console.error('Failed to update workout:', error);
-      alert('Не удалось сохранить изменения. Попробуйте снова.');
+      alert(getTranslations().hooks.failedToSaveChanges);
     } finally {
       setIsSavingWorkoutName(false);
     }
@@ -141,7 +142,7 @@ export function useWorkoutNameEditor({
         .single();
 
       if (error) throw error;
-      if (!updatedWorkout) throw new Error('Не удалось обновить название тренировки');
+      if (!updatedWorkout) throw new Error(getTranslations().hooks.failedToUpdateWorkoutName);
 
       setWorkout(updatedWorkout as Workout);
 
@@ -153,7 +154,7 @@ export function useWorkoutNameEditor({
       });
     } catch (error: any) {
       console.error('Failed to update workout name:', error);
-      alert('Не удалось сохранить название. Попробуйте снова.');
+      alert(getTranslations().hooks.failedToSaveName);
       setWorkoutName(workout.name);
     } finally {
       setIsSavingWorkoutName(false);

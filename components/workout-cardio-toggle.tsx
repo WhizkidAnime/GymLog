@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '../hooks/use-i18n';
 
 type WorkoutCardioToggleProps = {
   isCardio: boolean;
@@ -11,9 +12,10 @@ export function WorkoutCardioToggle({
   isSaving,
   onToggle,
 }: WorkoutCardioToggleProps) {
+  const { t } = useI18n();
   return (
     <div className="glass card-dark p-4 rounded-md">
-      <p className="text-white text-lg font-bold mb-3 text-center">Было кардио?</p>
+      <p className="text-white text-lg font-bold mb-3 text-center">{t.workoutCardio.question}</p>
       <div className="flex items-center gap-3">
         <button
           onClick={() => {
@@ -28,7 +30,7 @@ export function WorkoutCardioToggle({
               : 'bg-red-500/30 text-white border border-red-400/40 supports-[hover:hover]:hover:bg-red-500/40 supports-[hover:hover]:hover:shadow-sm'
           } active:brightness-100 disabled:cursor-not-allowed disabled:pointer-events-none focus:outline-none focus-visible:outline-none [-webkit-tap-highlight-color:transparent]`}
         >
-          Нет
+          {t.workoutCardio.no}
         </button>
         <button
           onClick={() => {
@@ -43,7 +45,7 @@ export function WorkoutCardioToggle({
               : 'bg-green-500/30 text-white border border-green-400/40 supports-[hover:hover]:hover:bg-green-500/40 supports-[hover:hover]:hover:shadow-sm'
           } active:brightness-100 disabled:cursor-not-allowed disabled:pointer-events-none focus:outline-none focus-visible:outline-none [-webkit-tap-highlight-color:transparent]`}
         >
-          Да
+          {t.workoutCardio.yes}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import type { WorkoutIconType } from '../components/workout-icons';
+import { getTranslations } from './use-i18n';
 
 export type TemplatesImportAction = 'none' | 'onlyNew' | 'overwrite';
 
@@ -75,7 +76,7 @@ export function useTemplatesImportExport({
     const templates = Array.isArray(payload.templates) ? payload.templates : [];
     if (templates.length === 0) {
       setToastVariant('error');
-      setImportSuccessMessage('В файле нет шаблонов для импорта.');
+      setImportSuccessMessage(getTranslations().hooks.noTemplatesToImport);
       setIsImportSuccessOpen(true);
       return;
     }
@@ -83,7 +84,7 @@ export function useTemplatesImportExport({
     for (const template of templates) {
       const name = typeof template.name === 'string' && template.name.trim().length > 0
         ? template.name.trim()
-        : 'Импортированный шаблон';
+        : getTranslations().hooks.importedTemplate;
 
       const { data: newTemplate, error: templateError } = await db
         .from('workout_templates')
@@ -96,7 +97,7 @@ export function useTemplatesImportExport({
         .single();
 
       if (templateError || !newTemplate) {
-        throw templateError || new Error('Не удалось создать шаблон при импорте.');
+        throw templateError || new Error(getTranslations().hooks.failedToCreateTemplate);
       }
 
       const exercisesSource = Array.isArray(template.exercises) ? template.exercises : [];
@@ -153,7 +154,7 @@ export function useTemplatesImportExport({
 
       if (templatesError) {
         console.error('Error exporting templates:', templatesError);
-        alert('Не удалось загрузить шаблоны для экспорта.');
+        alert(getTranslations().hooks.failedToLoadTemplates);
         return;
       }
 
@@ -195,7 +196,7 @@ export function useTemplatesImportExport({
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Unexpected error while exporting templates:', error);
-      alert('Произошла непредвиденная ошибка при экспорте шаблонов.');
+      alert(getTranslations().hooks.unexpectedTemplatesExportError);
     } finally {
       setIsExportingTemplates(false);
     }
@@ -220,14 +221,14 @@ export function useTemplatesImportExport({
         parsed = JSON.parse(text);
       } catch {
         setToastVariant('error');
-        setImportSuccessMessage('Файл не является корректным JSON.');
+        setImportSuccessMessage(getTranslations().hooks.invalidJsonFile);
         setIsImportSuccessOpen(true);
         return;
       }
 
       if (!parsed || !Array.isArray(parsed.templates)) {
         setToastVariant('error');
-        setImportSuccessMessage('Файл не похож на экспорт шаблонов из GymLog.');
+        setImportSuccessMessage(getTranslations().hooks.notGymLogTemplatesExport);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -238,7 +239,7 @@ export function useTemplatesImportExport({
       const importedTemplates: any[] = Array.isArray(parsed.templates) ? parsed.templates : [];
       if (importedTemplates.length === 0) {
         setToastVariant('error');
-        setImportSuccessMessage('В файле нет шаблонов для импорта.');
+        setImportSuccessMessage(getTranslations().hooks.noTemplatesToImport);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -251,7 +252,7 @@ export function useTemplatesImportExport({
       if (existingErr) {
         console.error('Error checking existing templates before import:', existingErr);
         setToastVariant('error');
-        setImportSuccessMessage('Не удалось проверить существующие шаблоны перед импортом.');
+        setImportSuccessMessage(getTranslations().hooks.failedToCheckExistingTemplates);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -282,7 +283,7 @@ export function useTemplatesImportExport({
 
       if (newOnes.length === 0 && duplicates.length > 0) {
         setToastVariant('error');
-        setImportSuccessMessage('Все шаблоны из файла уже есть в вашем аккаунте. Новых шаблонов нет.');
+        setImportSuccessMessage(getTranslations().hooks.allTemplatesExist);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -292,12 +293,12 @@ export function useTemplatesImportExport({
         try {
           await importTemplatesFromPayload({ templates: importedTemplates });
           setToastVariant('success');
-          setImportSuccessMessage('Импорт шаблонов завершён. Откройте страницу «Шаблоны», чтобы посмотреть их.');
+          setImportSuccessMessage(getTranslations().hooks.templatesImportComplete);
           setIsImportSuccessOpen(true);
         } catch (error: any) {
           console.error('Error importing templates:', error);
           setToastVariant('error');
-          setImportSuccessMessage('Не удалось импортировать шаблоны. Попробуйте ещё раз.');
+          setImportSuccessMessage(getTranslations().hooks.failedToImportTemplates);
           setIsImportSuccessOpen(true);
         } finally {
           setIsImportingTemplates(false);
@@ -311,7 +312,7 @@ export function useTemplatesImportExport({
     } catch (error: any) {
       console.error('Error importing templates:', error);
       setToastVariant('error');
-      setImportSuccessMessage('Не удалось импортировать шаблоны. Попробуйте ещё раз.');
+      setImportSuccessMessage(getTranslations().hooks.failedToImportTemplates);
       setIsImportSuccessOpen(true);
     } finally {
       setIsImportingTemplates(false);
@@ -325,7 +326,7 @@ export function useTemplatesImportExport({
       setPendingTemplatesDuplicates([]);
       setPendingTemplatesNew([]);
       setToastVariant('error');
-      setImportSuccessMessage('Все шаблоны из файла уже есть в вашем аккаунте. Новых шаблонов нет.');
+      setImportSuccessMessage(getTranslations().hooks.allTemplatesExist);
       setIsImportSuccessOpen(true);
       return;
     }
@@ -338,12 +339,12 @@ export function useTemplatesImportExport({
       setPendingTemplatesDuplicates([]);
       setIsTemplatesImportDialogOpen(false);
       setToastVariant('success');
-      setImportSuccessMessage('Импорт новых шаблонов завершён. Откройте страницу «Шаблоны», чтобы посмотреть их.');
+      setImportSuccessMessage(getTranslations().hooks.newTemplatesImportComplete);
       setIsImportSuccessOpen(true);
     } catch (error: any) {
       console.error('Error importing only new templates:', error);
       setToastVariant('error');
-      setImportSuccessMessage('Не удалось импортировать новые шаблоны. Попробуйте ещё раз.');
+      setImportSuccessMessage(getTranslations().hooks.failedToImportNewTemplates);
       setIsImportSuccessOpen(true);
     } finally {
       setIsImportingTemplates(false);
@@ -390,11 +391,11 @@ export function useTemplatesImportExport({
       setPendingTemplatesDuplicates([]);
       setIsTemplatesImportDialogOpen(false);
       setToastVariant('success');
-      setImportSuccessMessage('Шаблоны успешно импортированы. Совпадающие шаблоны были перезаписаны.');
+      setImportSuccessMessage(getTranslations().hooks.templatesOverwriteComplete);
       setIsImportSuccessOpen(true);
     } catch (error: any) {
       console.error('Error overwriting templates:', error);
-      alert('Не удалось импортировать шаблоны с перезаписью: ' + (error?.message || String(error)));
+      alert(getTranslations().hooks.failedToOverwriteTemplates + (error?.message || String(error)));
     } finally {
       setIsImportingTemplates(false);
       setTemplatesImportAction('none');

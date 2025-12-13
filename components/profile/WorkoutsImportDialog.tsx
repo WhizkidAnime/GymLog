@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ImportAction } from '../../hooks/use-workouts-import-export';
+import { useI18n } from '../../hooks/use-i18n';
 
 export type WorkoutsImportDialogProps = {
   isOpen: boolean;
@@ -38,6 +39,8 @@ export function WorkoutsImportDialog({
   handleImportOnlyNewWorkouts,
   handleExportThenImportWorkouts,
 }: WorkoutsImportDialogProps): React.ReactElement | null {
+  const { t } = useI18n();
+  
   if (!isOpen || !pendingWorkoutsImport) return null;
 
   return (
@@ -50,35 +53,22 @@ export function WorkoutsImportDialog({
         }}
       />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Импорт тренировок</h2>
+        <h2 className="text-lg font-semibold text-white">{t.workoutsImport.title}</h2>
         <p className="text-sm text-gray-300">
-          {`Будут импортированы тренировки из файла "${pendingWorkoutsFileName || 'выбранный файл'}".`}
+          {t.workoutsImport.description.replace('{fileName}', pendingWorkoutsFileName || 'file')}
         </p>
         <div className="text-sm text-gray-400 space-y-1">
-          <p>
-            Тренировки на даты, которые уже есть в календаре и присутствуют в файле, будут
-            удалены и перезаписаны данными из файла. На другие даты тренировки останутся без
-            изменений.
-          </p>
+          <p>{t.workoutsImport.warning}</p>
           <ul className="list-disc list-inside text-xs text-gray-500 space-y-0.5">
-            <li>
-              «Импортировать только новые тренировки» — добавит тренировки только на новые даты,
-              без изменения существующих.
-            </li>
-            <li>
-              «Импортировать с перезаписью дат» — заменит тренировки на совпадающие даты и
-              добавит новые.
-            </li>
-            <li>
-              «Экспортировать текущие тренировки и импортировать с перезаписью» — сначала
-              сохранит текущие тренировки в файл, затем выполнит импорт с перезаписью дат.
-            </li>
+            <li>{t.workoutsImport.importOnlyNewHint}</li>
+            <li>{t.workoutsImport.importOverwriteHint}</li>
+            <li>{t.workoutsImport.exportThenImportHint}</li>
           </ul>
         </div>
         {pendingWorkoutsNewDatesSummary.length > 0 && (
           <div className="mt-2 rounded-md bg-black/20 p-3">
             <p className="text-xs text-gray-300">
-              Новые тренировки из файла (даты, которых ещё нет в календаре):
+              {t.workoutsImport.newWorkoutsTitle}
             </p>
             <div className="mt-1 space-y-1 max-h-32 overflow-y-auto text-center">
               {pendingWorkoutsNewDatesSummary.map((item) => (
@@ -97,10 +87,10 @@ export function WorkoutsImportDialog({
             <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             <p className="text-sm text-gray-300">
               {importAction === 'exportThenImport'
-                ? 'Экспортируем текущие тренировки и импортируем новые...'
+                ? t.workoutsImport.exportingAndImporting
                 : importAction === 'onlyNew'
-                  ? 'Импортируем только новые тренировки...'
-                  : 'Импортируем тренировки...'}
+                  ? t.workoutsImport.importingOnlyNew
+                  : t.workoutsImport.importingWorkouts}
             </p>
           </div>
         ) : (
@@ -111,7 +101,7 @@ export function WorkoutsImportDialog({
                 onClick={handleImportOnlyNewWorkouts}
                 className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary"
               >
-                Импортировать только новые тренировки (без изменения существующих)
+                {t.workoutsImport.importOnlyNew}
               </button>
             )}
             <button
@@ -119,21 +109,21 @@ export function WorkoutsImportDialog({
               onClick={handleConfirmImportWorkoutsOnly}
               className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary"
             >
-              Импортировать с перезаписью дат из файла
+              {t.workoutsImport.importOverwrite}
             </button>
             <button
               type="button"
               onClick={handleExportThenImportWorkouts}
               className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary"
             >
-              Экспортировать текущие тренировки и импортировать с перезаписью дат
+              {t.workoutsImport.exportThenImport}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary bg-white/10 hover:bg-white/5"
             >
-              Отмена
+              {t.common.cancel}
             </button>
           </div>
         )}

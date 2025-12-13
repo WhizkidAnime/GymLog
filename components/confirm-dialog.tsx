@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
+import { useI18n } from '../hooks/use-i18n';
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -15,18 +16,20 @@ type ConfirmDialogProps = {
   children?: React.ReactNode;
 };
 
-export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-  open,
-  title = 'Подтвердите действие',
-  description,
-  confirmText = 'Подтвердить',
-  cancelText = 'Отмена',
-  variant = 'primary',
-  confirmDisabled,
-  onConfirm,
-  onOpenChange,
-  children,
-}) => {
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = (props) => {
+  const { t } = useI18n();
+  const {
+    open,
+    title = t.confirmDialog.title,
+    description,
+    confirmText = t.confirmDialog.confirm,
+    cancelText = t.common.cancel,
+    variant = 'primary',
+    confirmDisabled,
+    onConfirm,
+    onOpenChange,
+    children,
+  } = props;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useModalScrollLock(open);
@@ -84,7 +87,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             onClick={handleConfirm}
             disabled={isSubmitting || Boolean(confirmDisabled)}
           >
-            {isSubmitting ? 'Выполнение...' : confirmText}
+            {isSubmitting ? t.confirmDialog.executing : confirmText}
           </button>
         </div>
       </div>

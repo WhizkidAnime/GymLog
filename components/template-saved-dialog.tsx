@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
+import { useI18n } from '../hooks/use-i18n';
 
 type TemplateSavedDialogProps = {
   open: boolean;
@@ -21,6 +22,7 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   durationMs,
   variant = 'success',
 }) => {
+  const { t } = useI18n();
   const [isVisible, setIsVisible] = useState(false);
 
   useModalScrollLock(open);
@@ -73,7 +75,7 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-white">
-          {message ?? (templateName ? `Ссылка на "${templateName}" скопирована в буфер обмена` : 'Шаблон сохранен!')}
+          {message ?? (templateName ? t.templateSavedDialog.linkCopied.replace('{name}', templateName) : t.templateSavedDialog.templateSaved)}
         </h2>
       </div>
     </div>,

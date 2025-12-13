@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getTranslations } from './use-i18n';
 import { workoutCache } from './use-workout-data';
 import type {
   Workout,
@@ -103,7 +104,7 @@ export function useWorkoutOperations({
       if (insertExerciseError) throw insertExerciseError;
 
       const insertedExercise = insertedExercises?.[0];
-      if (!insertedExercise) throw new Error('Не удалось создать упражнение');
+      if (!insertedExercise) throw new Error(getTranslations().hooks.failedToCreateExercise);
 
       const { data: insertedSets, error: insertSetError } = await db
         .from('workout_sets')
@@ -121,7 +122,7 @@ export function useWorkoutOperations({
       if (insertSetError) throw insertSetError;
 
       const insertedSet = insertedSets?.[0];
-      if (!insertedSet) throw new Error('Не удалось создать подход');
+      if (!insertedSet) throw new Error(getTranslations().hooks.failedToCreateSet);
 
       const newExerciseWithSets: WorkoutExerciseWithSets = {
         ...insertedExercise,
@@ -149,7 +150,7 @@ export function useWorkoutOperations({
       });
     } catch (error: any) {
       console.error('Failed to add exercise:', error);
-      alert('Не удалось добавить упражнение. Попробуйте снова.');
+      alert(getTranslations().hooks.failedToAddExercise);
     } finally {
       setIsAddingExercise(false);
     }
@@ -165,14 +166,14 @@ export function useWorkoutOperations({
         .insert({
           user_id: user.id,
           workout_date: normalizedDate,
-          name: 'Новая тренировка',
+          name: getTranslations().hooks.newWorkout,
           template_id: null,
         })
         .select()
         .single();
 
       if (error) throw error;
-      if (!newWorkout) throw new Error('Не удалось создать тренировку');
+      if (!newWorkout) throw new Error(getTranslations().hooks.failedToCreateWorkoutEntry);
 
       setWorkout(newWorkout as Workout);
       setExercises([]);
@@ -186,7 +187,7 @@ export function useWorkoutOperations({
       });
     } catch (error: any) {
       console.error('Failed to create custom workout:', error);
-      alert('Не удалось создать тренировку. Попробуйте снова.');
+      alert(getTranslations().hooks.failedToCreateWorkoutTryAgain);
     } finally {
       setIsCreating(false);
     }
@@ -256,7 +257,7 @@ export function useWorkoutOperations({
 
     } catch (error: any) {
       console.error('Failed to create workout from template:', error);
-      alert(`Не удалось создать тренировку: ${error.message}`);
+      alert(getTranslations().hooks.failedToCreateFromTemplate + error.message);
     } finally {
       setIsCreating(false);
     }
@@ -347,7 +348,7 @@ export function useWorkoutOperations({
       await fetchWorkoutData();
     } catch (error: any) {
       console.error('Failed to replace workout from template:', error);
-      alert(`Не удалось изменить тренировку: ${error.message}`);
+      alert(getTranslations().hooks.failedToChangeWorkout + error.message);
     } finally {
       setIsCreating(false);
     }
@@ -362,7 +363,7 @@ export function useWorkoutOperations({
 
     if (error) {
       console.error('Error deleting workout:', error);
-      alert('Не удалось удалить тренировку.');
+      alert(getTranslations().hooks.failedToDeleteWorkout);
       return;
     }
 
@@ -416,7 +417,7 @@ export function useWorkoutOperations({
       }
     } catch (e) {
       console.error('Failed to save new order:', e);
-      alert('Не удалось сохранить порядок. Я вернул предыдущие данные.');
+      alert(getTranslations().hooks.failedToSaveOrder);
       await fetchWorkoutData();
     }
   }, [user, workout, normalizedDate, setExercises, fetchWorkoutData]);

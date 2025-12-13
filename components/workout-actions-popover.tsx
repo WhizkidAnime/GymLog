@@ -1,5 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '../hooks/use-i18n';
 
 type WorkoutActionsPopoverProps = {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function WorkoutActionsPopover({
   onDelete,
   onClose,
 }: WorkoutActionsPopoverProps) {
+  const { t } = useI18n();
   if (!isOpen || !menuPos) return null;
 
   return createPortal(
@@ -33,7 +35,7 @@ export function WorkoutActionsPopover({
         }}
         className="w-full text-left px-4 py-2 hover:bg-white/10 text-gray-100 transition-colors rounded-lg"
       >
-        Поменять порядок упражнений
+        {t.workoutActions.reorderExercises}
       </button>
       <button
         onClick={() => {
@@ -42,7 +44,7 @@ export function WorkoutActionsPopover({
         }}
         className="w-full text-left px-4 py-2 hover:bg-white/10 text-gray-100 transition-colors rounded-lg"
       >
-        Изменить тренировку
+        {t.workoutActions.changeWorkout}
       </button>
       <button
         onClick={() => {
@@ -51,7 +53,7 @@ export function WorkoutActionsPopover({
         }}
         className="w-full text-left px-4 py-2 text-red-400 hover:bg-red-500/10 transition-colors rounded-lg"
       >
-        Удалить
+        {t.workoutActions.delete}
       </button>
     </div>,
     document.body

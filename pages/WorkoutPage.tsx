@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useI18n } from '../hooks/use-i18n';
 import { ExerciseCard } from '../components/ExerciseCard';
 import { WorkoutHeader } from '../components/workout-header';
 import { WorkoutTemplateSelectModal } from '../components/workout-template-select-modal';
@@ -21,6 +22,7 @@ import ReorderExercisesModal from '../components/ReorderExercisesModal';
 import WorkoutIconPickerModal from '../components/workout-icon-picker-modal';
 
 const WorkoutPage = () => {
+  const { t } = useI18n();
   // Данные и состояние страницы
   const workoutData = useWorkoutData();
   const {
@@ -156,7 +158,7 @@ const WorkoutPage = () => {
 
   // Рендеринг
   if (!hasInitialData) {
-    return <WorkoutLoadingOverlay message="Загрузка..." />;
+    return <WorkoutLoadingOverlay message={t.common.loading} />;
   }
   
   if (!normalizedDate) {
@@ -231,7 +233,7 @@ const WorkoutPage = () => {
           disabled={isAddingExercise}
           className="btn-glass btn-glass-full btn-glass-md btn-glass-primary disabled:opacity-50"
         >
-          {isAddingExercise ? 'Добавление...' : 'Добавить упражнение'}
+          {isAddingExercise ? t.workout.adding : t.workout.addExercise}
         </button>
       </div>
 
@@ -257,10 +259,10 @@ const WorkoutPage = () => {
       <ConfirmDialog
         open={isDeleteWorkoutOpen}
         onOpenChange={setIsDeleteWorkoutOpen}
-        title="Удалить тренировку?"
-        description={`Вы собираетесь удалить тренировку на ${formatDateForDisplay(normalizedDate!)}. Действие необратимо.`}
-        confirmText="Удалить"
-        cancelText="Отмена"
+        title={t.workout.deleteWorkout}
+        description={t.workout.deleteWorkoutDesc.replace('{date}', formatDateForDisplay(normalizedDate!))}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         variant="danger"
         onConfirm={handleDeleteWorkout}
       />

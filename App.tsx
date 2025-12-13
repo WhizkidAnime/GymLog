@@ -1,6 +1,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { HashRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
+import { I18nProvider } from './hooks/use-i18n';
 import Layout from './components/Layout';
 import { WorkoutLoadingOverlay } from './components/workout-loading-overlay';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -18,12 +19,12 @@ const ProgressPage = React.lazy(() => import('./pages/ProgressPage'));
 
 // Минимальный fallback для загрузки страницы логина
 const PageLoader = () => (
-  <WorkoutLoadingOverlay message="Загрузка..." />
+  <WorkoutLoadingOverlay message="" />
 );
 
 // Лоадер для маршрутов - центрирован с надписью
 const RouteLoader = () => (
-  <WorkoutLoadingOverlay message="Загрузка..." />
+  <WorkoutLoadingOverlay message="" />
 );
 
 const LastWorkoutTracker = () => {
@@ -123,7 +124,7 @@ const AppRoutes = () => {
         <Route
           path="templates"
           element={
-            <Suspense fallback={<WorkoutLoadingOverlay message="Загрузка шаблонов..." />}>
+            <Suspense fallback={<WorkoutLoadingOverlay message="" />}>
               <TemplatesPage />
             </Suspense>
           }
@@ -185,11 +186,13 @@ const AppRoutes = () => {
 const App = () => {
   return (
     <HashRouter>
-      <AuthProvider>
-        <div style={{ minHeight: '100svh' }}>
-          <AppRoutes />
-        </div>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <div style={{ minHeight: '100svh' }}>
+            <AppRoutes />
+          </div>
+        </AuthProvider>
+      </I18nProvider>
     </HashRouter>
   );
 };

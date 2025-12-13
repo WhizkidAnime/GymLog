@@ -1,5 +1,6 @@
 import React from 'react';
 import type { WorkoutDateGroup } from '../../hooks/use-data-cleanup';
+import { useI18n } from '../../hooks/use-i18n';
 
 export type DeleteWorkoutsDialogProps = {
   isOpen: boolean;
@@ -26,6 +27,8 @@ export function DeleteWorkoutsDialog({
   clearWorkoutSelection,
   handleDeleteSelectedWorkouts,
 }: DeleteWorkoutsDialogProps): React.ReactElement | null {
+  const { t } = useI18n();
+  
   if (!isOpen) return null;
 
   return (
@@ -38,9 +41,9 @@ export function DeleteWorkoutsDialog({
         }}
       />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Удалить тренировки</h2>
+        <h2 className="text-lg font-semibold text-white">{t.deleteWorkouts.title}</h2>
         <p className="text-sm text-gray-300">
-          Выберите даты тренировок, которые хотите удалить. Это действие необратимо.
+          {t.deleteWorkouts.description}
         </p>
         <div className="mt-2 flex items-center justify-between text-xs text-gray-300">
           <button
@@ -69,7 +72,7 @@ export function DeleteWorkoutsDialog({
                 </svg>
               )}
             </div>
-            <span>Выбрать все</span>
+            <span>{t.deleteWorkouts.selectAll}</span>
           </button>
           <button
             type="button"
@@ -77,7 +80,7 @@ export function DeleteWorkoutsDialog({
             disabled={selectedWorkoutDates.length === 0 || isDeletingWorkouts}
             className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40"
           >
-            Отменить выбранное
+            {t.deleteWorkouts.clearSelection}
           </button>
         </div>
         <div className="max-h-64 overflow-y-auto rounded-md bg-black/20 p-3 space-y-2">
@@ -97,7 +100,7 @@ export function DeleteWorkoutsDialog({
                 <div>
                   <div className="text-sm font-medium text-white">{group.date}</div>
                   <div className="text-xs text-gray-400">
-                    {group.count === 1 ? '1 тренировка' : `${group.count} тренировок`}
+                    {group.count === 1 ? t.deleteWorkouts.workout : t.deleteWorkouts.workouts.replace('{count}', String(group.count))}
                   </div>
                 </div>
                 <div
@@ -124,7 +127,7 @@ export function DeleteWorkoutsDialog({
             );
           })}
           {workoutDateGroups.length === 0 && (
-            <p className="text-sm text-gray-400">Тренировки для удаления не найдены.</p>
+            <p className="text-sm text-gray-400">{t.deleteWorkouts.noWorkouts}</p>
           )}
         </div>
         <div className="mt-4 flex flex-col gap-2">
@@ -134,7 +137,7 @@ export function DeleteWorkoutsDialog({
             disabled={selectedWorkoutDates.length === 0 || isDeletingWorkouts}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-primary disabled:opacity-50"
           >
-            {isDeletingWorkouts ? 'Удаляем выбранные...' : 'Удалить выбранные'}
+            {isDeletingWorkouts ? t.deleteWorkouts.deleting : t.deleteWorkouts.deleteSelected}
           </button>
           <button
             type="button"
@@ -144,7 +147,7 @@ export function DeleteWorkoutsDialog({
             }}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary"
           >
-            Отмена
+            {t.common.cancel}
           </button>
         </div>
       </div>

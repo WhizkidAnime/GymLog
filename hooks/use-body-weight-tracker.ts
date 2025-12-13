@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { UserBodyWeight } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 import { usePageState } from './usePageState';
+import { getTranslations } from './use-i18n';
 
 const BODY_WEIGHTS_CACHE_KEY = 'body-weights-data';
 const BODY_WEIGHTS_TTL = 10 * 60 * 1000; // 10 минут
@@ -154,13 +155,13 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
 
     const weightValue = parseFloat(newWeight.replace(',', '.'));
     if (isNaN(weightValue) || weightValue <= 0 || weightValue > 500) {
-      alert('Введите корректный вес (от 0.1 до 500 кг)');
+      alert(getTranslations().hooks.enterValidWeight);
       return;
     }
 
     const isoDate = parseAndValidateDate(newWeightDate);
     if (!isoDate) {
-      alert('Введите корректную дату в формате д.мм.гггг (не в будущем)');
+      alert(getTranslations().hooks.enterValidDate);
       return;
     }
 
@@ -190,7 +191,7 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
       setNewWeightDate(formatTodayDate());
     } catch (error) {
       console.error('Error saving weight:', error);
-      alert('Не удалось сохранить вес');
+      alert(getTranslations().hooks.failedToSaveWeight);
     } finally {
       setSavingWeight(false);
     }
@@ -214,7 +215,7 @@ export function useBodyWeightTracker({ userId }: UseBodyWeightTrackerProps): Use
       setWeightToDelete(null);
     } catch (error) {
       console.error('Error deleting weight:', error);
-      alert('Не удалось удалить запись');
+      alert(getTranslations().hooks.failedToDeleteWeight);
     } finally {
       setDeletingWeightId(null);
     }

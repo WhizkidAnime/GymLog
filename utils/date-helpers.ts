@@ -18,9 +18,10 @@ export const formatDate = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-// Returns the month and year as a localized string (e.g., "Октябрь 2024").
-export const getMonthYear = (date: Date): string => {
-  return date.toLocaleString('ru-RU', {
+// Returns the month and year as a localized string (e.g., "October 2024").
+export const getMonthYear = (date: Date, language: 'ru' | 'en' = 'ru'): string => {
+  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+  return date.toLocaleString(locale, {
     month: 'long',
     year: 'numeric',
   });

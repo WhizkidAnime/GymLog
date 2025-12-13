@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalScrollLock } from '../hooks/use-modal-scroll-lock';
+import { useI18n } from '../hooks/use-i18n';
 
 export type ReorderItem = { id: string; name: string; position: number };
 
@@ -19,6 +20,7 @@ function reorder<T>(arr: T[], from: number, to: number) {
 }
 
 const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }) => {
+  const { t } = useI18n();
   const [list, setList] = useState<ReorderItem[]>([]);
   const draggingId = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -112,7 +114,7 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overscroll-contain">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-4">
-        <h2 className="text-lg font-semibold mb-3">Порядок упражнений</h2>
+        <h2 className="text-lg font-semibold mb-3">{t.reorderExercises.title}</h2>
 
         <ol 
           ref={scrollContainerRef}
@@ -134,7 +136,7 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
               <span className="select-none w-6 text-center opacity-70">{idx + 1}.</span>
               <button
                 type="button"
-                aria-label="Перетащить"
+                aria-label={t.reorderExercises.drag}
                 className="cursor-grab px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 active:cursor-grabbing touch-none"
                 draggable
                 onDragStart={onDragStart(it.id)}
@@ -143,7 +145,7 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
                 ⋮⋮
               </button>
               <div className="flex-1 whitespace-normal break-words leading-snug">
-                {it.name || 'Без названия'}
+                {it.name || t.reorderExercises.noName}
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -169,10 +171,10 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
 
         <div className="mt-4 flex justify-end gap-2">
           <button className="btn-glass btn-glass-sm btn-glass-secondary" onClick={onClose} disabled={saving}>
-            Отмена
+            {t.common.cancel}
           </button>
           <button className="btn-glass btn-glass-sm btn-glass-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Сохранение…' : 'Сохранить'}
+            {saving ? t.reorderExercises.saving : t.common.save}
           </button>
         </div>
       </div>

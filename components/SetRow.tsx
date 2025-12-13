@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from '../hooks/useDebounce';
 import type { WorkoutSet } from '../types/database.types';
+import { useI18n } from '../hooks/use-i18n';
 
 interface SetRowProps {
   set: WorkoutSet;
@@ -20,6 +21,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
   onDeleteDropset,
   isLastInGroup,
 }) => {
+  const { t } = useI18n();
   const storageKey = `workout_set_draft:${set.id}`;
   const lastNonMaxKey = `workout_set_last_non_max_reps:${set.id}`;
   // Внутреннее представление веса — всегда строка с запятой в качестве разделителя
@@ -39,7 +41,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
     return s;
   };
 
-  const MAX_REPS_LABEL = 'макс.';
+  const MAX_REPS_LABEL = t.common.max;
 
   const repsFromDbToDisplay = (value: string | null) => {
     if (value === null || value === undefined) return '';
@@ -51,7 +53,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
     const trimmed = value.trim();
     if (trimmed === '') return null;
     const lower = trimmed.toLowerCase();
-    if (lower === 'макс' || lower === 'макс.' || /^0+$/.test(trimmed)) return '0';
+    if (lower === 'макс' || lower === 'макс.' || lower === 'max' || lower === 'max.' || /^0+$/.test(trimmed)) return '0';
     return trimmed;
   };
 
@@ -60,7 +62,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
     if (trimmed === '') return '';
     if (/^0+$/.test(trimmed)) return MAX_REPS_LABEL;
     const lower = trimmed.toLowerCase();
-    if (lower.startsWith('макс')) return MAX_REPS_LABEL;
+    if (lower.startsWith('макс') || lower.startsWith('max')) return MAX_REPS_LABEL;
     const digitsOnly = trimmed.replace(/[^0-9]/g, '');
     return digitsOnly;
   };
@@ -251,15 +253,15 @@ const SetRowComponent: React.FC<SetRowProps> = ({
         {isDropset && (
           <span className={`text-xs mr-0.5 dropset-indicator ${isDone ? 'is-done' : ''}`}>↳</span>
         )}
-        <span>{isDropset ? 'ДС' : set.set_index}</span>
+        <span>{isDropset ? t.setRow.dropset : set.set_index}</span>
         {/* Кнопка добавления дропсета для обычных подходов — абсолютное позиционирование */}
         {!isDropset && isLastInGroup && onAddDropset && (
           <button
             type="button"
             onClick={() => onAddDropset(set.id)}
-            aria-label="Добавить дропсет"
+            aria-label={t.setRow.addDropset}
             className={`absolute left-12 w-5 h-5 flex items-center justify-center rounded transition-colors flex-shrink-0 dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/10'}`}
-            title="Добавить дропсет"
+            title={t.setRow.addDropset}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
@@ -284,7 +286,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
             if (!previousSet || previousSet.weight === null) return;
             setWeight(toDisplay(previousSet.weight));
           }}
-          aria-label="Скопировать вес из предыдущего подхода"
+          aria-label={t.setRow.copyWeight}
           className="btn-glass btn-glass-icon-round btn-glass-secondary absolute text-white h-6 w-6 p-0"
           style={{
             left: '50%',
@@ -338,7 +340,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
             type="checkbox"
             checked={isMaxChecked}
             onChange={handleToggleMax}
-            aria-label="Подход в отказ (макс.)"
+            aria-label={t.setRow.toFailure}
             className="h-6 w-6 rounded-md border border-gray-300 bg-white outline-none focus-visible:outline-none flex-shrink-0"
             style={{ accentColor: '#000000', color: '#0a0a0a' }}
           />
@@ -351,9 +353,9 @@ const SetRowComponent: React.FC<SetRowProps> = ({
               <button
                 type="button"
                 onClick={() => onAddDropset(set.id)}
-                aria-label="Добавить дропсет"
+                aria-label={t.setRow.addDropset}
                 className={`w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
-                title="Добавить дропсет"
+                title={t.setRow.addDropset}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                   <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
@@ -367,9 +369,9 @@ const SetRowComponent: React.FC<SetRowProps> = ({
               <button
                 type="button"
                 onClick={() => onDeleteDropset(set.id)}
-                aria-label="Удалить дропсет"
+                aria-label={t.setRow.deleteDropset}
                 className={`w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
-                title="Удалить дропсет"
+                title={t.setRow.deleteDropset}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                   <path fillRule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clipRule="evenodd" />

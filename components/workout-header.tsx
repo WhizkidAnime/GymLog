@@ -2,6 +2,7 @@ import React from 'react';
 import { BackButton } from './back-button';
 import { formatDateForDisplay } from '../utils/date-helpers';
 import { WORKOUT_ICONS, WorkoutIconType } from './workout-icons';
+import { useI18n } from '../hooks/use-i18n';
 
 interface WorkoutHeaderProps {
   normalizedDate: string;
@@ -42,6 +43,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
   editIconValue,
   onOpenIconPicker,
 }) => {
+  const { t } = useI18n();
   const displayIcon = isEditingName ? editIconValue : workoutIcon;
   const iconData = displayIcon ? WORKOUT_ICONS[displayIcon] : null;
   return (
@@ -58,13 +60,13 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
             <div>
               <h1 className="text-xl font-bold text-white">{workoutName}</h1>
               <p className="text-md transition-all duration-300 workout-date-text">
-                Дата: {formatDateForDisplay(normalizedDate)}
+                {t.workoutHeader.date}: {formatDateForDisplay(normalizedDate)}
               </p>
             </div>
             <button
               onClick={onStartEditName}
               className="shrink-0 p-1.5 rounded-full hover:bg-white/10 transition-colors"
-              title="Редактировать название"
+              title={t.common.edit || 'Edit'}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -91,7 +93,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
                 onClick={onOpenIconPicker}
                 disabled={isSavingWorkoutName}
                 className="shrink-0 w-12 h-12 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50"
-                title="Выбрать иконку"
+                title={t.iconPicker.title}
               >
                 {iconData ? (
                   <iconData.component size={28} />
@@ -110,13 +112,13 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
                   onChange={event => onChangeEditName(event.target.value)}
                   disabled={isSavingWorkoutName}
                   className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 pr-9 py-2 transition-colors disabled:opacity-70"
-                  placeholder="Название тренировки"
+                  placeholder={t.workout.emptyState?.title || 'Workout name'}
                 />
                 {editNameValue && (
                   <button
                     type="button"
                     onClick={() => onChangeEditName('')}
-                    aria-label="Очистить"
+                    aria-label={t.common.clear}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
                   >
                     <svg
@@ -142,7 +144,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
                 onClick={onSaveEditName}
                 disabled={isSavingWorkoutName}
                 className="shrink-0 p-1.5 rounded-full hover:bg-green-500/20 transition-colors disabled:opacity-50"
-                title="Сохранить"
+                title={t.common.save}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -163,7 +165,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
                 onClick={onCancelEditName}
                 disabled={isSavingWorkoutName}
                 className="shrink-0 p-1.5 rounded-full hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                title="Отмена"
+                title={t.common.cancel}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -188,7 +190,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
         <button
           ref={actionsBtnRef}
           type="button"
-          aria-label="Меню действий"
+          aria-label={t.profile.menu}
           className="inline-flex items-center justify-center p-2 rounded-full hover:bg-white/10"
           onClick={onToggleActions}
         >

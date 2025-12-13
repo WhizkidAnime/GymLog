@@ -1,5 +1,6 @@
 import React from 'react';
 import { WORKOUT_ICONS, WorkoutIconType } from './workout-icons';
+import { useI18n } from '../hooks/use-i18n';
 
 interface WorkoutIconPickerModalProps {
   open: boolean;
@@ -14,6 +15,8 @@ const WorkoutIconPickerModal: React.FC<WorkoutIconPickerModalProps> = ({
   onClose,
   onChange,
 }) => {
+  const { t } = useI18n();
+  
   if (!open) return null;
 
   const iconTypes = Object.keys(WORKOUT_ICONS) as WorkoutIconType[];
@@ -33,7 +36,7 @@ const WorkoutIconPickerModal: React.FC<WorkoutIconPickerModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold text-white mb-4 text-center">
-          Выберите иконку
+          {t.workoutIconPicker.title}
         </h2>
         <div className="grid grid-cols-4 gap-2">
           {/* Кнопка "без иконки" */}
@@ -51,7 +54,7 @@ const WorkoutIconPickerModal: React.FC<WorkoutIconPickerModalProps> = ({
                 <circle cx="12" cy="12" r="9" strokeDasharray="4 2" />
               </svg>
             </div>
-            <span className="text-[10px] mt-1 text-gray-400">Нет</span>
+            <span className="text-[10px] mt-1 text-gray-400">{t.workoutIconPicker.none}</span>
           </button>
 
           {iconTypes.map((iconType) => {
@@ -82,7 +85,7 @@ const WorkoutIconPickerModal: React.FC<WorkoutIconPickerModalProps> = ({
           onClick={onClose}
           className="mt-4 w-full py-2 text-gray-400 hover:text-white transition-colors"
         >
-          Отмена
+          {t.common.cancel}
         </button>
       </div>
     </div>

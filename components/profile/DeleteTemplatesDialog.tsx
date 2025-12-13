@@ -1,5 +1,6 @@
 import React from 'react';
 import type { TemplateForDeletion } from '../../hooks/use-data-cleanup';
+import { useI18n } from '../../hooks/use-i18n';
 
 export type DeleteTemplatesDialogProps = {
   isOpen: boolean;
@@ -26,6 +27,8 @@ export function DeleteTemplatesDialog({
   clearTemplateSelection,
   handleDeleteSelectedTemplates,
 }: DeleteTemplatesDialogProps): React.ReactElement | null {
+  const { t } = useI18n();
+  
   if (!isOpen) return null;
 
   return (
@@ -38,9 +41,9 @@ export function DeleteTemplatesDialog({
         }}
       />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Удалить шаблоны тренировок</h2>
+        <h2 className="text-lg font-semibold text-white">{t.deleteTemplates.title}</h2>
         <p className="text-sm text-gray-300">
-          Выберите шаблоны тренировок, которые хотите удалить. Это действие необратимо.
+          {t.deleteTemplates.description}
         </p>
         <div className="mt-2 flex items-center justify-between text-xs text-gray-300">
           <button
@@ -69,7 +72,7 @@ export function DeleteTemplatesDialog({
                 </svg>
               )}
             </div>
-            <span>Выбрать все</span>
+            <span>{t.deleteWorkouts.selectAll}</span>
           </button>
           <button
             type="button"
@@ -77,7 +80,7 @@ export function DeleteTemplatesDialog({
             disabled={selectedTemplateIds.length === 0 || isDeletingTemplates}
             className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40"
           >
-            Отменить выбранное
+            {t.deleteWorkouts.clearSelection}
           </button>
         </div>
         <div className="max-h-64 overflow-y-auto rounded-md bg-black/20 p-3 space-y-2">
@@ -119,7 +122,7 @@ export function DeleteTemplatesDialog({
             );
           })}
           {templatesForDeletion.length === 0 && (
-            <p className="text-sm text-gray-400">Шаблоны для удаления не найдены.</p>
+            <p className="text-sm text-gray-400">{t.deleteTemplates.noTemplates}</p>
           )}
         </div>
         <div className="mt-4 flex flex-col gap-2">
@@ -129,7 +132,7 @@ export function DeleteTemplatesDialog({
             disabled={selectedTemplateIds.length === 0 || isDeletingTemplates}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-primary disabled:opacity-50"
           >
-            {isDeletingTemplates ? 'Удаляем выбранные...' : 'Удалить выбранные'}
+            {isDeletingTemplates ? t.deleteTemplates.deleting : t.deleteTemplates.deleteSelected}
           </button>
           <button
             type="button"
@@ -139,7 +142,7 @@ export function DeleteTemplatesDialog({
             }}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary"
           >
-            Отмена
+            {t.common.cancel}
           </button>
         </div>
       </div>

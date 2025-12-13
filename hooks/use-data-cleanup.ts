@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { getTranslations } from './use-i18n';
 
 export type WorkoutDateGroup = {
   date: string;
@@ -102,7 +103,7 @@ export function useDataCleanup({
 
       if (error) {
         console.error('Error loading workouts for deletion:', error);
-        alert('Не удалось загрузить список тренировок для удаления.');
+        alert(getTranslations().hooks.failedToLoadWorkoutsForDeletion);
         return;
       }
 
@@ -127,7 +128,7 @@ export function useDataCleanup({
 
       if (groups.length === 0) {
         setToastVariant('error');
-        setImportSuccessMessage('У вас нет тренировок для удаления.');
+        setImportSuccessMessage(getTranslations().hooks.noWorkoutsToDelete);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -137,7 +138,7 @@ export function useDataCleanup({
       setIsDeleteWorkoutsDialogOpen(true);
     } catch (error) {
       console.error('Unexpected error while loading workouts for deletion:', error);
-      alert('Произошла ошибка при загрузке тренировок для удаления.');
+      alert(getTranslations().hooks.errorLoadingWorkoutsForDeletion);
     } finally {
       setIsLoadingWorkoutsForDeletion(false);
     }
@@ -158,18 +159,18 @@ export function useDataCleanup({
 
       if (error) {
         console.error('Error loading templates for deletion:', error);
-        alert('Не удалось загрузить список шаблонов для удаления.');
+        alert(getTranslations().hooks.failedToLoadTemplatesForDeletion);
         return;
       }
 
       const list: TemplateForDeletion[] = (data || []).map((t: any) => ({
         id: t.id as string,
-        name: (t.name as string) || 'Без названия',
+        name: (t.name as string) || getTranslations().hooks.noName,
       }));
 
       if (list.length === 0) {
         setToastVariant('error');
-        setImportSuccessMessage('У вас нет шаблонов для удаления.');
+        setImportSuccessMessage(getTranslations().hooks.noTemplatesToDelete);
         setIsImportSuccessOpen(true);
         return;
       }
@@ -179,7 +180,7 @@ export function useDataCleanup({
       setIsDeleteTemplatesDialogOpen(true);
     } catch (error) {
       console.error('Unexpected error while loading templates for deletion:', error);
-      alert('Произошла ошибка при загрузке шаблонов для удаления.');
+      alert(getTranslations().hooks.errorLoadingTemplatesForDeletion);
     } finally {
       setIsLoadingTemplatesForDeletion(false);
     }
@@ -273,12 +274,12 @@ export function useDataCleanup({
       setWorkoutDateGroups([]);
       setSelectedWorkoutDates([]);
       setToastVariant('success');
-      setImportSuccessMessage('Выбранные тренировки успешно удалены.');
+      setImportSuccessMessage(getTranslations().hooks.workoutsDeletedSuccess);
       setIsImportSuccessOpen(true);
     } catch (error: any) {
       console.error('Error deleting workouts:', error);
       setToastVariant('error');
-      setImportSuccessMessage('Не удалось удалить выбранные тренировки.');
+      setImportSuccessMessage(getTranslations().hooks.failedToDeleteWorkouts);
       setIsImportSuccessOpen(true);
     } finally {
       setIsDeletingWorkouts(false);
@@ -316,12 +317,12 @@ export function useDataCleanup({
       setTemplatesForDeletion([]);
       setSelectedTemplateIds([]);
       setToastVariant('success');
-      setImportSuccessMessage('Выбранные шаблоны тренировок успешно удалены.');
+      setImportSuccessMessage(getTranslations().hooks.templatesDeletedSuccess);
       setIsImportSuccessOpen(true);
     } catch (error: any) {
       console.error('Error deleting templates:', error);
       setToastVariant('error');
-      setImportSuccessMessage('Не удалось удалить выбранные шаблоны тренировок.');
+      setImportSuccessMessage(getTranslations().hooks.failedToDeleteTemplates);
       setIsImportSuccessOpen(true);
     } finally {
       setIsDeletingTemplates(false);

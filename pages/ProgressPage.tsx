@@ -11,6 +11,7 @@ import { useProgress } from '../hooks/use-progress';
 import { pluralize } from '../utils/pluralize';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { useI18n } from '../hooks/use-i18n';
 
 const db = supabase as any;
 
@@ -42,9 +43,9 @@ const CustomTooltip = ({ active, payload }: any) => {
     <div className="glass card-dark p-3 rounded-lg shadow-lg border border-white/20">
       <p className="text-sm text-gray-300 mb-1">{data.workoutName}</p>
       <p className="text-base font-bold text-white">
-        {data.weight} кг × {data.reps || '?'}
+        {data.weight} kg × {data.reps || '?'}
       </p>
-      <p className="text-xs text-gray-400 mt-1">{new Date(data.date).toLocaleDateString('ru')}</p>
+      <p className="text-xs text-gray-400 mt-1">{new Date(data.date).toLocaleDateString()}</p>
     </div>
   );
 };
@@ -52,6 +53,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 const ProgressPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t, language } = useI18n();
   const {
     exercises,
     loading,
@@ -419,7 +421,7 @@ const ProgressPage = () => {
   // Calculate monthly stats
   const cardioMonthStats = useMemo((): CardioMonthStats[] => {
     const stats: Record<string, CardioMonthStats> = {};
-    const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+    const monthNames = t.cardio.monthsShort;
 
     cardioWorkouts.forEach(w => {
       const d = new Date(w.workout_date);
@@ -441,7 +443,7 @@ const ProgressPage = () => {
   // Month selector options
   const monthOptions = useMemo(() => {
     const options: { value: string; label: string }[] = [];
-    const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+    const monthNames = t.cardio.months;
     const now = new Date();
 
     for (let i = 0; i < 12; i++) {
@@ -463,11 +465,11 @@ const ProgressPage = () => {
   }, [selectedCardioMonth, cardioMonthStats]);
 
   const periodOptions = [
-    { id: 'all', label: 'Все данные' },
-    { id: '3m', label: 'Последние 3 мес' },
-    { id: '6m', label: 'Последние 6 мес' },
-    { id: '1y', label: 'Последний год' },
-    { id: 'custom', label: 'Произвольный период' },
+    { id: 'all', label: t.progress.period.all },
+    { id: '3m', label: t.progress.period.threeMonths },
+    { id: '6m', label: t.progress.period.sixMonths },
+    { id: '1y', label: t.progress.period.oneYear },
+    { id: 'custom', label: t.progress.period.custom },
   ] as const;
 
   const currentPeriodLabel = periodOptions.find((opt) => opt.id === period)?.label || 'Выбрать';
@@ -564,7 +566,7 @@ const ProgressPage = () => {
     : exercises;
 
   if (loading && activeTab === 'exercises') {
-    return <WorkoutLoadingOverlay message="Загрузка упражнений..." />;
+    return <WorkoutLoadingOverlay message={t.progress.loading} />;
   }
 
   return (
@@ -575,7 +577,7 @@ const ProgressPage = () => {
         <button
           onClick={handleBack}
           className="shrink-0 inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white bg-transparent transition-colors focus:outline-none active:outline-none back-button-plain"
-          aria-label="Назад"
+          aria-label={t.common.back}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -583,15 +585,15 @@ const ProgressPage = () => {
         </button>
         <h1 className="flex-1 text-xl font-bold text-center">
           {activeTab === 'exercises' 
-            ? (selectedExercise || 'Прогресс') 
-            : 'Кардио'
+            ? (selectedExercise || t.progress.title) 
+            : t.progress.cardio
           }
         </h1>
         {activeTab === 'cardio' && (
           <button
             onClick={() => setIsCardioInfoOpen(true)}
             className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full text-white bg-white/10 hover:bg-white/20 transition-colors"
-            aria-label="Информация о кардио"
+            aria-label={language === 'ru' ? 'Информация о кардио' : 'Cardio info'}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -611,7 +613,7 @@ const ProgressPage = () => {
                 : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
             }`}
           >
-            Упражнения
+            {t.progress.exercises}
           </button>
           <button
             onClick={() => setActiveTab('cardio')}
@@ -621,7 +623,7 @@ const ProgressPage = () => {
                 : 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10'
             }`}
           >
-            Кардио
+            {t.progress.cardio}
           </button>
         </div>
       )}
@@ -639,14 +641,14 @@ const ProgressPage = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск"
-                aria-label="Поиск упражнений"
+                placeholder={t.progress.search}
+                aria-label={t.progress.search}
                 className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
               />
               <button
                 type="button"
                 onClick={() => { setSearchQuery(''); inputRef.current?.focus(); }}
-                aria-label="Очистить"
+                aria-label={t.common.clear}
                 aria-hidden={!searchQuery}
                 className={`shrink-0 w-7 h-7 grid place-items-center rounded-full text-gray-400 hover:text-gray-200 hover:bg-white/10 transition ${searchQuery ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
               >
@@ -659,15 +661,15 @@ const ProgressPage = () => {
 
           {exercises.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">Нет данных для отображения</p>
+              <p className="text-gray-400 text-lg">{t.progress.noData}</p>
               <p className="text-gray-500 text-sm mt-2">
-                Выполните несколько тренировок с записанным весом
+                {t.progress.noDataHint}
               </p>
             </div>
           ) : filteredExercises.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">Упражнения не найдены</p>
-              <p className="text-gray-500 text-sm mt-2">Попробуйте изменить запрос</p>
+              <p className="text-gray-400 text-lg">{t.progress.notFound}</p>
+              <p className="text-gray-500 text-sm mt-2">{t.progress.notFoundHint}</p>
             </div>
           ) : (
             filteredExercises.map((exercise) => (
@@ -680,7 +682,7 @@ const ProgressPage = () => {
                   <div>
                     <h3 className="text-lg font-semibold text-white">{exercise.name}</h3>
                     <p className="text-sm text-gray-400 mt-1">
-                      Выполнено подходов: {exercise.totalSets}
+                      {t.progress.totalSets}{exercise.totalSets}
                     </p>
                   </div>
                   <svg
@@ -708,7 +710,7 @@ const ProgressPage = () => {
                 <div className="relative w-12 h-12">
                   <div className="absolute inset-0 border-4 border-transparent border-t-green-500 border-r-green-500 rounded-full animate-spin"></div>
                 </div>
-                <p className="text-white text-center">Загрузка кардио...</p>
+                <p className="text-white text-center">{t.cardio.loading}</p>
               </div>
             </div>
           ) : (
@@ -716,7 +718,7 @@ const ProgressPage = () => {
               {/* Настройка цели */}
               <div className="glass card-dark p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-white">Цель на неделю</h3>
+                  <h3 className="text-lg font-semibold text-white">{t.cardio.weeklyGoal}</h3>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCardioGoal(Math.max(1, cardioGoal - 1))}
@@ -740,21 +742,21 @@ const ProgressPage = () => {
                   </div>
                 </div>
                 <p className="text-sm text-gray-400">
-                  {pluralize(cardioGoal, 'тренировка', 'тренировки', 'тренировок')} в неделю
+                  {t.cardio.workoutsPerWeek.replace('{count}', String(cardioGoal))}
                 </p>
               </div>
 
               {/* Статистика по месяцам */}
               <div className="glass card-dark p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-white mb-3">Статистика по месяцам</h3>
+                <h3 className="text-lg font-semibold text-white mb-3">{t.cardio.monthlyStats}</h3>
                 <div className="grid grid-cols-2 gap-3 text-center mb-4">
                   <div className="p-3 rounded-lg bg-white/5">
                     <p className="text-2xl font-bold text-green-400">{totalCardioThisMonth}</p>
-                    <p className="text-xs text-gray-400">В этом месяце</p>
+                    <p className="text-xs text-gray-400">{t.cardio.thisMonth}</p>
                   </div>
                   <div className="p-3 rounded-lg bg-white/5">
                     <p className="text-2xl font-bold text-blue-400">{cardioWorkouts.length}</p>
-                    <p className="text-xs text-gray-400">Всего кардио</p>
+                    <p className="text-xs text-gray-400">{t.cardio.totalCardio}</p>
                   </div>
                 </div>
 
@@ -781,7 +783,7 @@ const ProgressPage = () => {
               {/* Выбор месяца */}
               <div className="glass card-dark p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Прогресс по неделям</h3>
+                  <h3 className="text-lg font-semibold text-white">{t.cardio.weeklyProgress}</h3>
                   <div ref={monthDropdownRef} className="relative">
                     <button
                       type="button"
@@ -789,7 +791,7 @@ const ProgressPage = () => {
                       className="flex items-center justify-between gap-2 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white hover:bg-white/15 transition-colors min-w-[160px] progress-dropdown-btn"
                     >
                       <span>
-                        {monthOptions.find((o) => o.value === selectedCardioMonth)?.label || 'Выберите месяц'}
+                        {monthOptions.find((o) => o.value === selectedCardioMonth)?.label || t.cardio.selectMonth}
                       </span>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -830,7 +832,7 @@ const ProgressPage = () => {
                 {/* Прогресс по неделям */}
                 <div className="space-y-3">
                   {cardioWeeks.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-4">Нет данных за этот месяц</p>
+                    <p className="text-sm text-gray-400 text-center py-4">{t.cardio.noDataForMonth}</p>
                   ) : (
                     cardioWeeks.map((week, idx) => {
                       const progress = Math.min((week.count / week.goal) * 100, 100);
@@ -849,7 +851,7 @@ const ProgressPage = () => {
                               week.isCurrentWeek ? 'text-green-300 font-medium' : 'text-gray-300'
                             }`}>
                               {week.weekLabel}
-                              {week.isCurrentWeek && ' (текущая)'}
+                              {week.isCurrentWeek && ` (${language === 'ru' ? 'текущая' : 'current'})`}
                             </span>
                             <span className={`text-sm font-bold ${
                               isCompleted ? 'text-green-400' : 'text-gray-400'
@@ -869,7 +871,7 @@ const ProgressPage = () => {
                           </div>
                           {!isCompleted && week.isCurrentWeek && (
                             <p className="text-xs text-gray-400 mt-1">
-                              Осталось: {week.goal - week.count} {pluralize(week.goal - week.count, 'тренировка', 'тренировки', 'тренировок')}
+                              {language === 'ru' ? 'Осталось' : 'Remaining'}: {week.goal - week.count} {language === 'ru' ? pluralize(week.goal - week.count, 'тренировка', 'тренировки', 'тренировок') : (week.goal - week.count === 1 ? 'workout' : 'workouts')}
                             </p>
                           )}
                         </div>
@@ -897,68 +899,66 @@ const ProgressPage = () => {
             <button
               onClick={() => setIsCardioInfoOpen(false)}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-              aria-label="Закрыть"
+              aria-label={t.common.close}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
-            <h2 className="text-xl font-bold text-white pr-10">О кардио тренировках</h2>
+            <h2 className="text-xl font-bold text-white pr-10">{t.cardio.aboutCardio}</h2>
 
             <div className="mt-4 space-y-4 text-sm text-gray-300 max-h-[60vh] overflow-y-auto pr-1">
               <div>
-                <h3 className="text-green-400 font-semibold mb-2">Что такое кардио?</h3>
-                <p>Аэробные нагрузки, укрепляющие сердечно-сосудистую систему и улучшающие выносливость.</p>
+                <h3 className="text-green-400 font-semibold mb-2">{t.cardio.whatIsCardio}</h3>
+                <p>{t.cardio.whatIsCardioDesc}</p>
               </div>
 
               <div>
-                <h3 className="text-green-400 font-semibold mb-2">Сколько делать?</h3>
+                <h3 className="text-green-400 font-semibold mb-2">{t.cardio.howOften}</h3>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>2-3 раза в неделю — минимум для здоровья</li>
-                  <li>3-5 раз — оптимально для похудения</li>
-                  <li>20-40 минут за сессию</li>
+                  {(t.cardio.howOftenItems as string[]).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
                 </ul>
               </div>
 
               <div>
-                <h3 className="text-green-400 font-semibold mb-2">Целевой пульс</h3>
-                <p>130-140 уд/мин — зона жиросжигания. Вы должны мочь говорить, но с усилием.</p>
+                <h3 className="text-green-400 font-semibold mb-2">{t.cardio.targetHeartRate}</h3>
+                <p>{t.cardio.targetHeartRateDesc}</p>
               </div>
 
               <div>
-                <h3 className="text-green-400 font-semibold mb-2">Виды кардио</h3>
+                <h3 className="text-green-400 font-semibold mb-2">{t.cardio.cardioTypes}</h3>
                 <ul className="list-disc list-inside space-y-1">
-                  <li><b>Stair Master</b> — имитация подъёма по лестнице</li>
-                  <li><b>Эллипсоид</b> — щадящая нагрузка на суставы</li>
-                  <li><b>Велотренажёр</b> — подходит для начинающих</li>
-                  <li><b>Беговая дорожка</b> — быстрая ходьба</li>
+                  {(t.cardio.cardioTypesItems as Array<{name: string; desc: string}>).map((item, i) => (
+                    <li key={i}><b>{item.name}</b> — {item.desc}</li>
+                  ))}
                 </ul>
               </div>
 
               <div>
-                <h3 className="text-green-400 font-semibold mb-2">Плюсы</h3>
+                <h3 className="text-green-400 font-semibold mb-2">{t.cardio.benefits}</h3>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Укрепляет сердце и сосуды</li>
-                  <li>Ускоряет метаболизм</li>
-                  <li>Снижает уровень стресса</li>
-                  <li>Улучшает качество сна</li>
+                  {(t.cardio.benefitsItems as string[]).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
                 </ul>
               </div>
 
               <div>
-                <h3 className="text-green-400 font-semibold mb-2">Когда делать?</h3>
+                <h3 className="text-green-400 font-semibold mb-2">{t.cardio.whenToDo}</h3>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>После силовой тренировки (20-30 мин)</li>
-                  <li>В отдельный день (40-60 мин)</li>
-                  <li>Утром натощак — для продвинутых</li>
+                  {(t.cardio.whenToDoItems as string[]).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
                 </ul>
               </div>
 
               <div className="cardio-warning p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                <h3 className="cardio-warning-title text-yellow-400 font-semibold mb-2">⚠️ Предупреждение</h3>
+                <h3 className="cardio-warning-title text-yellow-400 font-semibold mb-2">⚠️ {t.cardio.warning}</h3>
                 <p className="cardio-warning-text text-yellow-200/80">
-                  При проблемах с сердцем, суставами или давлением — проконсультируйтесь с врачом перед началом кардио тренировок.
+                  {t.cardio.warningText}
                 </p>
               </div>
             </div>
@@ -975,7 +975,7 @@ const ProgressPage = () => {
                 <div className="relative w-12 h-12">
                   <div className="absolute inset-0 border-4 border-transparent border-t-green-500 border-r-green-500 rounded-full animate-spin"></div>
                 </div>
-                <p className="text-white text-center">Загрузка кардио...</p>
+                <p className="text-white text-center">{t.cardio.loading}</p>
               </div>
             </div>
           ) : cardioWorkouts.length === 0 ? (
@@ -988,18 +988,18 @@ const ProgressPage = () => {
                       {visibleStats?.totalSessions ?? 0}
                     </p>
                     <p className="text-sm text-gray-400 mt-1">
-                      {pluralize(visibleStats?.totalSessions ?? 0, 'Тренировка', 'Тренировки', 'Тренировок')}
+                      {t.progress.stats.sessions}
                     </p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-400">
-                      {visibleStats ? `${visibleStats.maxWeight} кг` : '—'}
+                      {visibleStats ? `${visibleStats.maxWeight} ${t.common.kg}` : '—'}
                     </p>
-                    <p className="text-sm text-gray-400 mt-1">Максимум</p>
+                    <p className="text-sm text-gray-400 mt-1">{t.progress.stats.maxWeight}</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-blue-400">{visibleGrowth}</p>
-                    <p className="text-sm text-gray-400 mt-1">Прирост</p>
+                    <p className="text-sm text-gray-400 mt-1">{t.progress.stats.growth}</p>
                   </div>
                 </div>
               </div>
@@ -1008,14 +1008,14 @@ const ProgressPage = () => {
               <div className="glass card-dark p-4 rounded-lg">
                 <div className="flex flex-col gap-2 mb-2">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-white">Динамика веса</h3>
+                    <h3 className="text-lg font-semibold text-white">{language === 'ru' ? 'Динамика веса' : 'Weight progress'}</h3>
                     <div ref={dropdownRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-xs text-gray-200 hover:bg-white/10 hover:border-white/25 transition-colors progress-dropdown-btn"
                       >
-                        <span className="hidden sm:inline text-gray-400">Период:</span>
+                        <span className="hidden sm:inline text-gray-400">{language === 'ru' ? 'Период:' : 'Period:'}</span>
                         <span className="font-medium">{currentPeriodLabel}</span>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -1077,7 +1077,7 @@ const ProgressPage = () => {
 
                 {filteredDataPoints.length === 0 ? (
                   <div className="pt-6 pb-3 text-sm text-gray-400 text-center">
-                    Нет данных за выбранный период
+                    {language === 'ru' ? 'Нет данных за выбранный период' : 'No data for selected period'}
                   </div>
                 ) : (
                   <div className="overflow-x-auto -mx-4 px-4 pb-2">
@@ -1093,7 +1093,7 @@ const ProgressPage = () => {
                           <YAxis
                             stroke="rgba(255,255,255,0.5)"
                             style={{ fontSize: '12px' }}
-                            label={{ value: 'Вес (кг)', angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)', dx: 8 }}
+                            label={{ value: `${t.exercise.weight}`, angle: -90, position: 'insideLeft', fill: 'rgba(255,255,255,0.7)', dx: 8 }}
                           />
                           <Tooltip content={<CustomTooltip />} />
                           <Line
@@ -1113,9 +1113,9 @@ const ProgressPage = () => {
 
               {/* Таблица данных */}
               <div className="glass card-dark p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-white mb-3">История</h3>
+                <h3 className="text-lg font-semibold text-white mb-3">{t.progress.history}</h3>
                 {filteredDataPoints.length === 0 ? (
-                  <p className="text-sm text-gray-400 mt-1">Нет тренировок за выбранный период</p>
+                  <p className="text-sm text-gray-400 mt-1">{t.progress.noData}</p>
                 ) : (
                   <div className="space-y-2 max-h-[400px] overflow-y-auto">
                     {filteredDataPoints.slice().reverse().map((point, index) => (
@@ -1129,8 +1129,8 @@ const ProgressPage = () => {
                           <p className="text-sm text-gray-400">{point.workoutName}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-white">{point.weight} кг</p>
-                          <p className="text-sm text-gray-400">{point.reps || '?'} повторов</p>
+                          <p className="text-lg font-bold text-white">{point.weight} {t.common.kg}</p>
+                          <p className="text-sm text-gray-400">{point.reps || '?'} {t.exercise.reps.toLowerCase()}</p>
                         </div>
                       </div>
                     ))}
@@ -1140,7 +1140,7 @@ const ProgressPage = () => {
             </>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-400">Нет данных для отображения</p>
+              <p className="text-gray-400">{t.progress.noData}</p>
             </div>
           )}
         </div>

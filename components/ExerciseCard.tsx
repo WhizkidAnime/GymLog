@@ -6,6 +6,7 @@ import { RestTimer } from './RestTimer';
 import { useDebounce } from '../hooks/useDebounce';
 import ConfirmDialog from './confirm-dialog';
 import { useAuth } from '../hooks/useAuth';
+import { useI18n } from '../hooks/use-i18n';
 import { formatDateForDisplay } from '../utils/date-helpers';
 import { processProgressData } from '../utils/progress-helpers';
 import { normalizeExerciseName } from '../utils/exercise-name';
@@ -57,7 +58,7 @@ const setCachedLastPerformance = (key: string, data: LastPerformance | null) => 
 };
 
 const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutDate, onUpdateExercise, onDeleteExercise }) => {
-
+  const { t } = useI18n();
   const [nameInput, setNameInput] = useState(exercise.name);
   const [setsCount, setSetsCount] = useState<number>(exercise.sets);
   const [restSeconds, setRestSeconds] = useState<number>(exercise.rest_seconds);
@@ -410,7 +411,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
       setSetsCount(next);
     } catch (e) {
       console.error('Failed to change sets count', e);
-      alert('Не удалось изменить количество подходов');
+      alert(t.exercise.errors.failedToChangeSets);
     } finally {
       setBusy(false);
     }
@@ -424,7 +425,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
       .eq('workout_exercise_id', exercise.id);
     if (setsDelErr) {
       console.error('Failed to delete sets of exercise', setsDelErr);
-      alert('Не удалось удалить подходы упражнения. Попробуйте снова.');
+      alert(t.exercise.errors.failedToDeleteSets);
       return;
     }
 
@@ -434,14 +435,14 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
       .eq('id', exercise.id);
     if (exDelErr) {
       console.error('Failed to delete exercise', exDelErr);
-      alert('Не удалось удалить упражнение. Попробуйте снова.');
+      alert(t.exercise.errors.failedToDeleteExercise);
       return;
     }
 
     if (onDeleteExercise) onDeleteExercise(exercise.id);
   };
 
-  const MAX_REPS_LABEL = 'макс.';
+  const MAX_REPS_LABEL = t.common.max;
 
   const formatWeight = (value: number | null) => {
     if (value === null || value === undefined) return '—';
@@ -458,26 +459,26 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
 
   const renderLastPerformance = () => {
     if (!nameInput.trim()) {
-      return <span className="text-gray-500">Введите название, чтобы увидеть прошлый результат</span>;
+      return <span className="text-gray-500">{t.exercise.enterNameToSeeResult}</span>;
     }
 
     if (lastPerformanceStatus === 'loading') {
-      return <span className="text-gray-400">Поиск последнего результата…</span>;
+      return <span className="text-gray-400">{t.exercise.searchingLastResult}</span>;
     }
 
     if (lastPerformanceStatus === 'error') {
-      return <span className="text-red-300">Не удалось загрузить данные</span>;
+      return <span className="text-red-300">{t.exercise.loadError}</span>;
     }
 
     if (lastPerformance) {
       return (
         <span className="text-white text-base font-semibold">
-          {formatWeight(lastPerformance.weight)} кг × {formatReps(lastPerformance.reps)}
+          {formatWeight(lastPerformance.weight)} {t.common.kg} × {formatReps(lastPerformance.reps)}
         </span>
       );
     }
 
-    return <span className="text-gray-500">До этой даты нет данных по этому упражнению</span>;
+    return <span className="text-gray-500">{t.exercise.noDataBeforeDate}</span>;
   };
 
   // Стабильный callback для обновления подхода, использует ref для актуального exercise
@@ -545,7 +546,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
       onUpdateExercise(updatedExercise);
     } catch (e) {
       console.error('Failed to add dropset', e);
-      alert('Не удалось добавить дропсет');
+      alert(t.exercise.errors.failedToAddDropset);
     }
   }, [onUpdateExercise]);
 
@@ -570,7 +571,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
       onUpdateExercise(updatedExercise);
     } catch (e) {
       console.error('Failed to delete dropset', e);
-      alert('Не удалось удалить дропсет');
+      alert(t.exercise.errors.failedToDeleteDropset);
     }
   }, [onUpdateExercise]);
 
@@ -607,7 +608,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
                 // после очистки пересчитать высоту
                 requestAnimationFrame(() => adjustNameInputHeight());
               }}
-              aria-label="Очистить"
+              aria-label={t.common.clear}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-gray-300"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -618,7 +619,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
           )}
         </div>
         <button
-          aria-label="Удалить упражнение"
+          aria-label={t.exercise.deleteExercise}
           className="delete-btn btn-glass btn-glass-icon btn-glass-outline"
           onClick={() => setIsDeleteOpen(true)}
           type="button"
@@ -635,7 +636,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
       <div className="space-y-3">
         <div className="rounded-2xl bg-white/5 px-4 py-3 text-xs sm:text-sm text-gray-300">
           <div className="mb-1 flex items-center justify-between gap-3">
-            <span className="font-semibold text-white">Последний рабочий вес</span>
+            <span className="font-semibold text-white">{t.exercise.lastWeight}</span>
             {lastPerformance?.workoutDate && (
               <span className="text-[0.7rem] uppercase tracking-wide text-gray-400">
                 {formatDateForDisplay(lastPerformance.workoutDate)}
@@ -653,7 +654,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
         </div>
         <div className="flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
           <div className="flex items-center gap-3">
-            <span className="whitespace-nowrap font-medium">Подходы:</span>
+            <span className="whitespace-nowrap font-medium">{t.exercise.sets}:</span>
             <div className="inline-flex items-center gap-2">
               <button
                 disabled={busy || setsCount <= 1}
@@ -669,16 +670,16 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
             </div>
           </div>
           {exercise.reps?.trim() && (
-            <div className="ml-3 flex-1 text-right whitespace-nowrap font-medium">Повторы: {exercise.reps}</div>
+            <div className="ml-3 flex-1 text-right whitespace-nowrap font-medium">{t.exercise.reps}: {exercise.reps}</div>
           )}
         </div>
       </div>
       <div className="space-y-3 pt-1">
         <div className="grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden exercise-sets-header">
-          <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">Подход</div>
-          <div className="col-span-2 flex items-center justify-center whitespace-nowrap">Вес (кг)</div>
-          <div className="col-span-2 flex items-center justify-center whitespace-nowrap">Повторы</div>
-          <div className="col-span-1 flex items-center justify-end pr-1 sm:pr-2 whitespace-nowrap">В отказ</div>
+          <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">{t.exercise.set}</div>
+          <div className="col-span-2 flex items-center justify-center whitespace-nowrap">{t.exercise.weight}</div>
+          <div className="col-span-2 flex items-center justify-center whitespace-nowrap">{t.exercise.reps}</div>
+          <div className="col-span-1 flex items-center justify-end pr-1 sm:pr-2 whitespace-nowrap">{t.exercise.toFailure}</div>
         </div>
         <div className="space-y-2">
           {exercise.workout_sets.map((set, index, allSets) => {
@@ -710,10 +711,10 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
       <ConfirmDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        title="Удалить упражнение?"
-        description={exercise.name ? `Вы собираетесь удалить упражнение "${exercise.name}". Действие необратимо.` : 'Вы собираетесь удалить упражнение. Действие необратимо.'}
-// ...
-        cancelText="Отмена"
+        title={t.exercise.deleteExercise}
+        description={exercise.name ? t.exercise.deleteExerciseDesc.replace('{name}', exercise.name) : t.exercise.deleteExerciseDescNoName}
+        confirmText={t.common.delete}
+        cancelText={t.common.cancel}
         variant="danger"
         onConfirm={handleConfirmDelete}
       />

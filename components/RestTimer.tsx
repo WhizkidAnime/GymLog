@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useI18n } from '../hooks/use-i18n';
 
 interface RestTimerProps {
   restSeconds: number;
@@ -24,6 +25,7 @@ const getTimerStepFromStorage = (): number => {
 };
 
 export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, onAdjustRestSeconds, timerStep: timerStepProp }) => {
+  const { t } = useI18n();
   const storageKey = exerciseId ? `rest_timer:${exerciseId}` : undefined;
   const [timerStep, setTimerStep] = useState(() => timerStepProp ?? getTimerStepFromStorage());
 
@@ -267,13 +269,13 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
           onClick={toggle}
           className={`btn-glass btn-glass-icon-lg ${isActive ? 'btn-glass-danger' : 'btn-glass-primary'}`}
         >
-          {isActive ? 'Стоп' : 'Старт'}
+          {isActive ? t.timer.stop : t.timer.start}
         </button>
         <button
           onClick={reset}
           className="btn-glass btn-glass-icon-sm btn-glass-secondary"
         >
-          Сброс
+          {t.timer.reset}
         </button>
       </div>
     </div>

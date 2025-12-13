@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { getTranslations } from './use-i18n';
 import { workoutCache } from './use-workout-data';
 import type { Workout, WorkoutExerciseWithSets } from '../types/database.types';
 
@@ -41,7 +42,7 @@ export function useWorkoutCardio({
         .single();
 
       if (error) throw error;
-      if (!updatedWorkout) throw new Error('Не удалось обновить статус кардио');
+      if (!updatedWorkout) throw new Error(getTranslations().hooks.failedToUpdateCardio);
 
       setWorkout(updatedWorkout as Workout);
 
@@ -53,7 +54,7 @@ export function useWorkoutCardio({
       });
     } catch (error: any) {
       console.error('Failed to update cardio status:', error);
-      alert('Не удалось сохранить статус кардио.');
+      alert(getTranslations().hooks.failedToSaveCardio);
       setIsCardio(!newCardioState);
     } finally {
       setIsSavingCardio(false);

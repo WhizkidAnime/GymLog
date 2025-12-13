@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useI18n } from '../../hooks/use-i18n';
 
 export type ProfileMenuProps = {
   // Import actions
@@ -34,6 +35,7 @@ export function ProfileMenu({
 }: ProfileMenuProps): React.ReactElement {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,7 +55,7 @@ export function ProfileMenu({
       <button
         onClick={() => setIsMenuOpen(!isMenuOpen)}
         className="p-2 text-white hover:text-gray-300 transition-colors"
-        aria-label="Меню"
+        aria-label={t.profile.menu}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 8c1.1 0 2-1 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 1-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 1-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
@@ -63,7 +65,7 @@ export function ProfileMenu({
       {isMenuOpen && (
         <div className="absolute right-0 mt-2 menu-popover space-y-0.5">
           <div className="px-4 pt-2 pb-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center whitespace-nowrap">
-            Импорт
+            {t.profile.import}
           </div>
           <button
             onClick={() => {
@@ -73,7 +75,7 @@ export function ProfileMenu({
             disabled={isImportingWorkouts}
             className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
           >
-            {isImportingWorkouts ? 'Импорт тренировок...' : 'Тренировки'}
+            {isImportingWorkouts ? t.profile.importingWorkouts : t.profile.workouts}
           </button>
           <button
             onClick={() => {
@@ -83,10 +85,10 @@ export function ProfileMenu({
             disabled={isImportingTemplates}
             className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
           >
-            {isImportingTemplates ? 'Импорт шаблонов...' : 'Шаблоны'}
+            {isImportingTemplates ? t.profile.importingTemplates : t.nav.templates}
           </button>
           <div className="px-4 pt-1 pb-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center whitespace-nowrap">
-            Экспорт
+            {t.profile.export}
           </div>
           <button
             onClick={async () => {
@@ -96,7 +98,7 @@ export function ProfileMenu({
             disabled={isExporting}
             className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
           >
-            {isExporting ? 'Экспорт тренировок...' : 'Тренировки'}
+            {isExporting ? t.profile.exportingWorkouts : t.profile.workouts}
           </button>
           <button
             onClick={async () => {
@@ -106,10 +108,10 @@ export function ProfileMenu({
             disabled={isExportingTemplates}
             className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 disabled:opacity-50 transition-colors rounded-lg"
           >
-            {isExportingTemplates ? 'Экспорт шаблонов...' : 'Шаблоны'}
+            {isExportingTemplates ? t.profile.exportingTemplates : t.nav.templates}
           </button>
           <div className="px-4 pt-1 pb-0 text-[11px] font-semibold uppercase tracking-wide text-gray-400 text-center whitespace-nowrap">
-            Данные и аккаунт
+            {t.profile.dataAndAccount}
           </div>
           <button
             onClick={() => {
@@ -118,7 +120,7 @@ export function ProfileMenu({
             }}
             className="w-full text-left px-4 py-1.5 text-sm text-white hover:bg-white/5 transition-colors rounded-lg"
           >
-            Очистить данные
+            {t.profile.cleanData}
           </button>
           <button
             onClick={() => {
@@ -128,7 +130,7 @@ export function ProfileMenu({
             disabled={isDeleting}
             className="w-full text-left px-4 py-1.5 text-sm text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors rounded-lg"
           >
-            {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
+            {isDeleting ? t.profile.deletingAccount : t.profile.deleteAccount}
           </button>
         </div>
       )}

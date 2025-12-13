@@ -1,5 +1,6 @@
 import React from 'react';
 import { WORKOUT_ICONS, WorkoutIconType } from './workout-icons';
+import { useI18n } from '../hooks/use-i18n';
 
 interface IconPickerProps {
   value: WorkoutIconType | null;
@@ -7,12 +8,13 @@ interface IconPickerProps {
 }
 
 const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
+  const { t } = useI18n();
   const iconTypes = Object.keys(WORKOUT_ICONS) as WorkoutIconType[];
 
   return (
     <div>
       <label className="block text-xl font-semibold mb-2 template-label">
-        Иконка дня
+        {t.iconPicker.title}
       </label>
       <div className="grid grid-cols-4 gap-2">
         {/* Кнопка "без иконки" */}
@@ -30,11 +32,12 @@ const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
               <circle cx="12" cy="12" r="9" strokeDasharray="4 2" />
             </svg>
           </div>
-          <span className="text-[10px] mt-1 text-gray-400 font-bold">Нет</span>
+          <span className="text-[10px] mt-1 text-gray-400 font-bold">{t.iconPicker.none}</span>
         </button>
 
         {iconTypes.map((iconType) => {
-          const { component: Icon, label, color } = WORKOUT_ICONS[iconType];
+          const { component: Icon, color } = WORKOUT_ICONS[iconType];
+          const label = t.iconPicker.icons[iconType as keyof typeof t.iconPicker.icons];
           const isSelected = value === iconType;
 
           return (
@@ -51,7 +54,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ value, onChange }) => {
               <div className="w-8 h-8 flex items-center justify-center" style={{ color }}>
                 <Icon size={24} />
               </div>
-              <span className="text-[10px] mt-1 text-gray-300 font-bold">{label}</span>
+              <span className="text-[10px] mt-1 text-gray-300 font-bold">{label || iconType}</span>
             </button>
           );
         })}

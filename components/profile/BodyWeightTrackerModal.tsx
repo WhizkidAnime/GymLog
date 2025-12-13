@@ -210,7 +210,7 @@ export function BodyWeightTrackerModal({
         onTouchMove={(e) => e.preventDefault()}
       />
       <div
-        className="relative glass card-dark p-5 rounded-2xl max-w-md w-full my-auto overflow-y-auto custom-scrollbar"
+        className="relative glass card-dark p-5 rounded-2xl max-w-md w-full my-auto flex flex-col"
         style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom) - 120px)' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -226,7 +226,7 @@ export function BodyWeightTrackerModal({
 
         <h2 className="text-xl font-semibold text-white pr-10">Трекер веса тела</h2>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4 overflow-y-auto custom-scrollbar pr-1 flex-1 min-h-0">
 
         {/* Форма добавления */}
         <div className="space-y-3 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -405,16 +405,14 @@ export function BodyWeightTrackerModal({
               {paginatedWeights.map((w) => (
                 <div
                   key={w.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                  className="grid grid-cols-[1fr_1fr_auto] items-center gap-3 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-white font-medium">
-                      {Number(w.weight).toFixed(2).replace('.', ',')} кг
-                    </span>
-                    <span className="text-sm text-gray-400">
-                      {formatDateDDMMYYYY(new Date(w.recorded_at).toISOString().slice(0, 10))}
-                    </span>
-                  </div>
+                  <span className="text-white font-medium tabular-nums">
+                    {Number(w.weight).toFixed(2).replace('.', ',')} кг
+                  </span>
+                  <span className="text-sm text-gray-400 tabular-nums text-right">
+                    {formatDateDDMMYYYY(new Date(w.recorded_at).toISOString().slice(0, 10))}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleOpenDeleteWeightConfirm(w.id)}
@@ -434,7 +432,7 @@ export function BodyWeightTrackerModal({
             </div>
           )}
         </div>
-        </div>
+      </div>
       </div>
 
       <ConfirmDialog

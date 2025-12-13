@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { extractTemplateFromLink, isValidTemplateLink } from '../utils/template-sharing';
 import type { ShareableTemplate } from '../utils/template-sharing';
 import TemplateSavedDialog from '../components/template-saved-dialog';
+import { useI18n } from '../hooks/use-i18n';
 
 type TemplateExerciseForCompare = {
   name: string;
@@ -87,6 +88,7 @@ function normalizeTemplateNameForComparison(name: string | null | undefined): st
 const TemplateImportPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const [template, setTemplate] = useState<ShareableTemplate | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -125,10 +127,10 @@ const TemplateImportPage = () => {
           setTemplate(extracted);
           setError(null);
         } else {
-          setError('Неверный формат ссылки на шаблон');
+          setError(t.templateImport.invalidLink);
         }
       } catch (err: any) {
-        setError(err.message || 'Не удалось загрузить шаблон из ссылки');
+        setError(err.message || t.templateImport.loadError);
       }
     };
 
@@ -148,7 +150,7 @@ const TemplateImportPage = () => {
     setCheckingClipboard(true);
     try {
       if (!navigator.clipboard || !navigator.clipboard.readText) {
-        throw new Error('Clipboard API недоступен в этом окружении');
+        throw new Error(t.templateImport.clipboardNoAccess);
       }
       const clipboardText = await navigator.clipboard.readText();
 
@@ -164,16 +166,16 @@ const TemplateImportPage = () => {
           setTemplate(extracted);
           setError(null);
         } else {
-          setError('В буфере обмена ссылка неверного формата');
+          setError(t.templateImport.clipboardInvalidLink);
         }
       } else {
-        setError('В буфере обмена нет ссылки на шаблон. Скопируйте ссылку и попробуйте снова.');
+        setError(t.templateImport.clipboardNoLink);
       }
     } catch (err: any) {
       if (err.name === 'NotAllowedError') {
-        setError('Нет доступа к буферу обмена. Вставьте ссылку вручную.');
+        setError(t.templateImport.clipboardPermissionDenied);
       } else {
-        setError('Не удалось прочитать буфер обмена: ' + err.message);
+        setError(t.templateImport.clipboardReadError + err.message);
       }
     } finally {
       setCheckingClipboard(false);
@@ -207,7 +209,7 @@ const TemplateImportPage = () => {
         // eslint-disable-next-line no-console
         console.error('Error checking existing templates before preview:', existingError);
         setImportInfoVariant('error');
-        setImportInfoMessage('Не удалось проверить существующие шаблоны перед импортом. Попробуйте ещё раз.');
+        setImportInfoMessage(t.templateImport.checkExistingError);
         setImportInfoOpen(true);
         return false;
       }
@@ -221,7 +223,7 @@ const TemplateImportPage = () => {
 
           if (areTemplatesStructurallyEqual(normalizedExisting, importedNormalized)) {
             setImportInfoVariant('error');
-            setImportInfoMessage('Такой шаблон уже есть в списке. Импорт по ссылке отменён.');
+            setImportInfoMessage(t.templateImport.duplicateExists);
             setImportInfoOpen(true);
             return true;
           }
@@ -250,7 +252,7 @@ const TemplateImportPage = () => {
       // eslint-disable-next-line no-console
       console.error('Unexpected error while checking templates before preview:', err);
       setImportInfoVariant('error');
-      setImportInfoMessage('Не удалось проверить существующие шаблоны перед импортом. Попробуйте ещё раз.');
+      setImportInfoMessage(t.templateImport.checkExistingError);
       setImportInfoOpen(true);
       return false;
     }
@@ -291,7 +293,7 @@ const TemplateImportPage = () => {
       .single();
 
     if (templateError || !newTemplate) {
-      throw templateError || new Error('Не удалось создать шаблон');
+      throw templateError || new Error(t.templateImport.createError);
     }
 
     const exercises = template.exercises.map(ex => ({
@@ -314,7 +316,7 @@ const TemplateImportPage = () => {
 
     navigate('/templates', { 
       state: { 
-        message: `Шаблон "${template.name}" успешно импортирован!` 
+        message: t.templateImport.importSuccess.replace('{name}', template.name) 
       } 
     });
   };
@@ -344,7 +346,7 @@ const TemplateImportPage = () => {
       if (existingError) {
         console.error('Error checking existing templates before import:', existingError);
         setImportInfoVariant('error');
-        setImportInfoMessage('Не удалось проверить существующие шаблоны перед импортом. Попробуйте ещё раз.');
+        setImportInfoMessage(t.templateImport.checkExistingError);
         setImportInfoOpen(true);
         return;
       }
@@ -374,7 +376,7 @@ const TemplateImportPage = () => {
 
         if (hasFullDuplicate) {
           setImportInfoVariant('error');
-          setImportInfoMessage('Такой шаблон уже есть в списке. Импорт по ссылке отменён.');
+          setImportInfoMessage(t.templateImport.duplicateExists);
           setImportInfoOpen(true);
           return;
         }
@@ -393,7 +395,7 @@ const TemplateImportPage = () => {
       await performTemplateInsert();
     } catch (err: any) {
       console.error('Error importing template:', err);
-      alert('Не удалось импортировать шаблон: ' + (err?.message || String(err)));
+      alert(t.templateImport.importError + (err?.message || String(err)));
     } finally {
       setImporting(false);
     }
@@ -413,7 +415,7 @@ const TemplateImportPage = () => {
     } catch (err: any) {
       console.error('Error replacing template:', err);
       setImportInfoVariant('error');
-      setImportInfoMessage('Не удалось заменить существующий шаблон. Попробуйте ещё раз.');
+      setImportInfoMessage(t.templateImport.replaceError);
       setImportInfoOpen(true);
     } finally {
       setImporting(false);
@@ -432,7 +434,7 @@ const TemplateImportPage = () => {
         typeof nameConflict.newTemplate?.name === 'string'
           ? nameConflict.newTemplate.name.trim()
           : '';
-      const newName = baseName ? `${baseName} (1)` : 'Новый шаблон (1)';
+      const newName = baseName ? `${baseName} (1)` : `${t.templateImport.newTemplateName} (1)`;
 
       setNameConflict(null);
       await performTemplateInsert(undefined, newName);
@@ -440,7 +442,7 @@ const TemplateImportPage = () => {
       // eslint-disable-next-line no-console
       console.error('Error creating new template with same name:', err);
       setImportInfoVariant('error');
-      setImportInfoMessage('Не удалось создать новый шаблон. Попробуйте ещё раз.');
+      setImportInfoMessage(t.templateImport.createNewError);
       setImportInfoOpen(true);
     } finally {
       setImporting(false);
@@ -448,10 +450,10 @@ const TemplateImportPage = () => {
   };
 
   const handleManualInput = async () => {
-    const pasted = window.prompt('Вставьте ссылку на шаблон из буфера обмена');
+    const pasted = window.prompt(t.templateImport.pastePrompt);
     if (!pasted) return;
     if (!isValidTemplateLink(pasted)) {
-      setError('Вставленный текст не является валидной ссылкой на шаблон');
+      setError(t.templateImport.invalidPastedLink);
       return;
     }
     const extracted = await extractTemplateFromLink(pasted);
@@ -465,7 +467,7 @@ const TemplateImportPage = () => {
       setTemplate(extracted);
       setError(null);
     } else {
-      setError('Не удалось извлечь шаблон из ссылки');
+      setError(t.templateImport.extractError);
     }
   };
 
@@ -473,12 +475,12 @@ const TemplateImportPage = () => {
     return (
       <div className="p-4 max-w-lg mx-auto">
         <div className="glass card-dark p-8 rounded-xl text-center">
-          <p className="text-gray-300 mb-4">Войдите, чтобы импортировать шаблоны</p>
+          <p className="text-gray-300 mb-4">{t.templateImport.loginRequired}</p>
           <button
             onClick={() => navigate('/login')}
             className="btn-glass btn-glass-md btn-glass-primary"
           >
-            Войти
+            {t.templateImport.login}
           </button>
         </div>
       </div>
@@ -496,7 +498,7 @@ const TemplateImportPage = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 className="text-2xl font-bold text-center flex-1">Импорт шаблона</h1>
+        <h1 className="text-2xl font-bold text-center flex-1">{t.templateImport.title}</h1>
       </div>
 
       {checkingClipboard && (
@@ -505,7 +507,7 @@ const TemplateImportPage = () => {
             <div className="relative w-12 h-12">
               <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
             </div>
-            <p className="text-white text-center">Проверка буфера обмена...</p>
+            <p className="text-white text-center">{t.templateImport.checkingClipboard}</p>
           </div>
         </div>
       )}
@@ -523,13 +525,13 @@ const TemplateImportPage = () => {
               onClick={checkClipboard}
               className="btn-glass btn-glass-full btn-glass-md btn-glass-primary"
             >
-              Проверить буфер снова
+              {t.templateImport.checkClipboardAgain}
             </button>
             <button
               onClick={handleManualInput}
               className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary"
             >
-              Вставить ссылку вручную
+              {t.templateImport.pasteManually}
             </button>
           </div>
         </div>
@@ -541,16 +543,16 @@ const TemplateImportPage = () => {
             <h2 className="text-xl font-bold text-white mb-4">{template.name}</h2>
             <div className="space-y-3">
               <p className="text-gray-300">
-                Упражнений: <span className="font-semibold text-white">{template.exercises.length}</span>
+                {t.templateImport.exercisesCount}: <span className="font-semibold text-white">{template.exercises.length}</span>
               </p>
               <div className="mt-4">
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Упражнения:</h3>
+                <h3 className="text-sm font-semibold text-gray-400 mb-2">{t.templateImport.exercisesList}</h3>
                 <div className="space-y-2">
                   {template.exercises.map((ex, i) => (
                     <div key={i} className="text-sm text-gray-300 pl-4 border-l-2 border-white/20">
                       <div className="font-medium text-white">{ex.name}</div>
                       <div className="text-xs text-gray-400">
-                        {ex.sets} подходов × {ex.reps} повторов • Отдых: {ex.rest_seconds}с
+                        {t.templateImport.setsReps.replace('{sets}', String(ex.sets)).replace('{reps}', ex.reps).replace('{rest}', String(ex.rest_seconds))}
                       </div>
                     </div>
                   ))}
@@ -567,10 +569,10 @@ const TemplateImportPage = () => {
             {importing ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Импорт...</span>
+                <span>{t.templateImport.importing}</span>
               </div>
             ) : (
-              'Добавить шаблон'
+              t.templateImport.addTemplate
             )}
           </button>
           <button
@@ -578,7 +580,7 @@ const TemplateImportPage = () => {
             disabled={importing}
             className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary disabled:opacity-50"
           >
-            Отменить
+            {t.templateImport.cancel}
           </button>
         </div>
       )}
@@ -589,20 +591,20 @@ const TemplateImportPage = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <p className="text-gray-400 mb-4">
-            Скопируйте ссылку на шаблон и нажмите кнопку ниже
+            {t.templateImport.copyLinkHint}
           </p>
           <button
             onClick={checkClipboard}
             className="btn-glass btn-glass-md btn-glass-primary"
           >
-            Импортировать из буфера
+            {t.templateImport.importFromClipboard}
           </button>
           <div className="mt-2">
             <button
               onClick={handleManualInput}
               className="btn-glass btn-glass-md btn-glass-secondary"
             >
-              Вставить ссылку вручную
+              {t.templateImport.pasteManually}
             </button>
           </div>
         </div>
@@ -630,14 +632,13 @@ const TemplateImportPage = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-white text-center">Шаблон с таким названием уже существует</h2>
+            <h2 className="text-lg font-semibold text-white text-center">{t.templateImport.conflictTitle}</h2>
             <p className="text-sm text-gray-300 text-center">
-              Текущий шаблон «{nameConflict.existingName || 'Без названия'}» отличается от шаблона из
-              ссылки. Проверьте различия и выберите действие.
+              {t.templateImport.conflictDesc.replace('{name}', nameConflict.existingName || t.templateImport.noName)}
             </p>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <div className="font-semibold text-gray-200 mb-1">Существующий</div>
+                <div className="font-semibold text-gray-200 mb-1">{t.templateImport.existing}</div>
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {nameConflict.existingExercises
                     .slice()
@@ -654,18 +655,19 @@ const TemplateImportPage = () => {
                         key={ex.id ?? `${ex.name || 'exercise'}-${index}`}
                         className="text-xs text-gray-300 pl-3 border-l border-white/10"
                       >
-                        <div className="font-medium text-white">{ex.name || 'Без названия'}</div>
+                        <div className="font-medium text-white">{ex.name || t.templateImport.noName}</div>
                         <div className="text-[11px] text-gray-400">
-                          {typeof ex.sets === 'number' ? ex.sets : '-'} подходов ×{' '}
-                          {typeof ex.reps === 'string' ? ex.reps : '-'} повторов • Отдых:{' '}
-                          {typeof ex.rest_seconds === 'number' ? ex.rest_seconds : '-'}с
+                          {t.templateImport.setsReps
+                            .replace('{sets}', String(typeof ex.sets === 'number' ? ex.sets : '-'))
+                            .replace('{reps}', typeof ex.reps === 'string' ? ex.reps : '-')
+                            .replace('{rest}', String(typeof ex.rest_seconds === 'number' ? ex.rest_seconds : '-'))}
                         </div>
                       </div>
                     ))}
                 </div>
               </div>
               <div>
-                <div className="font-semibold text-gray-200 mb-1">Из ссылки</div>
+                <div className="font-semibold text-gray-200 mb-1">{t.templateImport.fromLink}</div>
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {nameConflict.newTemplate.exercises
                     .slice()
@@ -678,9 +680,9 @@ const TemplateImportPage = () => {
                         key={`${ex.name || 'new-exercise'}-${index}`}
                         className="text-xs text-gray-300 pl-3 border-l border-white/10"
                       >
-                        <div className="font-medium text-white">{ex.name || 'Без названия'}</div>
+                        <div className="font-medium text-white">{ex.name || t.templateImport.noName}</div>
                         <div className="text-[11px] text-gray-400">
-                          {ex.sets} подходов × {ex.reps} повторов • Отдых: {ex.rest_seconds}с
+                          {t.templateImport.setsReps.replace('{sets}', String(ex.sets)).replace('{reps}', ex.reps).replace('{rest}', String(ex.rest_seconds))}
                         </div>
                       </div>
                     ))}
@@ -694,7 +696,7 @@ const TemplateImportPage = () => {
                 disabled={importing}
                 className="btn-glass btn-glass-full btn-glass-md btn-glass-primary disabled:opacity-50"
               >
-                {importing ? 'Замена...' : 'Заменить существующий шаблон'}
+                {importing ? t.templateImport.replacing : t.templateImport.replaceExisting}
               </button>
               <button
                 type="button"
@@ -702,7 +704,7 @@ const TemplateImportPage = () => {
                 disabled={importing}
                 className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary disabled:opacity-50"
               >
-                Создать новый шаблон ("{nameConflict.newTemplate.name}" → "{nameConflict.newTemplate.name} (1)")
+                {t.templateImport.createNew} ("{nameConflict.newTemplate.name}" → "{nameConflict.newTemplate.name} (1)")
               </button>
               <button
                 type="button"
@@ -710,7 +712,7 @@ const TemplateImportPage = () => {
                 disabled={importing}
                 className="btn-glass btn-glass-full btn-glass-md btn-glass-secondary disabled:opacity-50"
               >
-                Отменить
+                {t.templateImport.cancel}
               </button>
             </div>
           </div>
@@ -731,7 +733,7 @@ const TemplateImportPage = () => {
         }}
         message={
           importInfoMessage ||
-          'Не удалось импортировать шаблон.'
+          t.templateImport.importError
         }
         variant={importInfoVariant}
       />
