@@ -251,8 +251,9 @@ export function useWorkoutData() {
 
     db
       .from('workout_templates')
-      .select('id, name, created_at, user_id, icon')
+      .select('id, name, created_at, user_id, icon, is_archived')
       .eq('user_id', user.id)
+      .eq('is_archived', false)
       .then(({ data, error }: { data: WorkoutTemplate[] | null; error: any }) => {
         if (error) {
           console.error('Error fetching templates:', error.message);

@@ -16,6 +16,7 @@ import { useI18n } from '../hooks/use-i18n';
 const db = supabase as any;
 
 type TabType = 'exercises' | 'cardio';
+type ExerciseSortType = 'alphabetical' | 'lastAdded' | 'mostFrequent';
 
 type CardioWeek = {
   weekStart: string;
@@ -72,8 +73,17 @@ const ProgressPage = () => {
   const [customTo, setCustomTo] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const monthDropdownRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const [exerciseSort, setExerciseSort] = useState<ExerciseSortType>(() => {
+    try {
+      return (localStorage.getItem('progress:exerciseSort') as ExerciseSortType) || 'lastAdded';
+    } catch {
+      return 'lastAdded';
+    }
+  });
 
   // Cardio tab state
   const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -170,13 +180,22 @@ const ProgressPage = () => {
       if (monthDropdownRef.current && !monthDropdownRef.current.contains(e.target as Node)) {
         setIsMonthDropdownOpen(false);
       }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target as Node)) {
+        setIsSortDropdownOpen(false);
+      }
     };
 
-    if (isDropdownOpen || isMonthDropdownOpen) {
+    if (isDropdownOpen || isMonthDropdownOpen || isSortDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isDropdownOpen, isMonthDropdownOpen]);
+  }, [isDropdownOpen, isMonthDropdownOpen, isSortDropdownOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('progress:exerciseSort', exerciseSort);
+    } catch {}
+  }, [exerciseSort]);
 
   // Save active tab
   useEffect(() => {
@@ -561,9 +580,30 @@ const ProgressPage = () => {
     return `${sign}${value.toFixed(1)}%`;
   }, [filteredDataPoints]);
 
+  const sortedExercises = useMemo(() => {
+    const sorted = [...exercises];
+    switch (exerciseSort) {
+      case 'lastAdded':
+        return sorted.sort((a, b) => {
+          if (!a.lastSetDate && !b.lastSetDate) return a.name.localeCompare(b.name, 'ru');
+          if (!a.lastSetDate) return 1;
+          if (!b.lastSetDate) return -1;
+          return b.lastSetDate.localeCompare(a.lastSetDate);
+        });
+      case 'mostFrequent':
+        return sorted.sort((a, b) => {
+          if (b.totalSets !== a.totalSets) return b.totalSets - a.totalSets;
+          return a.name.localeCompare(b.name, 'ru');
+        });
+      case 'alphabetical':
+      default:
+        return sorted.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    }
+  }, [exercises, exerciseSort]);
+
   const filteredExercises = searchQuery.trim()
-    ? exercises.filter((ex) => normalizeExerciseName(ex.name).includes(normalizeExerciseName(searchQuery)))
-    : exercises;
+    ? sortedExercises.filter((ex) => normalizeExerciseName(ex.name).includes(normalizeExerciseName(searchQuery)))
+    : sortedExercises;
 
   if (loading && activeTab === 'exercises') {
     return <WorkoutLoadingOverlay message={t.progress.loading} />;
@@ -631,31 +671,71 @@ const ProgressPage = () => {
       {/* Список упражнений */}
       {!selectedExercise && activeTab === 'exercises' && (
         <div className="space-y-3">
-          <div className="glass card-dark rounded-full px-4 py-3 search-container">
-            <div className="flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 text-gray-400">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z" />
-              </svg>
-              <input
-                ref={inputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t.progress.search}
-                aria-label={t.progress.search}
-                className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
-              />
+          <div className="flex gap-2">
+            <div className="flex-1 glass card-dark rounded-full px-4 py-3 search-container">
+              <div className="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5 text-gray-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z" />
+                </svg>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t.progress.search}
+                  aria-label={t.progress.search}
+                  className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setSearchQuery(''); inputRef.current?.focus(); }}
+                  aria-label={t.common.clear}
+                  aria-hidden={!searchQuery}
+                  className={`shrink-0 w-7 h-7 grid place-items-center rounded-full text-gray-400 hover:text-gray-200 hover:bg-white/10 transition ${searchQuery ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div ref={sortDropdownRef} className="relative flex items-center">
               <button
                 type="button"
-                onClick={() => { setSearchQuery(''); inputRef.current?.focus(); }}
-                aria-label={t.common.clear}
-                aria-hidden={!searchQuery}
-                className={`shrink-0 w-7 h-7 grid place-items-center rounded-full text-gray-400 hover:text-gray-200 hover:bg-white/10 transition ${searchQuery ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                className="w-11 h-11 grid place-items-center rounded-full bg-transparent hover:bg-white/10 active:bg-white/10 transition-colors leading-none"
+                aria-label={t.progress.sort.label}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-7 w-7 text-gray-400 block">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
                 </svg>
               </button>
+
+              {isSortDropdownOpen && (
+                <div className="absolute top-full right-0 mt-2 w-56 rounded-lg shadow-lg border border-white/10 z-50 progress-dropdown-menu">
+                  {([
+                    { id: 'alphabetical', label: t.progress.sort.alphabetical },
+                    { id: 'lastAdded', label: t.progress.sort.lastAdded },
+                    { id: 'mostFrequent', label: t.progress.sort.mostFrequent },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        setExerciseSort(opt.id);
+                        setIsSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors border-b border-white/5 last:border-0 ${
+                        exerciseSort === opt.id
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'text-gray-200 hover:bg-white/10'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

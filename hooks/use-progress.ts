@@ -9,6 +9,7 @@ import { normalizeExerciseName } from '../utils/exercise-name';
 export type ExerciseOption = {
   name: string;
   totalSets: number;
+  lastSetDate: string | null;
 };
 
 export type ProgressPageState = {
@@ -87,18 +88,26 @@ export function useProgress() {
 
       const { data: progressRows, error: pErr } = await supabase
         .from('exercise_progress_view')
-        .select('workout_id, exercise_id, max_weight')
+        .select('workout_id, exercise_id, max_weight, workout_date')
         .in('workout_id', workoutIds);
       if (pErr) throw pErr;
 
-      const statsByExerciseId = new Map<string, number>();
+      const statsByExerciseId = new Map<string, { total: number; lastSetDate: string | null }>();
 
       (progressRows || []).forEach((row: any) => {
         const id = row.exercise_id as string | null;
         const weight = row.max_weight || 0;
+        const workoutDate = row.workout_date as string | null;
         if (!id || weight <= 0) return;
-        const prev = statsByExerciseId.get(id) || 0;
-        statsByExerciseId.set(id, prev + 1);
+        const prev = statsByExerciseId.get(id);
+        if (prev) {
+          const newerDate = workoutDate && (!prev.lastSetDate || workoutDate > prev.lastSetDate)
+            ? workoutDate
+            : prev.lastSetDate;
+          statsByExerciseId.set(id, { total: prev.total + 1, lastSetDate: newerDate });
+        } else {
+          statsByExerciseId.set(id, { total: 1, lastSetDate: workoutDate });
+        }
       });
 
       if (statsByExerciseId.size === 0) {
@@ -114,30 +123,35 @@ export function useProgress() {
 
       const normalize = normalizeExerciseName;
 
-      const exerciseMap = new Map<string, { name: string; total: number }>();
+      const exerciseMap = new Map<string, { name: string; total: number; lastSetDate: string | null }>();
 
       (exerciseRows || []).forEach((ex: any) => {
         const rawName = (ex.name ?? '').trim();
         if (!rawName) return;
         const key = normalize(rawName);
-        const totalSessions = statsByExerciseId.get(ex.id as string) || 0;
-        if (totalSessions <= 0) return;
+        const stats = statsByExerciseId.get(ex.id as string);
+        if (!stats || stats.total <= 0) return;
         const prev = exerciseMap.get(key);
         if (prev) {
+          const newerDate = stats.lastSetDate && (!prev.lastSetDate || stats.lastSetDate > prev.lastSetDate)
+            ? stats.lastSetDate
+            : prev.lastSetDate;
           exerciseMap.set(key, {
             name: prev.name.length >= rawName.length ? prev.name : rawName,
-            total: prev.total + totalSessions,
+            total: prev.total + stats.total,
+            lastSetDate: newerDate,
           });
         } else {
           exerciseMap.set(key, {
             name: rawName,
-            total: totalSessions,
+            total: stats.total,
+            lastSetDate: stats.lastSetDate,
           });
         }
       });
 
       const options: ExerciseOption[] = Array.from(exerciseMap.values())
-        .map(({ name, total }) => ({ name, totalSets: total }))
+        .map(({ name, total, lastSetDate }) => ({ name, totalSets: total, lastSetDate }))
         .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
       setExercisesCache({ loaded: true, exercises: options });

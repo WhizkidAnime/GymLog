@@ -14,6 +14,7 @@ const TemplatesPage = React.lazy(() => import('./pages/TemplatesPage'));
 const TemplateEditorPage = React.lazy(() => import('./pages/TemplateEditorPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const TemplateImportPage = React.lazy(() => import('./pages/TemplateImportPage'));
+const TemplatesArchivePage = React.lazy(() => import('./pages/TemplatesArchivePage'));
 const ExerciseHistoryPage = React.lazy(() => import('./pages/ExerciseHistoryPage'));
 const ProgressPage = React.lazy(() => import('./pages/ProgressPage'));
 
@@ -126,6 +127,14 @@ const AppRoutes = () => {
           element={
             <Suspense fallback={<WorkoutLoadingOverlay message="" />}>
               <TemplatesPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="templates/archive"
+          element={
+            <Suspense fallback={<WorkoutLoadingOverlay message="" />}>
+              <TemplatesArchivePage />
             </Suspense>
           }
         />

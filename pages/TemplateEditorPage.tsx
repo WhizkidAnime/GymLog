@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 import { useI18n } from '../hooks/use-i18n';
@@ -28,8 +28,13 @@ const TemplateEditorPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useI18n();
   const db = supabase as any;
+
+  const returnPath = (location.state as any)?.from === 'archive'
+    ? '/templates/archive'
+    : '/templates';
 
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<WorkoutIconType | null>(null);
@@ -60,7 +65,7 @@ const TemplateEditorPage = () => {
   const BackButton = ({ className = '' }: { className?: string }) => (
     <button
       type="button"
-      onClick={() => navigate('/templates')}
+      onClick={() => navigate(returnPath)}
       className={`inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white transition-colors bg-transparent hover:border-white active:border-white focus:outline-none back-button-plain ${className}`}
       aria-label={t.templateEditor.backToTemplates}
     >
@@ -380,7 +385,7 @@ const TemplateEditorPage = () => {
       <TemplateSavedDialog
         open={savedDialogOpen}
         onOpenChange={setSavedDialogOpen}
-        onClose={() => navigate('/templates')}
+        onClose={() => navigate(returnPath)}
       />
     </div>
   );

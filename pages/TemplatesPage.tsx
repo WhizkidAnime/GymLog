@@ -15,15 +15,18 @@ import { useWorkoutActionsMenu } from '../hooks/use-workout-actions-menu';
 import { WORKOUT_ICONS, WorkoutIconType } from '../components/workout-icons';
 
 import ImportIcon from '../src/assets/icons/import.svg';
+import ArchiveIcon from '../src/assets/icons/archive.svg';
 
 const TemplateDeleteButton: React.FC<{ 
   id: string; 
   name: string;
   onDeleted: (id: string) => void;
+  onArchived: (id: string) => void;
   onShare: (id: string, name: string) => void;
-}> = ({ id, name, onDeleted, onShare }) => {
+}> = ({ id, name, onDeleted, onArchived, onShare }) => {
   const { t } = useI18n();
   const [busy, setBusy] = React.useState(false);
+  const [archiving, setArchiving] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const {
     isActionsOpen,
@@ -42,6 +45,25 @@ const TemplateDeleteButton: React.FC<{
   const handleDeleteClick = () => {
     closeActions();
     setOpen(true);
+  };
+
+  const handleArchiveClick = async () => {
+    if (archiving) return;
+    closeActions();
+    setArchiving(true);
+    try {
+      const { error } = await supabase
+        .from('workout_templates')
+        .update({ is_archived: true })
+        .eq('id', id);
+      if (error) throw error;
+      onArchived(id);
+    } catch (e) {
+      console.error('Error archiving template', e);
+      alert(t.templates.archiveError);
+    } finally {
+      setArchiving(false);
+    }
   };
 
   const confirmDelete = async () => {
@@ -78,7 +100,7 @@ const TemplateDeleteButton: React.FC<{
           ref={actionsBtnRef}
           onClick={toggleActions}
           className="p-2 text-white hover:text-gray-300 transition-colors"
-          aria-label="Меню шаблона"
+          aria-label={t.templates.menuLabel}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 8c1.1 0 2-1 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 1-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 1-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
@@ -96,6 +118,13 @@ const TemplateDeleteButton: React.FC<{
               className="w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-white/10 transition-colors rounded-lg"
             >
               {t.templates.share}
+            </button>
+            <button
+              onClick={handleArchiveClick}
+              disabled={archiving}
+              className="w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-white/10 disabled:opacity-50 transition-colors rounded-lg"
+            >
+              {archiving ? t.templates.archiving : t.templates.addToArchive}
             </button>
             <button
               onClick={handleDeleteClick}
@@ -162,8 +191,9 @@ const TemplatesPage = () => {
 
     const { data, error } = await supabase
       .from('workout_templates')
-      .select('id, name, created_at, user_id, icon')
+      .select('id, name, created_at, user_id, icon, is_archived')
       .eq('user_id', user.id)
+      .eq('is_archived', false)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -176,6 +206,11 @@ const TemplatesPage = () => {
   const handleDeleted = (deletedId: string) => {
     // Удаляем из локального состояния сразу и перезапрашиваем список в фоне
     setPageState(prev => ({ ...prev, templates: prev.templates.filter(t => t.id !== deletedId) }));
+    fetchTemplates();
+  };
+
+  const handleArchived = (archivedId: string) => {
+    setPageState(prev => ({ ...prev, templates: prev.templates.filter(t => t.id !== archivedId) }));
     fetchTemplates();
   };
 
@@ -259,8 +294,9 @@ const TemplatesPage = () => {
           if (!user) return;
           const { data } = await supabase
             .from('workout_templates')
-            .select('id, name, created_at, user_id, icon')
+            .select('id, name, created_at, user_id, icon, is_archived')
             .eq('user_id', user.id)
+            .eq('is_archived', false)
             .order('created_at', { ascending: false });
           setTemplates(data || []);
         })();
@@ -274,9 +310,16 @@ const TemplatesPage = () => {
 
   return (
     <div className="p-4 pb-24">
-      <div className="relative flex justify-start items-center mb-4">
+      <div className="flex items-end justify-between mb-4">
         <h1 className="text-3xl font-bold">{t.templates.title}</h1>
-        <div className="absolute right-0 -top-3 h-10 w-28" aria-hidden="true" />
+        <Link
+          to="/templates/archive"
+          className="archive-icon-link px-2 pt-2 pb-[5px] transition-colors"
+          aria-label={t.templates.archive}
+          title={t.templates.archive}
+        >
+          <img src={ArchiveIcon} alt="" className="archive-icon-img h-6 w-6" />
+        </Link>
       </div>
       
       {shareSuccess && (
@@ -315,6 +358,7 @@ const TemplatesPage = () => {
                   id={template.id} 
                   name={template.name}
                   onDeleted={handleDeleted}
+                  onArchived={handleArchived}
                   onShare={handleShare}
                 />
             </div>
@@ -334,9 +378,9 @@ const TemplatesPage = () => {
         <button
           onClick={() => navigate('/templates/import')}
           className="glass-button-create"
-          title="Импортировать шаблон"
+          title={t.templates.importTemplate}
         >
-          <img src={ImportIcon} alt="Импорт шаблона" className="h-5 w-5" />
+          <img src={ImportIcon} alt={t.templates.importTemplate} className="h-5 w-5" />
         </button>
       </div>
 

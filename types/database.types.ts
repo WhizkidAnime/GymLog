@@ -133,6 +133,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_archived: boolean
           name: string
           user_id: string
           icon: string | null
@@ -140,6 +141,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_archived?: boolean
           name: string
           user_id: string
           icon?: string | null
@@ -147,6 +149,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_archived?: boolean
           name?: string
           user_id?: string
           icon?: string | null

@@ -100,6 +100,30 @@ select {
   color: rgba(0, 0, 0, 0.4) !important;
 }
 
+/* Иконка архива: белая в тёмной теме, чёрная в светлой */
+.archive-icon-link {
+  color: inherit;
+}
+.archive-icon-link:hover {
+  color: inherit;
+}
+.light-theme .archive-icon-link {
+  color: inherit;
+}
+.light-theme .archive-icon-link:hover {
+  color: inherit;
+}
+
+.archive-icon-img {
+  filter: invert(1) brightness(2) contrast(1.2);
+}
+.archive-icon-link:hover .archive-icon-img {
+  opacity: 0.8;
+}
+.light-theme .archive-icon-img {
+  filter: invert(0);
+}
+
 input::placeholder,
 textarea::placeholder {
   color: rgba(161,161,170,0.4); /* заметно более бледный placeholder */
@@ -722,6 +746,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: var(--glass-bg);
   border-color: var(--glass-border);
   box-shadow: 0 4px 20px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+
+/* Templates archive checkbox */
+.archive-checkbox {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.4);
+}
+
+.light-theme .archive-checkbox:not(.bg-green-500) {
+  background: rgba(0,0,0,0.04);
+}
+
+.light-theme .archive-checkbox:not(.border-green-400) {
+  border-color: rgba(0,0,0,0.35);
 }
 
 /* Текст */
