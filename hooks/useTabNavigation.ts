@@ -70,6 +70,10 @@ const getTabFromPath = (path: string): keyof Omit<TabPaths, 'lastUpdated'> | nul
   return null;
 };
 
+const isRootTabPath = (path: string): boolean => {
+  return path === '/calendar' || path === '/exercise-history' || path === '/templates' || path === '/profile';
+};
+
 export const useTabNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,17 +89,16 @@ export const useTabNavigation = () => {
   // Функция для навигации к вкладке с восстановлением последнего пути
   const navigateToTab = (targetTab: 'calendar' | 'search' | 'templates' | 'profile') => {
     const currentPath = location.pathname;
+    const currentTab = getTabFromPath(currentPath);
 
-    // Если мы на странице конкретной тренировки, клик по вкладке календаря
-    // всегда возвращает в корень календаря
-    if (targetTab === 'calendar' && currentPath.startsWith('/workout')) {
-      navigate(DEFAULT_PATHS.calendar);
+    // Если уже на нужной вкладке
+    if (currentTab === targetTab) {
+      // Если на вложенной странице (не корневой) - возвращаемся в корень вкладки
+      if (!isRootTabPath(currentPath)) {
+        navigate(DEFAULT_PATHS[targetTab]);
+      }
       return;
     }
-
-    // Если уже на нужной вкладке (и это не workout-страница для календаря), ничего не делаем
-    const currentTab = getTabFromPath(currentPath);
-    if (currentTab === targetTab) return;
 
     const storedPaths = getStoredPaths();
     const fallback = DEFAULT_PATHS[targetTab];

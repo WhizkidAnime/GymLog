@@ -179,7 +179,7 @@ const AppRoutes = () => {
           }
         />
         <Route
-          path="progress"
+          path="profile/progress"
           element={
             <Suspense fallback={null}>
               <ProgressPage />

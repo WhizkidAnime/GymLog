@@ -410,6 +410,22 @@ body::before {
   transform: translate(-50%, 0);
 }
 
+.light-theme .dock-item {
+  color: rgba(0,0,0,0.55);
+}
+
+.light-theme .dock-item:hover {
+  color: rgba(0,0,0,0.75);
+}
+
+.light-theme .dock-item.active {
+  color: #1d1d1f;
+}
+
+.light-theme .dock-item.active .icon svg {
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.35));
+}
+
 /* Fallback без backdrop-filter */
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .glass-dock {
@@ -433,13 +449,11 @@ body::before {
   font-weight: 600;
   text-decoration: none;
   color: #fff;
-  background: color-mix(in oklab, var(--glass-bg) 90%, transparent);
+  background: rgba(255,255,255,0.8);
   -webkit-backdrop-filter: saturate(170%) blur(16px);
   backdrop-filter: saturate(170%) blur(16px);
-  border: 1px solid rgba(255,255,255,0.15);
-  box-shadow: 
-    0 10px 24px rgba(0,0,0,0.35), 
-    inset 0 1px 0 rgba(255,255,255,0.12);
+  border: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
   transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -447,16 +461,12 @@ body::before {
 
 .btn-glass:hover {
   transform: translateY(-1px);
-  box-shadow: 
-    0 14px 28px rgba(0,0,0,0.4), 
-    inset 0 1px 0 rgba(255,255,255,0.15);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.95);
 }
 
 .btn-glass:active {
   transform: translateY(0) scale(0.98);
-  box-shadow: 
-    0 6px 16px rgba(0,0,0,0.3), 
-    inset 0 1px 0 rgba(255,255,255,0.1);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.85);
 }
 
 .btn-glass:disabled {
@@ -486,74 +496,71 @@ body::before {
 
 /* Цветовые варианты */
 
-/* Акцентная синяя кнопка */
-.btn-glass-primary {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #3b82f6 50%, transparent),
-    color-mix(in oklab, #2563eb 60%, transparent)
-  );
-  border-color: rgba(59, 130, 246, 0.4);
+  /* Акцентная синяя кнопка */
+  .btn-glass-primary {
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
   color: #fff;
-}
+  border-color: rgba(59, 130, 246, 0.5);
+  }
 
-.btn-glass-primary:hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #3b82f6 60%, transparent),
-    color-mix(in oklab, #2563eb 70%, transparent)
-  );
-}
+  .btn-glass-primary:hover {
+  background: linear-gradient(180deg, #4f8ff7, #2d6bf0);
+  }
 
-/* Зелёная кнопка (успех) */
-.btn-glass-success {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #10b981 50%, transparent),
-    color-mix(in oklab, #059669 60%, transparent)
-  );
-  border-color: rgba(16, 185, 129, 0.4);
+  /* Зелёная кнопка (успех) */
+  .btn-glass-success {
+  background: linear-gradient(180deg, #10b981, #059669);
   color: #fff;
-}
+  border-color: rgba(16, 185, 129, 0.5);
+  }
 
-.btn-glass-success:hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #10b981 60%, transparent),
-    color-mix(in oklab, #059669 70%, transparent)
-  );
-}
+  .btn-glass-success:hover {
+  background: linear-gradient(180deg, #23c08f, #0a9f74);
+  }
 
-/* Красная кнопка (опасность) */
-.btn-glass-danger {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #ef4444 50%, transparent),
-    color-mix(in oklab, #dc2626 60%, transparent)
-  );
-  border-color: rgba(239, 68, 68, 0.4);
+  /* Красная кнопка (опасность) */
+  .btn-glass-danger {
+  background: linear-gradient(180deg, #ef4444, #dc2626);
   color: #fff;
-}
+  border-color: rgba(239, 68, 68, 0.5);
+  }
 
-.btn-glass-danger:hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #ef4444 60%, transparent),
-    color-mix(in oklab, #dc2626 70%, transparent)
-  );
-}
+  .btn-glass-danger:hover {
+  background: linear-gradient(180deg, #f25555, #e03535);
+  }
 
-/* Серая кнопка (вторичная) */
-.btn-glass-secondary {
-  background: color-mix(in oklab, var(--glass-bg) 85%, transparent);
-  border-color: rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.9);
-}
+  /* Красная кнопка (logout) */
+  .btn-glass-logout {
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+  color: #fff;
+  border-color: rgba(239, 68, 68, 0.5);
+  }
 
-.btn-glass-secondary:hover {
-  background: color-mix(in oklab, var(--glass-bg) 95%, transparent);
+  .btn-glass-logout:hover {
+  background: linear-gradient(180deg, #f25555, #e03535);
+  }
+
+  /* Серая кнопка (вторичная) */
+  .btn-glass-secondary {
+  background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.18);
-}
+  color: inherit;
+  }
+
+  .btn-glass-secondary:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.24);
+  }
+
+  .light-theme .btn-glass-secondary {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.12);
+  color: inherit;
+  }
+
+  .light-theme .btn-glass-secondary:hover {
+  background: rgba(0,0,0,0.08);
+  }
 
 /* Полная ширина */
 .btn-glass-full { width: 100%; }
@@ -561,24 +568,26 @@ body::before {
 /* Кнопка-иконка (квадратная) */
 .btn-glass-icon { padding: 10px; aspect-ratio: 1; }
 
-/* Кнопка с бордером (outline стиль) */
-.btn-glass-outline {
-  background: transparent;
-  border: 2px solid rgba(255,255,255,0.2);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  box-shadow: none;
-}
+  /* Кнопка с бордером (outline стиль) */
+  .btn-glass-outline {
+   background: transparent;
+  border: 2px solid rgba(0,0,0,0.2);
+   -webkit-backdrop-filter: none;
+   backdrop-filter: none;
+   box-shadow: none;
+  }
 
-.btn-glass-outline:hover {
-  background: color-mix(in oklab, var(--glass-bg) 40%, transparent);
-  border-color: rgba(255,255,255,0.3);
-}
+  .btn-glass-outline:hover {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.3);
+  }
 
 /* Жёлтая предупреждающая кнопка */
 .btn-glass-warning {
   background: linear-gradient(
     180deg,
+    #eab308 50%,
+    #ca8a04 60%
     color-mix(in oklab, #eab308 50%, transparent),
     color-mix(in oklab, #ca8a04 60%, transparent)
   );
@@ -653,25 +662,6 @@ body::before {
 .btn-dashed:active { transform: scale(0.99); }
 .btn-dashed:disabled { opacity: .5; cursor: not-allowed; }
 
-/* Красная glass-кнопка (logout) */
-.btn-glass-logout {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #ef4444 45%, transparent),
-    color-mix(in oklab, #dc2626 55%, transparent)
-  );
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #fff;
-}
-
-.btn-glass-logout:hover {
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, #ef4444 55%, transparent),
-    color-mix(in oklab, #dc2626 65%, transparent)
-  );
-}
-
 /* Универсальный класс для поповеров меню с матовым стеклом */
 .menu-popover {
   background: var(--glass-bg);
@@ -729,6 +719,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .light-theme body {
   background: var(--bg);
   color: var(--fg);
+}
+
+.light-theme .btn-glass {
+  color: #1d1d1f;
+}
+
+.light-theme .btn-glass-primary,
+.light-theme .btn-glass-success,
+.light-theme .btn-glass-danger,
+.light-theme .btn-glass-logout {
+  color: #fff;
 }
 
 .light-theme body::before {
@@ -831,89 +832,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Кнопки glass */
-.light-theme .btn-glass {
-  background: rgba(255,255,255,0.8);
-  border-color: rgba(0,0,0,0.1);
-  color: #1d1d1f;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
-}
-
-.light-theme .btn-glass-primary {
-  background: linear-gradient(180deg, #3b82f6, #2563eb);
-  color: #fff;
-  border-color: rgba(59, 130, 246, 0.5);
-}
-
-.light-theme .btn-glass-secondary {
-  background: rgba(0,0,0,0.05);
-  border-color: rgba(0,0,0,0.12);
-  color: #3d3d3f;
-}
-
-.light-theme .btn-glass-danger,
-.light-theme .btn-glass-logout {
-  background: linear-gradient(180deg, #ef4444, #dc2626);
-  color: #fff;
-  border-color: rgba(239, 68, 68, 0.5);
-}
-
-/* Bottom dock */
-.light-theme .glass-dock {
-  background: rgba(255,255,255,0.85);
-  border-color: rgba(0,0,0,0.1);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
-}
-
-.light-theme .dock-item {
-  color: rgba(0,0,0,0.5);
-}
-
-.light-theme .dock-item.active {
-  color: #1d1d1f;
-}
-
-.light-theme .dock-item.active .icon svg {
-  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.4));
-}
-
-/* Меню popover */
-.light-theme .menu-popover {
-  background: rgba(255,255,255,0.95);
-  border-color: rgba(0,0,0,0.1);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-}
-
-.light-theme .menu-popover button:hover {
-  background: rgba(0,0,0,0.05);
-}
-
-/* Status bar blur */
-.light-theme .status-bar-blur {
-  background: rgba(245, 245, 247, 0.7);
-}
-
-/* Фон white/X */
-.light-theme .bg-white\/5 {
-  background-color: rgba(0,0,0,0.03);
-}
-
-.light-theme .bg-white\/10 {
-  background-color: rgba(0,0,0,0.06);
-}
-
-.light-theme .bg-white\/20 {
-  background-color: rgba(0,0,0,0.1);
-}
-
-/* Границы white/X */
-.light-theme .border-white\/10 {
-  border-color: rgba(0,0,0,0.08);
-}
-
-.light-theme .border-white\/20 {
-  border-color: rgba(0,0,0,0.12);
-}
-
 /* Hover states */
 .light-theme .hover\:bg-white\/5:hover {
   background-color: rgba(0,0,0,0.03);
@@ -1061,8 +979,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* SVG иконки в кнопках */
-.light-theme .btn-glass svg,
-.light-theme .btn-glass-secondary svg {
+.btn-glass svg {
   color: inherit;
 }
 
@@ -1247,17 +1164,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Меню кнопка */
 .light-theme .profile-page button.text-white {
   color: #1d1d1f;
-}
-
-/* Кнопки в профиле */
-.light-theme .btn-glass-secondary {
-  background: rgba(0, 0, 0, 0.05) !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  color: #3d3d3f !important;
-}
-
-.light-theme .btn-glass-secondary:hover {
-  background: rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Email блок */
