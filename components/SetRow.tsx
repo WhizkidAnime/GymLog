@@ -260,7 +260,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
             type="button"
             onClick={() => onAddDropset(set.id)}
             aria-label={t.setRow.addDropset}
-            className={`absolute left-12 w-5 h-5 flex items-center justify-center rounded transition-colors flex-shrink-0 dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/10'}`}
+            className={`absolute left-12 w-5 h-5 flex items-center justify-center rounded transition-colors shrink-0 dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/10'}`}
             title={t.setRow.addDropset}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
@@ -269,52 +269,42 @@ const SetRowComponent: React.FC<SetRowProps> = ({
           </button>
         )}
       </div>
-      <div className="col-span-2 flex justify-center">
+      <div className="col-span-2 flex justify-center relative">
         <input
           type="text"
           inputMode="decimal"
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
-          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none setrow-input ${inputBgClass} ${textColor}`}
+          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-xs placeholder:text-gray-400 focus:placeholder-transparent outline-hidden focus-visible:outline-hidden setrow-input ${inputBgClass} ${textColor}`}
         />
-      </div>
-      {canCopyWeightFromPrev && (
-        <button
-          type="button"
-          onClick={() => {
-            if (!previousSet || previousSet.weight === null) return;
-            setWeight(toDisplay(previousSet.weight));
-          }}
-          aria-label={t.setRow.copyWeight}
-          className="btn-glass btn-glass-icon-round btn-glass-secondary absolute text-white h-6 w-6 p-0"
-          style={{
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            transition: 'none',
-            width: '1.5rem',
-            height: '1.5rem',
-            minWidth: '1.5rem',
-            minHeight: '1.5rem',
-            padding: 0,
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="12"
-            height="12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        {canCopyWeightFromPrev && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!previousSet || previousSet.weight === null) return;
+              setWeight(toDisplay(previousSet.weight));
+            }}
+            aria-label={t.setRow.copyWeight}
+            className="absolute left-full top-1/2 -translate-y-1/2 -ml-1.5 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-zinc-700 text-white hover:bg-zinc-600 shadow-md transition-colors"
+            title={t.setRow.copyWeight}
           >
-            <polyline points="5 15 12 8 19 15" />
-          </svg>
-        </button>
-      )}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="14"
+              height="14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="5 15 12 8 19 15" />
+            </svg>
+          </button>
+        )}
+      </div>
       <div className="col-span-2 flex justify-center">
         <input
           type="text"
@@ -330,7 +320,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
               persistLastNonMaxReps(value);
             }
           }}
-          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none setrow-input ${inputBgClass} ${textColor}`}
+          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-xs placeholder:text-gray-400 focus:placeholder-transparent outline-hidden focus-visible:outline-hidden setrow-input ${inputBgClass} ${textColor}`}
         />
       </div>
       <div className="col-span-1 flex items-center justify-center">
@@ -341,7 +331,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
             checked={isMaxChecked}
             onChange={handleToggleMax}
             aria-label={t.setRow.toFailure}
-            className="h-6 w-6 rounded-md border border-gray-300 bg-white outline-none focus-visible:outline-none flex-shrink-0"
+            className="h-6 w-6 rounded-md border border-gray-300 bg-white outline-hidden focus-visible:outline-hidden shrink-0"
             style={{ accentColor: '#000000', color: '#0a0a0a' }}
           />
         )}
@@ -354,7 +344,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
                 type="button"
                 onClick={() => onAddDropset(set.id)}
                 aria-label={t.setRow.addDropset}
-                className={`w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
+                className={`w-6 h-6 flex items-center justify-center rounded transition-colors shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
                 title={t.setRow.addDropset}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -362,7 +352,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
                 </svg>
               </button>
             ) : (
-              <div className="w-6 h-6 flex-shrink-0" />
+              <div className="w-6 h-6 shrink-0" />
             )}
             {/* Кнопка удаления дропсета */}
             {onDeleteDropset && (
@@ -370,7 +360,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
                 type="button"
                 onClick={() => onDeleteDropset(set.id)}
                 aria-label={t.setRow.deleteDropset}
-                className={`w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
+                className={`w-6 h-6 flex items-center justify-center rounded transition-colors shrink-0 font-bold dropset-btn ${isDone ? 'is-done hover:bg-black/10' : 'hover:bg-white/20'}`}
                 title={t.setRow.deleteDropset}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">

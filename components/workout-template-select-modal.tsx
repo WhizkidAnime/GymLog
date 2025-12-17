@@ -23,7 +23,7 @@ export const WorkoutTemplateSelectModal: React.FC<WorkoutTemplateSelectModalProp
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overscroll-contain">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 overscroll-contain">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-5">
         <div className="flex items-center justify-between mb-3">

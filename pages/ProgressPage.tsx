@@ -616,7 +616,7 @@ const ProgressPage = () => {
       <div className={`mb-6 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>
         <button
           onClick={handleBack}
-          className="shrink-0 inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white bg-transparent transition-colors focus:outline-none active:outline-none back-button-plain"
+          className="shrink-0 inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white bg-transparent transition-colors focus:outline-hidden active:outline-hidden back-button-plain"
           aria-label={t.common.back}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -684,7 +684,7 @@ const ProgressPage = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.progress.search}
                   aria-label={t.progress.search}
-                  className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
+                  className="flex-1 bg-transparent border-0 outline-hidden ring-0 focus:outline-hidden focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
                 />
                 <button
                   type="button"
@@ -943,8 +943,8 @@ const ProgressPage = () => {
                             <div
                               className={`h-full transition-all duration-500 rounded-full ${
                                 isCompleted
-                                  ? 'bg-gradient-to-r from-green-500 to-green-400'
-                                  : 'bg-gradient-to-r from-blue-500 to-blue-400'
+                                  ? 'bg-linear-to-r from-green-500 to-green-400'
+                                  : 'bg-linear-to-r from-blue-500 to-blue-400'
                               }`}
                               style={{ width: `${progress}%` }}
                             />
@@ -971,7 +971,7 @@ const ProgressPage = () => {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={() => setIsCardioInfoOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
           <div
             className="relative glass card-dark p-5 rounded-2xl max-w-md w-full max-h-[80vh]"
             onClick={(e) => e.stopPropagation()}
@@ -1139,7 +1139,7 @@ const ProgressPage = () => {
                           type="date"
                           value={customFrom ?? ''}
                           onChange={(e) => setCustomFrom(e.target.value || null)}
-                          className="bg-transparent border border-white/20 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-0 focus:border-blue-400/80"
+                          className="bg-transparent border border-white/20 rounded px-2 py-1 text-xs text-white focus:outline-hidden focus:ring-0 focus:border-blue-400/80"
                         />
                       </label>
                       <label className="flex items-center gap-1">
@@ -1148,7 +1148,7 @@ const ProgressPage = () => {
                           type="date"
                           value={customTo ?? ''}
                           onChange={(e) => setCustomTo(e.target.value || null)}
-                          className="bg-transparent border border-white/20 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-0 focus:border-blue-400/80"
+                          className="bg-transparent border border-white/20 rounded px-2 py-1 text-xs text-white focus:outline-hidden focus:ring-0 focus:border-blue-400/80"
                         />
                       </label>
                     </div>

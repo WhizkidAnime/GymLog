@@ -111,7 +111,7 @@ export const WorkoutHeader: React.FC<WorkoutHeaderProps> = ({
                   value={editNameValue}
                   onChange={event => onChangeEditName(event.target.value)}
                   disabled={isSavingWorkoutName}
-                  className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-none focus:bg-white/20 rounded-md px-3 pr-9 py-2 transition-colors disabled:opacity-70"
+                  className="w-full bg-white/10 text-lg font-bold text-white placeholder:text-gray-500 focus:outline-hidden focus:bg-white/20 rounded-md px-3 pr-9 py-2 transition-colors disabled:opacity-70"
                   placeholder={t.workout.emptyState?.title || 'Workout name'}
                 />
                 {editNameValue && (

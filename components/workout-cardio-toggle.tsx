@@ -27,8 +27,8 @@ export function WorkoutCardioToggle({
           className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition duration-200 ease-in-out ${
             !isCardio
               ? 'bg-red-500/80 text-white shadow-lg border border-red-400/60'
-              : 'bg-red-500/30 text-white border border-red-400/40 supports-[hover:hover]:hover:bg-red-500/40 supports-[hover:hover]:hover:shadow-sm'
-          } active:brightness-100 disabled:cursor-not-allowed disabled:pointer-events-none focus:outline-none focus-visible:outline-none [-webkit-tap-highlight-color:transparent]`}
+              : 'bg-red-500/30 text-white border border-red-400/40 supports-[hover:hover]:hover:bg-red-500/40 supports-[hover:hover]:hover:shadow-xs'
+          } active:brightness-100 disabled:cursor-not-allowed disabled:pointer-events-none focus:outline-hidden focus-visible:outline-hidden [-webkit-tap-highlight-color:transparent]`}
         >
           {t.workoutCardio.no}
         </button>
@@ -42,8 +42,8 @@ export function WorkoutCardioToggle({
           className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition duration-200 ease-in-out ${
             isCardio
               ? 'bg-green-500/80 text-white shadow-lg border border-green-400/60'
-              : 'bg-green-500/30 text-white border border-green-400/40 supports-[hover:hover]:hover:bg-green-500/40 supports-[hover:hover]:hover:shadow-sm'
-          } active:brightness-100 disabled:cursor-not-allowed disabled:pointer-events-none focus:outline-none focus-visible:outline-none [-webkit-tap-highlight-color:transparent]`}
+              : 'bg-green-500/30 text-white border border-green-400/40 supports-[hover:hover]:hover:bg-green-500/40 supports-[hover:hover]:hover:shadow-xs'
+          } active:brightness-100 disabled:cursor-not-allowed disabled:pointer-events-none focus:outline-hidden focus-visible:outline-hidden [-webkit-tap-highlight-color:transparent]`}
         >
           {t.workoutCardio.yes}
         </button>

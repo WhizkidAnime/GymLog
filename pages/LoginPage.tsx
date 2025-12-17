@@ -184,7 +184,7 @@ const LoginPage = () => {
               required
               name="nickname"
               autoComplete="off"
-              className="w-full px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               ref={nicknameRef}
             />
           </div>
@@ -200,7 +200,7 @@ const LoginPage = () => {
               minLength={6}
               name={isSignUp ? 'new-password' : 'current-password'}
               autoComplete={isSignUp ? 'new-password' : 'off'}
-              className="w-full px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 rounded-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               ref={passwordRef}
             />
           </div>
@@ -217,7 +217,7 @@ const LoginPage = () => {
                 minLength={6}
                 name="confirm-password"
                 autoComplete="off"
-                className="w-full px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 rounded-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 ref={confirmPasswordRef}
               />
             </div>
@@ -252,9 +252,9 @@ const LoginPage = () => {
         </p>
 
         <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-white/10"></div>
-            <span className="flex-shrink mx-4 text-xs text-gray-500">{t.common.or}</span>
-            <div className="flex-grow border-t border-white/10"></div>
+            <div className="grow border-t border-white/10"></div>
+            <span className="shrink mx-4 text-xs text-gray-500">{t.common.or}</span>
+            <div className="grow border-t border-white/10"></div>
         </div>
 
         <button

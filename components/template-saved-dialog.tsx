@@ -53,7 +53,7 @@ export const TemplateSavedDialog: React.FC<TemplateSavedDialogProps> = ({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="alert" aria-live="polite">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4" role="alert" aria-live="polite">
       <div className="absolute inset-0 bg-black/60" onClick={() => onOpenChange(null)} />
       <div className={`relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-6 text-center transition-all duration-300 ${
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'

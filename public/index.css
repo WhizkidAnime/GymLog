@@ -540,26 +540,39 @@ body::before {
   background: linear-gradient(180deg, #f25555, #e03535);
   }
 
+  /* Красный фон для btn-glass (End Workout и т.п.) */
+  .btn-glass.bg-red-600 {
+  background: #dc2626 !important;
+  border-color: rgba(220, 38, 38, 0.5);
+  }
+
+  .btn-glass.bg-red-600:hover,
+  .btn-glass.hover\:bg-red-700:hover {
+  background: #b91c1c !important;
+  }
+
   /* Серая кнопка (вторичная) */
   .btn-glass-secondary {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.08) !important;
   border-color: rgba(255,255,255,0.18);
   color: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1) !important;
   }
 
   .btn-glass-secondary:hover {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.12) !important;
   border-color: rgba(255,255,255,0.24);
   }
 
   .light-theme .btn-glass-secondary {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0,0,0,0.05) !important;
   border-color: rgba(0,0,0,0.12);
   color: inherit;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5) !important;
   }
 
   .light-theme .btn-glass-secondary:hover {
-  background: rgba(0,0,0,0.08);
+  background: rgba(0,0,0,0.08) !important;
   }
 
 /* Полная ширина */
@@ -1115,6 +1128,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .warmup-row-header {
   color: #7dd3fc;
   background-color: rgba(56, 189, 248, 0.1);
+  margin-bottom: 0;
 }
 
 .light-theme .warmup-row-header {

@@ -186,9 +186,9 @@ const CalendarPage = () => {
       ) : (
         <>
           <div className="flex justify-between items-center mb-6 glass p-2 rounded-xl w-full max-w-xl">
-            <button onClick={() => changeMonth(-1)} className="p-2 rounded-full text-white transition-colors focus:outline-none" style={{ WebkitTapHighlightColor: 'transparent' }}>&lt;</button>
+            <button onClick={() => changeMonth(-1)} className="p-2 rounded-full text-white transition-colors focus:outline-hidden" style={{ WebkitTapHighlightColor: 'transparent' }}>&lt;</button>
             <h1 className="text-xl font-bold text-center capitalize">{getMonthYear(currentDate, language)}</h1>
-            <button onClick={() => changeMonth(1)} className="p-2 rounded-full text-white transition-colors focus:outline-none" style={{ WebkitTapHighlightColor: 'transparent' }}>&gt;</button>
+            <button onClick={() => changeMonth(1)} className="p-2 rounded-full text-white transition-colors focus:outline-hidden" style={{ WebkitTapHighlightColor: 'transparent' }}>&gt;</button>
           </div>
 
           <div className="grid grid-cols-7 gap-3 text-center text-sm text-gray-500 mb-3 w-full max-w-xl">
@@ -210,7 +210,7 @@ const CalendarPage = () => {
                 <div
                   key={day}
                   onClick={() => handleDayClick(day)}
-                  className="relative flex flex-col items-center justify-center h-12 w-10 sm:h-13 sm:w-11 md:h-14 md:w-12 lg:h-16 lg:w-14 cursor-pointer mx-auto overflow-visible focus:outline-none"
+                  className="relative flex flex-col items-center justify-center h-12 w-10 sm:h-13 sm:w-11 md:h-14 md:w-12 lg:h-16 lg:w-14 cursor-pointer mx-auto overflow-visible focus:outline-hidden"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <span className={`flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 rounded-full font-bold calendar-day ${isToday ? 'bg-blue-600 calendar-day-today' : ''} transition-colors`}>

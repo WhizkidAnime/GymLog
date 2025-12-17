@@ -111,7 +111,7 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overscroll-contain">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 overscroll-contain">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-md glass card-dark rounded-xl shadow-xl p-4">
         <h2 className="text-lg font-semibold mb-3">{t.reorderExercises.title}</h2>
@@ -144,7 +144,7 @@ const ReorderExercisesModal: React.FC<Props> = ({ open, items, onClose, onSave }
               >
                 ⋮⋮
               </button>
-              <div className="flex-1 whitespace-normal break-words leading-snug">
+              <div className="flex-1 whitespace-normal wrap-break-word leading-snug">
                 {it.name || t.reorderExercises.noName}
               </div>
               <div className="flex items-center gap-1">

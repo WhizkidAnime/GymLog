@@ -66,7 +66,7 @@ const TemplateEditorPage = () => {
     <button
       type="button"
       onClick={() => navigate(returnPath)}
-      className={`inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white transition-colors bg-transparent hover:border-white active:border-white focus:outline-none back-button-plain ${className}`}
+      className={`inline-flex items-center justify-center p-2 rounded-full border border-transparent text-white transition-colors bg-transparent hover:border-white active:border-white focus:outline-hidden back-button-plain ${className}`}
       aria-label={t.templateEditor.backToTemplates}
     >
       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -256,7 +256,7 @@ const TemplateEditorPage = () => {
               onChange={(e) => setName(e.target.value)}
               placeholder={t.templateEditor.dayNamePlaceholder}
               required
-              className="mt-1 block w-full px-3 pr-9 py-2 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 template-input"
+              className="mt-1 block w-full px-3 pr-9 py-2 rounded-md shadow-xs focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 template-input"
             />
             {name && (
               <button
@@ -299,7 +299,7 @@ const TemplateEditorPage = () => {
                           adjustTextareaHeight(e.currentTarget);
                         }}
                         rows={1}
-                        className="w-full px-3 pr-9 py-2 rounded-md resize-none overflow-y-hidden min-h-[2.5rem] leading-relaxed template-input"
+                        className="w-full px-3 pr-9 py-2 rounded-md resize-none overflow-y-hidden min-h-10 leading-relaxed template-input"
                     />
                     {ex.name && ex.name.trim() !== '' && (
                       <button

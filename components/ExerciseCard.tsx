@@ -691,7 +691,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
             onChange={(e) => setNameInput(e.target.value)}
             ref={nameInputRef}
             rows={1}
-            className="w-full text-base sm:text-lg font-bold text-white whitespace-pre-wrap bg-white/10 hover:bg-white/15 focus:bg-white/10 border border-white/20 hover:border-white/30 focus:border-white/50 focus:ring-2 focus:ring-white/25 focus:outline-none rounded-xl px-4 pr-9 py-3 min-h-[3rem] resize-none overflow-y-hidden leading-relaxed transition-colors"
+            className="w-full text-base sm:text-lg font-bold text-white whitespace-pre-wrap bg-white/10 hover:bg-white/15 focus:bg-white/10 border border-white/20 hover:border-white/30 focus:border-white/50 focus:ring-2 focus:ring-white/25 focus:outline-hidden rounded-xl px-4 pr-9 py-3 min-h-12 resize-none overflow-y-hidden leading-relaxed transition-colors"
           />
           {nameInput && nameInput.trim() !== '' && (
             <button
@@ -772,7 +772,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
           </div>
         </div>
         {warmupSets.length > 0 && (
-          <div className="space-y-2 !mt-0 pt-1">
+          <div className="space-y-2 mt-0! pt-1">
             <div className="warmup-sets-header grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden">
               <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">{t.exercise.set}</div>
               <div className="col-span-2 flex items-center justify-center whitespace-nowrap">{t.exercise.weight}</div>
@@ -794,7 +794,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
         )}
 
         {/* Обычные подходы */}
-        <div className="flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
+        <div className="mt-2 flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
           <div className="flex items-center">
             <span className={`font-medium mr-2${isRussian ? ' max-w-[90px]' : ''}`}>{t.exercise.sets}:</span>
             <div className="inline-flex items-center gap-1">

@@ -29,7 +29,7 @@ export function WorkoutNotesSection({
         onChange={(e) => onChange(e.target.value)}
         placeholder={t.workoutNotes.placeholder}
         rows={5}
-        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors"
+        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-400 text-sm resize-none focus:outline-hidden focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-colors"
       />
     </div>
   );

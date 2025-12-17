@@ -229,7 +229,7 @@ export function BodyWeightTrackerModal({
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[100] flex items-start justify-center px-4"
+      className="fixed inset-0 z-100 flex items-start justify-center px-4"
       style={{ 
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
         paddingBottom: 'calc(96px + env(safe-area-inset-bottom))'
@@ -237,7 +237,7 @@ export function BodyWeightTrackerModal({
       onTouchMove={(e) => e.stopPropagation()}
     >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs"
         onClick={onClose}
         onTouchMove={(e) => e.preventDefault()}
       />
@@ -277,7 +277,7 @@ export function BodyWeightTrackerModal({
                   }
                 }}
                 placeholder={t.bodyWeight.weightPlaceholder}
-                className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <div className="flex-1">
@@ -292,7 +292,7 @@ export function BodyWeightTrackerModal({
                 }}
                 placeholder={t.bodyWeight.datePlaceholder}
                 maxLength={10}
-                className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-10 px-3 rounded-lg bg-white/10 border border-white/20 text-white text-center focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>

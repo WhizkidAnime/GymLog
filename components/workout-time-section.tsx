@@ -150,7 +150,7 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
                 step="1"
                 value={startValue}
                 onChange={(e) => setStartValue(e.target.value)}
-                className="bg-white/10 text-green-400 font-mono text-sm rounded px-2 py-1 focus:outline-none focus:bg-white/20"
+                className="bg-white/10 text-green-400 font-mono text-sm rounded px-2 py-1 focus:outline-hidden focus:bg-white/20"
               />
             ) : (
               <span className="text-green-400 font-mono">{formatTime(startTime)}</span>
@@ -166,7 +166,7 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
                 step="1"
                 value={endValue}
                 onChange={(e) => setEndValue(e.target.value)}
-                className="bg-white/10 text-red-400 font-mono text-sm rounded px-2 py-1 focus:outline-none focus:bg-white/20"
+                className="bg-white/10 text-red-400 font-mono text-sm rounded px-2 py-1 focus:outline-hidden focus:bg-white/20"
               />
             ) : (
               <span className="text-red-400 font-mono">{formatTime(endTime)}</span>

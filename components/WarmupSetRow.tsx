@@ -140,7 +140,7 @@ const WarmupSetRowComponent: React.FC<WarmupSetRowProps> = ({
           placeholder="0"
           value={weight}
           onChange={(e) => setWeight(normalizeInput(e.target.value))}
-          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none setrow-input ${inputBgClass} ${textColor}`}
+          className={`w-[72px] p-1 text-center rounded-md border-gray-600 shadow-xs placeholder:text-gray-400 focus:placeholder-transparent outline-hidden focus-visible:outline-hidden setrow-input ${inputBgClass} ${textColor}`}
         />
       </div>
       <div className="col-span-2 flex justify-center">
@@ -151,7 +151,7 @@ const WarmupSetRowComponent: React.FC<WarmupSetRowProps> = ({
           placeholder="0"
           value={reps}
           onChange={(e) => setReps(normalizeRepsInput(e.target.value))}
-          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-sm placeholder:text-gray-400 focus:placeholder-transparent outline-none focus-visible:outline-none setrow-input ${inputBgClass} ${textColor}`}
+          className={`w-[64px] p-1 text-center rounded-md border-gray-600 shadow-xs placeholder:text-gray-400 focus:placeholder-transparent outline-hidden focus-visible:outline-hidden setrow-input ${inputBgClass} ${textColor}`}
         />
       </div>
       <div className="col-span-1 flex items-center justify-end pr-1 sm:pr-2">
@@ -159,7 +159,7 @@ const WarmupSetRowComponent: React.FC<WarmupSetRowProps> = ({
           <button
             type="button"
             onClick={() => onDelete(set.id)}
-            className={`warmup-delete-btn w-6 h-6 flex items-center justify-center rounded transition-colors flex-shrink-0 ${isDone ? 'hover:bg-black/10 text-black/70' : 'hover:bg-white/20 text-white/70'}`}
+            className={`warmup-delete-btn w-6 h-6 flex items-center justify-center rounded transition-colors shrink-0 ${isDone ? 'hover:bg-black/10 text-black/70' : 'hover:bg-white/20 text-white/70'}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path fillRule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clipRule="evenodd" />

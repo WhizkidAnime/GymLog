@@ -75,7 +75,7 @@ const ExerciseHistoryPage = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.exerciseHistory.searchPlaceholder}
             aria-label={t.exerciseHistory.searchAriaLabel}
-            className="flex-1 bg-transparent border-0 outline-none ring-0 focus:outline-none focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
+            className="flex-1 bg-transparent border-0 outline-hidden ring-0 focus:outline-hidden focus:ring-0 appearance-none text-white placeholder-white/60 text-base shadow-none search-input"
           />
           <button
             type="button"

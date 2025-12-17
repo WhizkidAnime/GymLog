@@ -179,7 +179,7 @@ const ProfilePage = () => {
       </div>
 
       {/* User info card */}
-      <div className="p-4 glass card-dark rounded-lg shadow">
+      <div className="p-4 glass card-dark rounded-lg shadow-sm">
         {user && (
           <p className="flex flex-wrap items-center gap-1">
             <span>{t.profile.loggedInAs}</span>
@@ -320,7 +320,7 @@ const ProfilePage = () => {
               }
             }}
             placeholder={user?.email || t.profile.emailPlaceholder}
-            className="mt-1 block w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+            className="mt-1 block w-full px-3 py-2 rounded-md shadow-xs focus:outline-hidden focus:ring-red-500 focus:border-red-500"
             style={{ background: '#18181b', color: '#fafafa', border: '1px solid #3f3f46' }}
           />
           {deleteAccountError && (

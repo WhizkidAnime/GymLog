@@ -4,7 +4,7 @@ import BottomNav from './bottom-nav';
 
 const Layout = () => {
   return (
-    <div className="flex flex-col h-[100svh]">
+    <div className="flex flex-col h-svh">
       <main
         className="flex-1"
         style={{
