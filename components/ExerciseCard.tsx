@@ -746,7 +746,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
         </div>
         {/* Разминочные подходы */}
         <div className="flex items-center text-sm py-3 sm:py-4 px-2 rounded-lg warmup-row-header">
-          <span className="w-[120px] whitespace-nowrap font-medium text-sky-300">{t.exercise.warmupSets}:</span>
+          <span className="w-[100px] whitespace-nowrap font-medium text-sky-300">{t.exercise.warmupSets}:</span>
           <div className="inline-flex items-center gap-2">
             <button
               disabled={busy || warmupSetsCount <= 0}
@@ -771,7 +771,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
           </div>
         </div>
         {warmupSets.length > 0 && (
-          <div className="space-y-3 pt-1">
+          <div className="space-y-2 !mt-0 pt-1">
             <div className="warmup-sets-header grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden">
               <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">{t.exercise.set}</div>
               <div className="col-span-2 flex items-center justify-center whitespace-nowrap">{t.exercise.weight}</div>
@@ -794,7 +794,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
 
         {/* Обычные подходы */}
         <div className="flex items-center text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
-          <span className="w-[120px] whitespace-nowrap font-medium">{t.exercise.sets}:</span>
+          <span className="w-[100px] whitespace-nowrap font-medium">{t.exercise.sets}:</span>
           <div className="inline-flex items-center gap-2">
             <button
               disabled={busy || setsCount <= 1}
