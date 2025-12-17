@@ -286,7 +286,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
               setWeight(toDisplay(previousSet.weight));
             }}
             aria-label={t.setRow.copyWeight}
-            className="absolute left-full top-1/2 -translate-y-1/2 -ml-1.5 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-zinc-700 text-white hover:bg-zinc-600 shadow-md transition-colors"
+            className="absolute left-full top-1/2 -translate-y-1/2 -ml-1.5 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-zinc-700 text-white hover:bg-zinc-600 shadow-md transition-colors copy-prev-weight-btn"
             title={t.setRow.copyWeight}
           >
             <svg
