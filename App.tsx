@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { HashRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
-import { I18nProvider } from './hooks/use-i18n';
+import { I18nProvider, getTranslations } from './hooks/use-i18n';
 import Layout from './components/Layout';
 import { WorkoutLoadingOverlay } from './components/workout-loading-overlay';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -18,15 +18,15 @@ const TemplatesArchivePage = React.lazy(() => import('./pages/TemplatesArchivePa
 const ExerciseHistoryPage = React.lazy(() => import('./pages/ExerciseHistoryPage'));
 const ProgressPage = React.lazy(() => import('./pages/ProgressPage'));
 
-// Минимальный fallback для загрузки страницы логина
-const PageLoader = () => (
-  <WorkoutLoadingOverlay message="" />
-);
-
-// Лоадер для маршрутов - центрирован с надписью
-const RouteLoader = () => (
-  <WorkoutLoadingOverlay message="" />
-);
+// Лоадеры для страниц - используют getTranslations() для определения языка
+const LoginLoader = () => <WorkoutLoadingOverlay message={getTranslations().common.loading} />;
+const CalendarLoader = () => <WorkoutLoadingOverlay message={getTranslations().calendar.loading} />;
+const WorkoutLoader = () => <WorkoutLoadingOverlay message={getTranslations().workout.loading} />;
+const TemplatesLoader = () => <WorkoutLoadingOverlay message={getTranslations().templates.loading} />;
+const TemplateEditorLoader = () => <WorkoutLoadingOverlay message={getTranslations().templateEditor.loading} />;
+const ProfileLoader = () => <WorkoutLoadingOverlay message={getTranslations().profile.loading} />;
+const ProgressLoader = () => <WorkoutLoadingOverlay message={getTranslations().progress.loading} />;
+const HistoryLoader = () => <WorkoutLoadingOverlay message={getTranslations().exerciseHistory.loading} />;
 
 const LastWorkoutTracker = () => {
   const location = useLocation();
@@ -92,7 +92,7 @@ const AppRoutes = () => {
       <Route
         path="/login"
         element={
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<LoginLoader />}>
             <LoginPage />
           </Suspense>
         }
@@ -109,7 +109,7 @@ const AppRoutes = () => {
         <Route
           path="calendar"
           element={
-            <Suspense fallback={null}>
+            <Suspense fallback={<CalendarLoader />}>
               <CalendarPage />
             </Suspense>
           }
@@ -117,7 +117,7 @@ const AppRoutes = () => {
         <Route
           path="workout/:date"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={<WorkoutLoader />}>
               <WorkoutPage />
             </Suspense>
           }
@@ -125,7 +125,7 @@ const AppRoutes = () => {
         <Route
           path="templates"
           element={
-            <Suspense fallback={<WorkoutLoadingOverlay message="" />}>
+            <Suspense fallback={<TemplatesLoader />}>
               <TemplatesPage />
             </Suspense>
           }
@@ -133,7 +133,7 @@ const AppRoutes = () => {
         <Route
           path="templates/archive"
           element={
-            <Suspense fallback={<WorkoutLoadingOverlay message="" />}>
+            <Suspense fallback={<TemplatesLoader />}>
               <TemplatesArchivePage />
             </Suspense>
           }
@@ -141,7 +141,7 @@ const AppRoutes = () => {
         <Route
           path="templates/new"
           element={
-            <Suspense fallback={null}>
+            <Suspense fallback={<TemplateEditorLoader />}>
               <TemplateEditorPage />
             </Suspense>
           }
@@ -149,7 +149,7 @@ const AppRoutes = () => {
         <Route
           path="templates/:id"
           element={
-            <Suspense fallback={null}>
+            <Suspense fallback={<TemplateEditorLoader />}>
               <TemplateEditorPage />
             </Suspense>
           }
@@ -157,7 +157,7 @@ const AppRoutes = () => {
         <Route
           path="templates/import"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={<TemplatesLoader />}>
               <TemplateImportPage />
             </Suspense>
           }
@@ -165,7 +165,7 @@ const AppRoutes = () => {
         <Route
           path="profile"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={<ProfileLoader />}>
               <ProfilePage />
             </Suspense>
           }
@@ -173,7 +173,7 @@ const AppRoutes = () => {
         <Route
           path="exercise-history"
           element={
-            <Suspense fallback={<RouteLoader />}>
+            <Suspense fallback={<HistoryLoader />}>
               <ExerciseHistoryPage />
             </Suspense>
           }
@@ -181,7 +181,7 @@ const AppRoutes = () => {
         <Route
           path="profile/progress"
           element={
-            <Suspense fallback={null}>
+            <Suspense fallback={<ProgressLoader />}>
               <ProgressPage />
             </Suspense>
           }

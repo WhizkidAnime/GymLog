@@ -72,7 +72,7 @@ export const en = {
 
   // Workout page
   workout: {
-    loading: 'Loading...',
+    loading: 'Loading workout...',
     addExercise: 'Add exercise',
     adding: 'Adding...',
     deleteWorkout: 'Delete workout?',
@@ -169,7 +169,7 @@ export const en = {
     addExercise: '+ Add exercise',
     saveTemplate: 'Save template',
     saving: 'Saving...',
-    loading: 'Loading editor...',
+    loading: 'Loading template...',
     backToTemplates: 'Back to templates',
     deleteExercise: 'Delete exercise?',
     deleteExerciseDesc: 'This exercise will be removed from the template. This action cannot be undone.',
@@ -183,6 +183,7 @@ export const en = {
   // Profile page
   profile: {
     title: 'Profile',
+    loading: 'Loading profile...',
     loggedInAs: 'Logged in as:',
     viewProgress: 'View progress',
     bodyWeightTracker: 'Body weight tracker',
@@ -230,7 +231,7 @@ export const en = {
   // Progress page
   progress: {
     title: 'Progress',
-    loading: 'Loading exercises...',
+    loading: 'Loading progress...',
     cardio: 'Cardio',
     exercises: 'Exercises',
     search: 'Search',
@@ -421,6 +422,7 @@ export const en = {
   // Exercise history page
   exerciseHistory: {
     title: 'Exercise history',
+    loading: 'Loading history...',
     searchPlaceholder: 'Search',
     searchAriaLabel: 'Search exercises',
     searching: 'Searching...',

@@ -1049,16 +1049,16 @@ const ProgressPage = () => {
       {/* График прогресса */}
       {selectedExercise && (
         <div className="space-y-4">
-          {loadingCardio ? (
-            <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'transparent' }}>
+          {loadingProgress ? (
+            <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative w-12 h-12">
-                  <div className="absolute inset-0 border-4 border-transparent border-t-green-500 border-r-green-500 rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 border-4 border-transparent border-t-blue-500 border-r-blue-500 rounded-full animate-spin"></div>
                 </div>
-                <p className="text-white text-center">{t.cardio.loading}</p>
+                <p className="text-white text-center">{t.progress.loading}</p>
               </div>
             </div>
-          ) : cardioWorkouts.length === 0 ? (
+          ) : progressData && progressData.dataPoints.length > 0 ? (
             <>
               {/* Статистика */}
               <div className="glass card-dark p-4 rounded-lg">

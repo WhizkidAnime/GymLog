@@ -175,7 +175,7 @@ const WorkoutPage = () => {
 
   // Рендеринг
   if (!hasInitialData) {
-    return <WorkoutLoadingOverlay message={t.common.loading} />;
+    return <WorkoutLoadingOverlay message={t.workout.loading} />;
   }
   
   if (!normalizedDate) {

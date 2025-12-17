@@ -72,7 +72,7 @@ export const ru = {
 
   // Workout page
   workout: {
-    loading: 'Загрузка...',
+    loading: 'Загрузка тренировки...',
     addExercise: 'Добавить упражнение',
     adding: 'Добавление...',
     deleteWorkout: 'Удалить тренировку?',
@@ -169,7 +169,7 @@ export const ru = {
     addExercise: '+ Добавить упражнение',
     saveTemplate: 'Сохранить шаблон',
     saving: 'Сохранение...',
-    loading: 'Загрузка редактора...',
+    loading: 'Загрузка шаблона...',
     backToTemplates: 'Назад к шаблонам',
     deleteExercise: 'Удалить упражнение?',
     deleteExerciseDesc: 'Это упражнение будет удалено из шаблона. Действие необратимо.',
@@ -183,6 +183,7 @@ export const ru = {
   // Profile page
   profile: {
     title: 'Профиль',
+    loading: 'Загрузка профиля...',
     loggedInAs: 'Вы вошли как:',
     viewProgress: 'Узнать прогресс',
     bodyWeightTracker: 'Трекер веса тела',
@@ -230,7 +231,7 @@ export const ru = {
   // Progress page
   progress: {
     title: 'Прогресс',
-    loading: 'Загрузка упражнений...',
+    loading: 'Загрузка прогресса...',
     cardio: 'Кардио',
     exercises: 'Упражнения',
     search: 'Поиск',
@@ -421,6 +422,7 @@ export const ru = {
   // Exercise history page
   exerciseHistory: {
     title: 'История упражнений',
+    loading: 'Загрузка истории...',
     searchPlaceholder: 'Поиск',
     searchAriaLabel: 'Поиск упражнений',
     searching: 'Поиск...',
