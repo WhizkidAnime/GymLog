@@ -267,7 +267,7 @@ body::before {
   backdrop-filter: saturate(200%) blur(26px);
   border: 1px solid color-mix(in oklab, var(--fg) 12%, transparent);
   box-shadow:
-    0 20px 50px rgba(0,0,0,0.55),
+    0 20px 50px rgba(0,0,0,0.25),
     inset 0 1px 0 rgba(255,255,255,0.14),
     inset 0 -10px 22px rgba(0,0,0,0.3);
   pointer-events: auto;
@@ -913,6 +913,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Синий цвет */
 .light-theme .text-blue-400 {
   color: #2563eb !important;
+}
+
+/* Длительность тренировки */
+.light-theme .duration-value {
+  color: #1d1d1f !important;
 }
 
 /* Заголовки и текст в светлой теме */

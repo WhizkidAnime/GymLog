@@ -194,7 +194,7 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
         {!isEditing && startTime && endTime && (
           <div className="flex justify-between pt-2 border-t border-white/10">
             <span>{t.workoutTime.duration}</span>
-            <span className="text-yellow-400 font-mono">{formatDuration(startTime, endTime, { hours: t.workoutTime.hours, minutes: t.workoutTime.minutes, seconds: t.workoutTime.seconds })}</span>
+            <span className="text-white dark:text-white font-mono duration-value">{formatDuration(startTime, endTime, { hours: t.workoutTime.hours, minutes: t.workoutTime.minutes, seconds: t.workoutTime.seconds })}</span>
           </div>
         )}
       </div>
