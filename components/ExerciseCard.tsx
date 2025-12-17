@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import type { WorkoutExerciseWithSets } from '../types/database.types';
 import { supabase } from '../lib/supabase';
 import { SetRow } from './SetRow';
+import { WarmupSetRow } from './WarmupSetRow';
 import { RestTimer } from './RestTimer';
 import { useDebounce } from '../hooks/useDebounce';
 import ConfirmDialog from './confirm-dialog';
@@ -61,6 +62,9 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
   const { t } = useI18n();
   const [nameInput, setNameInput] = useState(exercise.name);
   const [setsCount, setSetsCount] = useState<number>(exercise.sets);
+  const [warmupSetsCount, setWarmupSetsCount] = useState<number>(() => {
+    return exercise.workout_sets.filter(s => s.is_warmup).length;
+  });
   const [restSeconds, setRestSeconds] = useState<number>(exercise.rest_seconds);
   const [busy, setBusy] = useState(false);
   const [lastPerformance, setLastPerformance] = useState<LastPerformance | null>(null);
@@ -94,7 +98,8 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
     }
     setSetsCount(exercise.sets);
     setRestSeconds(exercise.rest_seconds);
-  }, [exercise.id, exercise.sets, exercise.rest_seconds]);
+    setWarmupSetsCount(exercise.workout_sets.filter(s => s.is_warmup).length);
+  }, [exercise.id, exercise.sets, exercise.rest_seconds, exercise.workout_sets]);
 
   useEffect(() => {
     if (!user) return;
@@ -589,6 +594,93 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
     return !nextSet || !nextSet.is_dropset;
   }, []);
 
+  // Изменение количества разминочных подходов
+  const applyWarmupSetsChange = async (next: number) => {
+    if (next < 0 || next === warmupSetsCount || busy) return;
+    setBusy(true);
+    try {
+      const currentWarmupSets = exercise.workout_sets.filter(s => s.is_warmup);
+      const currentCount = currentWarmupSets.length;
+
+      if (next > currentCount) {
+        // Добавляем разминочные подходы
+        const maxSetIndex = exercise.workout_sets.length > 0 
+          ? Math.max(...exercise.workout_sets.map(s => s.set_index)) 
+          : 0;
+        const toAdd = Array.from({ length: next - currentCount }, (_, i) => ({
+          workout_exercise_id: exercise.id,
+          set_index: maxSetIndex + i + 1,
+          is_dropset: false,
+          is_warmup: true,
+        }));
+        const { data: inserted, error: addErr } = await (supabase as any)
+          .from('workout_sets')
+          .insert(toAdd)
+          .select();
+        if (addErr) throw addErr;
+
+        // Разминочные в начале, обычные после
+        const warmupSets = [...currentWarmupSets, ...(inserted || [])];
+        const regularSets = exercise.workout_sets.filter(s => !s.is_warmup);
+        const updatedSets = [...warmupSets, ...regularSets];
+        
+        const updated: WorkoutExerciseWithSets = { ...exercise, workout_sets: updatedSets };
+        onUpdateExercise(updated);
+      } else {
+        // Удаляем лишние разминочные подходы (с конца)
+        const toRemove = currentWarmupSets.slice(next);
+        const idsToRemove = toRemove.map(s => s.id);
+        
+        if (idsToRemove.length > 0) {
+          const { error: delErr } = await supabase
+            .from('workout_sets')
+            .delete()
+            .in('id', idsToRemove);
+          if (delErr) throw delErr;
+        }
+
+        const updatedSets = exercise.workout_sets.filter(s => !idsToRemove.includes(s.id));
+        const updated: WorkoutExerciseWithSets = { ...exercise, workout_sets: updatedSets };
+        onUpdateExercise(updated);
+      }
+      setWarmupSetsCount(next);
+    } catch (e) {
+      console.error('Failed to change warmup sets count', e);
+      alert(t.exercise.errors.failedToChangeSets);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Удаление разминочного подхода
+  const handleDeleteWarmupSet = useCallback(async (setId: string) => {
+    const currentExercise = exerciseRef.current;
+    const setToDelete = currentExercise.workout_sets.find(s => s.id === setId);
+    if (!setToDelete || !setToDelete.is_warmup) return;
+
+    try {
+      const { error } = await supabase
+        .from('workout_sets')
+        .delete()
+        .eq('id', setId);
+
+      if (error) throw error;
+
+      const updatedSets = currentExercise.workout_sets.filter(s => s.id !== setId);
+      const updatedExercise: WorkoutExerciseWithSets = {
+        ...currentExercise,
+        workout_sets: updatedSets,
+      };
+      onUpdateExercise(updatedExercise);
+    } catch (e) {
+      console.error('Failed to delete warmup set', e);
+    }
+  }, [onUpdateExercise]);
+
+  // Разделяем подходы на разминочные и обычные
+  const warmupSets = exercise.workout_sets.filter(s => s.is_warmup);
+  const regularSets = exercise.workout_sets.filter(s => !s.is_warmup);
+
   return (
     <div id={`exercise-${exercise.id}`} className="glass card-dark p-4 exercise-card">
       <div className="exercise-card-header mb-3">
@@ -652,25 +744,81 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
             onAdjustRestSeconds={adjustRestSeconds}
           />
         </div>
-        <div className="flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
-          <div className="flex items-center gap-3">
-            <span className="whitespace-nowrap font-medium">{t.exercise.sets}:</span>
-            <div className="inline-flex items-center gap-2">
-              <button
-                disabled={busy || setsCount <= 1}
-                onClick={() => applySetsChange(setsCount - 1)}
-                className="btn-glass btn-glass-icon-round btn-glass-secondary"
-              >−</button>
-              <span className="min-w-[3ch] text-center text-white font-semibold">{setsCount}</span>
-              <button
-                disabled={busy || setsCount >= 30}
-                onClick={() => applySetsChange(setsCount + 1)}
-                className="btn-glass btn-glass-icon-round btn-glass-secondary"
-              >+</button>
+        {/* Разминочные подходы */}
+        <div className="flex items-center text-sm py-3 sm:py-4 px-2 rounded-lg warmup-row-header">
+          <span className="w-[120px] whitespace-nowrap font-medium text-sky-300">{t.exercise.warmupSets}:</span>
+          <div className="inline-flex items-center gap-2">
+            <button
+              disabled={busy || warmupSetsCount <= 0}
+              onClick={() => applyWarmupSetsChange(warmupSetsCount - 1)}
+              className="btn-glass btn-glass-icon-round btn-glass-secondary"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+            <span className="min-w-[3ch] text-center text-white font-semibold">{warmupSetsCount}</span>
+            <button
+              disabled={busy || warmupSetsCount >= 10}
+              onClick={() => applyWarmupSetsChange(warmupSetsCount + 1)}
+              className="btn-glass btn-glass-icon-round btn-glass-secondary"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        {warmupSets.length > 0 && (
+          <div className="space-y-3 pt-1">
+            <div className="warmup-sets-header grid grid-cols-6 gap-3 text-sm sm:text-base font-semibold px-2 sm:px-3 py-2 rounded-lg overflow-hidden">
+              <div className="col-span-1 flex items-center justify-start pl-1 sm:pl-2 whitespace-nowrap">{t.exercise.set}</div>
+              <div className="col-span-2 flex items-center justify-center whitespace-nowrap">{t.exercise.weight}</div>
+              <div className="col-span-2 flex items-center justify-center whitespace-nowrap">{t.exercise.reps}</div>
+              <div className="col-span-1"></div>
+            </div>
+            <div className="space-y-2">
+              {warmupSets.map((set, index) => (
+                <WarmupSetRow
+                  key={set.id}
+                  set={set}
+                  displayIndex={index + 1}
+                  onChange={handleSetChange}
+                  onDelete={handleDeleteWarmupSet}
+                />
+              ))}
             </div>
           </div>
+        )}
+
+        {/* Обычные подходы */}
+        <div className="flex items-center text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
+          <span className="w-[120px] whitespace-nowrap font-medium">{t.exercise.sets}:</span>
+          <div className="inline-flex items-center gap-2">
+            <button
+              disabled={busy || setsCount <= 1}
+              onClick={() => applySetsChange(setsCount - 1)}
+              className="btn-glass btn-glass-icon-round btn-glass-secondary"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+            <span className="min-w-[3ch] text-center text-white font-semibold">{setsCount}</span>
+            <button
+              disabled={busy || setsCount >= 30}
+              onClick={() => applySetsChange(setsCount + 1)}
+              className="btn-glass btn-glass-icon-round btn-glass-secondary"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
           {exercise.reps?.trim() && (
-            <div className="ml-3 flex-1 text-right whitespace-nowrap font-medium">{t.exercise.reps}: {exercise.reps}</div>
+            <div className="ml-auto whitespace-nowrap font-medium">{t.exercise.reps}: {exercise.reps}</div>
           )}
         </div>
       </div>
@@ -682,7 +830,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
           <div className="col-span-1 flex items-center justify-end pr-1 sm:pr-2 whitespace-nowrap">{t.exercise.toFailure}</div>
         </div>
         <div className="space-y-2">
-          {exercise.workout_sets.map((set, index, allSets) => {
+          {regularSets.map((set, index, allSets) => {
             // Для обычного подхода ищем предыдущий ОБЫЧНЫЙ подход (пропуская дропсеты)
             // Для дропсета previousSet не нужен (кнопка копирования веса не показывается)
             let previousSet: typeof set | undefined = undefined;
@@ -747,7 +895,8 @@ export const ExerciseCard = React.memo(ExerciseCardComponent, (prevProps, nextPr
       prevSet.reps !== nextSet.reps ||
       prevSet.is_done !== nextSet.is_done ||
       prevSet.is_dropset !== nextSet.is_dropset ||
-      prevSet.parent_set_index !== nextSet.parent_set_index
+      prevSet.parent_set_index !== nextSet.parent_set_index ||
+      prevSet.is_warmup !== nextSet.is_warmup
     ) {
       return false;
     }

@@ -255,14 +255,23 @@ export const RestTimer: React.FC<RestTimerProps> = ({ restSeconds, exerciseId, o
           onClick={() => adjustTime(-timerStep)}
           disabled={time <= 0 && !isActive}
           className="btn-glass btn-glass-icon-round btn-glass-secondary"
-        >-</button>
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
         <div className={`text-6xl font-mono font-semibold leading-none min-w-[4ch] text-center ${isActive ? 'text-white' : ''}`}>
           {formatTime(time)}
         </div>
         <button
           onClick={() => adjustTime(timerStep)}
           className="btn-glass btn-glass-icon-round btn-glass-secondary"
-        >+</button>
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
       <div className="mt-4 flex items-center justify-center gap-3">
         <button

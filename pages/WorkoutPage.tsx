@@ -16,6 +16,8 @@ import { useWorkoutOperations } from '../hooks/use-workout-operations';
 import { useWorkoutNameEditor } from '../hooks/use-workout-name-editor';
 import { useWorkoutCardio } from '../hooks/use-workout-cardio';
 import { useWorkoutNotes } from '../hooks/use-workout-notes';
+import { useWorkoutTime } from '../hooks/use-workout-time';
+import { WorkoutTimeSection } from '../components/workout-time-section';
 import { formatDateForDisplay } from '../utils/date-helpers';
 import ConfirmDialog from '../components/confirm-dialog';
 import ReorderExercisesModal from '../components/ReorderExercisesModal';
@@ -141,6 +143,21 @@ const WorkoutPage = () => {
     setIsSavingNotes,
   });
 
+  // Время тренировки
+  const {
+    startTime,
+    endTime,
+    handleStartWorkout,
+    handleEndWorkout,
+    handleUpdateStartTime,
+    handleUpdateEndTime,
+    handleClearWorkoutTime,
+  } = useWorkoutTime({
+    user,
+    workout,
+    setWorkout,
+  });
+
   // Локальные состояния для модальных окон
   const [isDeleteWorkoutOpen, setIsDeleteWorkoutOpen] = useState(false);
   const [isReorderOpen, setIsReorderOpen] = useState(false);
@@ -202,6 +219,16 @@ const WorkoutPage = () => {
         onOpenIconPicker={handleOpenIconPicker}
       />
 
+      {!startTime && (
+        <button
+          type="button"
+          onClick={handleStartWorkout}
+          className="btn-glass btn-glass-full btn-glass-md btn-glass-primary"
+        >
+          Старт тренировки
+        </button>
+      )}
+
       <div className="space-y-4">
         {exercises.map(exercise => (
           <ExerciseCard 
@@ -212,6 +239,27 @@ const WorkoutPage = () => {
             onDeleteExercise={handleDeleteExercise}
           />
         ))}
+      </div>
+
+      {startTime && !endTime && (
+        <button
+          type="button"
+          onClick={handleEndWorkout}
+          className="btn-glass btn-glass-full btn-glass-md bg-red-600 hover:bg-red-700 text-white font-semibold"
+        >
+          Завершить тренировку
+        </button>
+      )}
+
+      <div>
+        <button
+          type="button"
+          onClick={handleAddExercise}
+          disabled={isAddingExercise}
+          className="btn-glass btn-glass-full btn-glass-md btn-glass-primary text-white disabled:opacity-50"
+        >
+          {isAddingExercise ? t.workout.adding : t.workout.addExercise}
+        </button>
       </div>
 
       <WorkoutCardioToggle
@@ -226,16 +274,13 @@ const WorkoutPage = () => {
         onChange={setWorkoutNotes}
       />
 
-      <div>
-        <button
-          type="button"
-          onClick={handleAddExercise}
-          disabled={isAddingExercise}
-          className="btn-glass btn-glass-full btn-glass-md btn-glass-primary disabled:opacity-50"
-        >
-          {isAddingExercise ? t.workout.adding : t.workout.addExercise}
-        </button>
-      </div>
+      <WorkoutTimeSection
+        startTime={startTime}
+        endTime={endTime}
+        onUpdateStartTime={handleUpdateStartTime}
+        onUpdateEndTime={handleUpdateEndTime}
+        onClear={handleClearWorkoutTime}
+      />
 
       <WorkoutTemplateSelectModal
         open={isSelectTemplateOpen}

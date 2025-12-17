@@ -197,7 +197,7 @@ export function useWorkoutData() {
       setWorkout(workoutData as Workout);
       const { data: exercisesData, error: exercisesError } = await db
         .from('workout_exercises')
-        .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, is_dropset, parent_set_index, updated_at )')
+        .select('id, name, sets, reps, rest_seconds, position, workout_id, workout_sets ( id, workout_exercise_id, set_index, weight, reps, is_done, is_dropset, parent_set_index, is_warmup, updated_at )')
         .eq('workout_id', workoutData.id)
         .order('position');
         

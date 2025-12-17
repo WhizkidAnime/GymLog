@@ -96,6 +96,7 @@ export type Database = {
           workout_exercise_id: string
           is_dropset: boolean
           parent_set_index: number | null
+          is_warmup: boolean
         }
         Insert: {
           id?: string
@@ -107,6 +108,7 @@ export type Database = {
           workout_exercise_id: string
           is_dropset?: boolean
           parent_set_index?: number | null
+          is_warmup?: boolean
         }
         Update: {
           id?: string
@@ -118,6 +120,7 @@ export type Database = {
           workout_exercise_id?: string
           is_dropset?: boolean
           parent_set_index?: number | null
+          is_warmup?: boolean
         }
         Relationships: [
           {
@@ -193,6 +196,8 @@ export type Database = {
           is_cardio: boolean
           icon: string | null
           notes: string | null
+          start_time: string | null
+          end_time: string | null
         }
         Insert: {
           created_at?: string
@@ -204,6 +209,8 @@ export type Database = {
           is_cardio?: boolean
           icon?: string | null
           notes?: string | null
+          start_time?: string | null
+          end_time?: string | null
         }
         Update: {
           created_at?: string
@@ -215,6 +222,8 @@ export type Database = {
           is_cardio?: boolean
           icon?: string | null
           notes?: string | null
+          start_time?: string | null
+          end_time?: string | null
         }
         Relationships: [
           {

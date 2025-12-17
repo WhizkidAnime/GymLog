@@ -499,7 +499,7 @@ body::before {
   /* Акцентная синяя кнопка */
   .btn-glass-primary {
   background: linear-gradient(180deg, #3b82f6, #2563eb);
-  color: #fff;
+  color: #fff !important;
   border-color: rgba(59, 130, 246, 0.5);
   }
 
@@ -510,7 +510,7 @@ body::before {
   /* Зелёная кнопка (успех) */
   .btn-glass-success {
   background: linear-gradient(180deg, #10b981, #059669);
-  color: #fff;
+  color: #fff !important;
   border-color: rgba(16, 185, 129, 0.5);
   }
 
@@ -521,7 +521,7 @@ body::before {
   /* Красная кнопка (опасность) */
   .btn-glass-danger {
   background: linear-gradient(180deg, #ef4444, #dc2626);
-  color: #fff;
+  color: #fff !important;
   border-color: rgba(239, 68, 68, 0.5);
   }
 
@@ -532,7 +532,7 @@ body::before {
   /* Красная кнопка (logout) */
   .btn-glass-logout {
   background: linear-gradient(180deg, #ef4444, #dc2626);
-  color: #fff;
+  color: #fff !important;
   border-color: rgba(239, 68, 68, 0.5);
   }
 
@@ -638,6 +638,7 @@ body::before {
   border-radius: 50%;
   font-size: 1.125rem;
   font-weight: 700;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -764,7 +765,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Текст */
-.light-theme .text-white {
+.light-theme .text-white:not(.bg-red-600):not(.bg-red-700):not(.btn-glass-primary):not(.btn-glass-success):not(.btn-glass-danger):not(.btn-glass-logout) {
   color: #1d1d1f;
 }
 
@@ -1091,6 +1092,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: rgba(0, 0, 0, 0.04) !important;
 }
 
+/* Warmup sets row header */
+.warmup-row-header {
+  color: #7dd3fc;
+  background-color: rgba(56, 189, 248, 0.1);
+}
+
+.light-theme .warmup-row-header {
+  color: #0284c7 !important;
+  background-color: rgba(56, 189, 248, 0.15) !important;
+}
+
+/* Warmup sets table header */
+.warmup-sets-header {
+  color: #7dd3fc;
+  background-color: rgba(56, 189, 248, 0.08);
+}
+
+.light-theme .warmup-sets-header {
+  color: #0369a1 !important;
+  background-color: rgba(56, 189, 248, 0.12) !important;
+}
+
 /* ExerciseCard textarea */
 .light-theme .exercise-card textarea {
   background-color: rgba(0, 0, 0, 0.05) !important;
@@ -1248,7 +1271,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Кнопка меню (три точки) */
-.light-theme button.text-white:not(.btn-glass-primary):not(.btn-glass-danger):not(.btn-glass-logout) {
+.light-theme button.text-white:not(.btn-glass-primary):not(.btn-glass-danger):not(.btn-glass-logout):not(.bg-red-600):not(.bg-red-700) {
   color: #1d1d1f !important;
 }
 
@@ -1497,5 +1520,40 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .light-theme .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
+}
+
+/* Border white/10 в светлой теме */
+.light-theme .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Белый текст для кнопок с красным фоном в светлой теме */
+.light-theme .bg-red-600,
+.light-theme .bg-red-700 {
+  color: #fff !important;
+}
+
+/* Более контрастные цвета для warmup sets в светлой теме */
+.light-theme .bg-sky-400\/15 {
+  background-color: rgba(14, 165, 233, 0.25) !important;
+}
+
+.light-theme .border-sky-400\/30 {
+  border-color: rgba(14, 165, 233, 0.5) !important;
+}
+
+.light-theme .text-sky-300 {
+  color: #0369a1 !important;
+}
+
+/* Кнопка удаления в warmup sets для светлой темы */
+.light-theme .warmup-delete-btn {
+  color: #0369a1 !important;
+}
+
+/* Заголовки в warmup sets для светлой темы */
+.light-theme .warmup-sets-header {
+  color: #0369a1 !important;
+  background-color: rgba(14, 165, 233, 0.15) !important;
 }
 
