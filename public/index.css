@@ -644,6 +644,20 @@ body::before {
   justify-content: center;
 }
 
+/* Маленькая круглая иконка-кнопка */
+.btn-glass-icon-round-sm {
+  padding: 5px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Пунктирная прозрачная кнопка (как на скрине "+ Добавить упражнение") */
 .btn-dashed {
   display: inline-flex;

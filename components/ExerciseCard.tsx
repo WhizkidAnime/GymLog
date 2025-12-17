@@ -59,7 +59,8 @@ const setCachedLastPerformance = (key: string, data: LastPerformance | null) => 
 };
 
 const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutDate, onUpdateExercise, onDeleteExercise }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const isRussian = language === 'ru';
   const [nameInput, setNameInput] = useState(exercise.name);
   const [setsCount, setSetsCount] = useState<number>(exercise.sets);
   const [warmupSetsCount, setWarmupSetsCount] = useState<number>(() => {
@@ -746,24 +747,24 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
         </div>
         {/* Разминочные подходы */}
         <div className="flex items-center text-sm py-3 sm:py-4 px-2 rounded-lg warmup-row-header">
-          <span className="w-[100px] whitespace-nowrap font-medium text-sky-300">{t.exercise.warmupSets}:</span>
-          <div className="inline-flex items-center gap-2">
+          <span className={`font-medium text-sky-300 mr-2${isRussian ? ' max-w-[90px]' : ''}`}>{t.exercise.warmupSets}:</span>
+          <div className="inline-flex items-center gap-1">
             <button
               disabled={busy || warmupSetsCount <= 0}
               onClick={() => applyWarmupSetsChange(warmupSetsCount - 1)}
-              className="btn-glass btn-glass-icon-round btn-glass-secondary"
+              className="btn-glass btn-glass-icon-round-sm btn-glass-secondary"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
             </button>
-            <span className="min-w-[3ch] text-center text-white font-semibold">{warmupSetsCount}</span>
+            <span className="min-w-[2ch] text-center text-white font-semibold">{warmupSetsCount}</span>
             <button
               disabled={busy || warmupSetsCount >= 10}
               onClick={() => applyWarmupSetsChange(warmupSetsCount + 1)}
-              className="btn-glass btn-glass-icon-round btn-glass-secondary"
+              className="btn-glass btn-glass-icon-round-sm btn-glass-secondary"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
@@ -793,32 +794,34 @@ const ExerciseCardComponent: React.FC<ExerciseCardProps> = ({ exercise, workoutD
         )}
 
         {/* Обычные подходы */}
-        <div className="flex items-center text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
-          <span className="w-[100px] whitespace-nowrap font-medium">{t.exercise.sets}:</span>
-          <div className="inline-flex items-center gap-2">
-            <button
-              disabled={busy || setsCount <= 1}
-              onClick={() => applySetsChange(setsCount - 1)}
-              className="btn-glass btn-glass-icon-round btn-glass-secondary"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
-            <span className="min-w-[3ch] text-center text-white font-semibold">{setsCount}</span>
-            <button
-              disabled={busy || setsCount >= 30}
-              onClick={() => applySetsChange(setsCount + 1)}
-              className="btn-glass btn-glass-icon-round btn-glass-secondary"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
+        <div className="flex items-center justify-between text-sm py-3 sm:py-4 px-2 rounded-lg exercise-row-header">
+          <div className="flex items-center">
+            <span className={`font-medium mr-2${isRussian ? ' max-w-[90px]' : ''}`}>{t.exercise.sets}:</span>
+            <div className="inline-flex items-center gap-1">
+              <button
+                disabled={busy || setsCount <= 1}
+                onClick={() => applySetsChange(setsCount - 1)}
+                className="btn-glass btn-glass-icon-round-sm btn-glass-secondary"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+              <span className="min-w-[2ch] text-center text-white font-semibold">{setsCount}</span>
+              <button
+                disabled={busy || setsCount >= 30}
+                onClick={() => applySetsChange(setsCount + 1)}
+                className="btn-glass btn-glass-icon-round-sm btn-glass-secondary"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
           {exercise.reps?.trim() && (
-            <div className="ml-auto whitespace-nowrap font-medium">{t.exercise.reps}: {exercise.reps}</div>
+            <div className="whitespace-nowrap font-medium">{t.exercise.reps}: {exercise.reps}</div>
           )}
         </div>
       </div>

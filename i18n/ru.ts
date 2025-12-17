@@ -693,4 +693,19 @@ export const ru = {
     failedToLoadExercises: 'Не удалось загрузить список упражнений',
     failedToLoadProgress: 'Не удалось загрузить данные прогресса',
   },
+
+  // Workout time section
+  workoutTime: {
+    title: 'Время тренировки',
+    start: 'Начало:',
+    end: 'Конец:',
+    duration: 'Длительность:',
+    editTime: 'Редактировать время',
+    deleteTime: 'Удалить время',
+    hours: 'ч',
+    minutes: 'м',
+    seconds: 'с',
+    startWorkout: 'Старт тренировки',
+    endWorkout: 'Завершить тренировку',
+  },
 };

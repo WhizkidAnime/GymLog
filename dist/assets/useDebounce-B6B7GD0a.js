@@ -1,0 +1,1 @@
+import{r as t}from"./vendor-CITejod9.js";function s(r,u){const[n,c]=t.useState(r),e=t.useRef(null);return t.useEffect(()=>(e.current&&clearTimeout(e.current),e.current=setTimeout(()=>{c(r),e.current=null},u),()=>{e.current&&(clearTimeout(e.current),e.current=null)}),[r,u]),n}export{s as u};

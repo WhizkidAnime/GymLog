@@ -225,7 +225,7 @@ const WorkoutPage = () => {
           onClick={handleStartWorkout}
           className="btn-glass btn-glass-full btn-glass-md btn-glass-primary"
         >
-          Старт тренировки
+          {t.workoutTime.startWorkout}
         </button>
       )}
 
@@ -247,7 +247,7 @@ const WorkoutPage = () => {
           onClick={handleEndWorkout}
           className="btn-glass btn-glass-full btn-glass-md bg-red-600 hover:bg-red-700 text-white font-semibold"
         >
-          Завершить тренировку
+          {t.workoutTime.endWorkout}
         </button>
       )}
 

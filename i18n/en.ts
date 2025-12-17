@@ -693,4 +693,19 @@ export const en = {
     failedToLoadExercises: 'Failed to load exercise list',
     failedToLoadProgress: 'Failed to load progress data',
   },
+
+  // Workout time section
+  workoutTime: {
+    title: 'Workout time',
+    start: 'Start:',
+    end: 'End:',
+    duration: 'Duration:',
+    editTime: 'Edit time',
+    deleteTime: 'Delete time',
+    hours: 'h',
+    minutes: 'm',
+    seconds: 's',
+    startWorkout: 'Start workout',
+    endWorkout: 'End workout',
+  },
 };

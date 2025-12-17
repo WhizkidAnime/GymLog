@@ -1,6 +1,6 @@
 import React, { KeyboardEvent, useLayoutEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { CalendarDays, Search, FileText, User2, type LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';

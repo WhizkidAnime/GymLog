@@ -1,1 +1,0 @@
-import{r as t}from"./vendor-BVca5W6X.js";function s(r,u){const[n,c]=t.useState(r),e=t.useRef(null);return t.useEffect(()=>(e.current&&clearTimeout(e.current),e.current=setTimeout(()=>{c(r),e.current=null},u),()=>{e.current&&(clearTimeout(e.current),e.current=null)}),[r,u]),n}export{s as u};

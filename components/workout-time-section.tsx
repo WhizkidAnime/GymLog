@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useI18n } from '../hooks/use-i18n';
 
 interface WorkoutTimeSectionProps {
   startTime: string | null;
@@ -18,7 +19,11 @@ const formatTime = (isoString: string | null): string => {
   });
 };
 
-const formatDuration = (start: string, end: string): string => {
+const formatDuration = (
+  start: string,
+  end: string,
+  labels: { hours: string; minutes: string; seconds: string }
+): string => {
   const startDate = new Date(start);
   const endDate = new Date(end);
   const diffMs = endDate.getTime() - startDate.getTime();
@@ -28,12 +33,12 @@ const formatDuration = (start: string, end: string): string => {
   const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
   
   if (hours > 0) {
-    return `${hours}ч ${minutes}м ${seconds}с`;
+    return `${hours}${labels.hours} ${minutes}${labels.minutes} ${seconds}${labels.seconds}`;
   }
   if (minutes > 0) {
-    return `${minutes}м ${seconds}с`;
+    return `${minutes}${labels.minutes} ${seconds}${labels.seconds}`;
   }
-  return `${seconds}с`;
+  return `${seconds}${labels.seconds}`;
 };
 
 const toInputValue = (isoString: string | null): string => {
@@ -57,6 +62,7 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
   onUpdateEndTime,
   onClear,
 }) => {
+  const { t } = useI18n();
   const [isEditing, setIsEditing] = useState(false);
   const [startValue, setStartValue] = useState('');
   const [endValue, setEndValue] = useState('');
@@ -86,14 +92,14 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
   return (
     <div className="glass card-dark p-4 space-y-2">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-white">Время тренировки</h2>
+        <h2 className="text-lg font-semibold text-white">{t.workoutTime.title}</h2>
         <div className="flex items-center gap-1">
           {!isEditing && (
             <button
               type="button"
               onClick={handleStartEditing}
               className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-              title="Редактировать время"
+              title={t.workoutTime.editTime}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -115,7 +121,7 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
             type="button"
             onClick={onClear}
             className="p-1.5 rounded-full hover:bg-red-500/20 transition-colors"
-            title="Удалить время"
+            title={t.workoutTime.deleteTime}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -137,7 +143,7 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
       <div className="text-sm text-gray-300 space-y-2">
         {startTime && (
           <div className="flex justify-between items-center">
-            <span>Начало:</span>
+            <span>{t.workoutTime.start}</span>
             {isEditing ? (
               <input
                 type="time"
@@ -153,7 +159,7 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
         )}
         {endTime && (
           <div className="flex justify-between items-center">
-            <span>Конец:</span>
+            <span>{t.workoutTime.end}</span>
             {isEditing ? (
               <input
                 type="time"
@@ -174,21 +180,21 @@ export const WorkoutTimeSection: React.FC<WorkoutTimeSectionProps> = ({
               onClick={handleCancel}
               className="px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-gray-300 text-sm transition-colors"
             >
-              Отмена
+              {t.common.cancel}
             </button>
             <button
               type="button"
               onClick={handleSave}
               className="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white text-sm transition-colors"
             >
-              Сохранить
+              {t.common.save}
             </button>
           </div>
         )}
         {!isEditing && startTime && endTime && (
           <div className="flex justify-between pt-2 border-t border-white/10">
-            <span>Длительность:</span>
-            <span className="text-yellow-400 font-mono">{formatDuration(startTime, endTime)}</span>
+            <span>{t.workoutTime.duration}</span>
+            <span className="text-yellow-400 font-mono">{formatDuration(startTime, endTime, { hours: t.workoutTime.hours, minutes: t.workoutTime.minutes, seconds: t.workoutTime.seconds })}</span>
           </div>
         )}
       </div>
