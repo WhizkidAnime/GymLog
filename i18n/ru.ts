@@ -408,6 +408,8 @@ export const ru = {
             core: 'Пресс',
             cardio: 'Кардио',
             full: 'Всё тело',
+            benchPress: 'Жим лёжа',
+            deadlift: 'Становая',
         },
     },
 

@@ -207,6 +207,16 @@ export function useWorkoutsImportExport({
         normalizeOptionalString(workout.workoutNotes) ??
         null;
 
+      const startTime =
+        normalizeOptionalString(workout.startTime) ??
+        normalizeOptionalString(workout.start_time) ??
+        null;
+
+      const endTime =
+        normalizeOptionalString(workout.endTime) ??
+        normalizeOptionalString(workout.end_time) ??
+        null;
+
       const { data: newWorkout, error: insertWorkoutError } = await db
         .from('workouts')
         .insert({
@@ -217,6 +227,8 @@ export function useWorkoutsImportExport({
           is_cardio: isCardio,
           template_id: null,
           notes,
+          start_time: startTime,
+          end_time: endTime,
         })
         .select()
         .single();
@@ -312,6 +324,12 @@ export function useWorkoutsImportExport({
               ? s.is_dropset
               : false;
 
+          const isWarmup = typeof s.isWarmup === 'boolean'
+            ? s.isWarmup
+            : typeof s.is_warmup === 'boolean'
+              ? s.is_warmup
+              : false;
+
           const parentSetIndex =
             toFiniteInteger(s.parentSetIndex) ??
             toFiniteInteger(s.parent_set_index) ??
@@ -328,6 +346,7 @@ export function useWorkoutsImportExport({
                 ? s.is_done
                 : false,
             is_dropset: isDropset,
+            is_warmup: isWarmup,
             parent_set_index: parentSetIndex,
             updated_at: typeof s.updatedAt === 'string' && s.updatedAt
               ? s.updatedAt
@@ -365,6 +384,8 @@ export function useWorkoutsImportExport({
           is_cardio,
           template_id,
           notes,
+          start_time,
+          end_time,
           workout_exercises (
             id,
             name,
@@ -379,6 +400,7 @@ export function useWorkoutsImportExport({
               reps,
               is_done,
               is_dropset,
+              is_warmup,
               parent_set_index,
               updated_at
             )
@@ -401,6 +423,8 @@ export function useWorkoutsImportExport({
         isCardio: !!w.is_cardio,
         templateId: w.template_id,
         notes: w.notes ?? null,
+        startTime: w.start_time ?? null,
+        endTime: w.end_time ?? null,
         exercises: (w.workout_exercises || []).map((ex: any) => ({
           id: ex.id,
           name: ex.name,
@@ -415,6 +439,7 @@ export function useWorkoutsImportExport({
             reps: s.reps,
             isDone: s.is_done,
             isDropset: !!s.is_dropset,
+            isWarmup: !!s.is_warmup,
             parentSetIndex: s.parent_set_index ?? null,
             updatedAt: s.updated_at,
           })),

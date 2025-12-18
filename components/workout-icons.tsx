@@ -11,6 +11,8 @@ import backSvg from '../src/assets/icons/workout-icons/back.svg';
 import absSvg from '../src/assets/icons/workout-icons/abs.svg';
 import cardioSvg from '../src/assets/icons/workout-icons/cardio.svg';
 import fullBodySvg from '../src/assets/icons/workout-icons/full-body.svg';
+import benchPressSvg from '../src/assets/icons/workout-icons/bench-press.svg';
+import deadliftSvg from '../src/assets/icons/workout-icons/deadlift.svg';
 
 export type WorkoutIconType = 
   | 'upper'
@@ -24,7 +26,9 @@ export type WorkoutIconType =
   | 'back'
   | 'core'
   | 'cardio'
-  | 'full';
+  | 'full'
+  | 'benchPress'
+  | 'deadlift';
 
 interface IconProps {
   className?: string;
@@ -151,6 +155,26 @@ export const FullBodyIcon: React.FC<IconProps> = ({ className = '', size = 24 })
   />
 );
 
+// Жим лёжа
+export const BenchPressIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
+  <img
+    src={benchPressSvg}
+    alt=""
+    className={className}
+    style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
+  />
+);
+
+// Становая тяга
+export const DeadliftIcon: React.FC<IconProps> = ({ className = '', size = 24 }) => (
+  <img
+    src={deadliftSvg}
+    alt=""
+    className={className}
+    style={{ width: size * 2, height: size * 2, objectFit: 'contain', display: 'block' }}
+  />
+);
+
 // Карта иконок по типу
 export const WORKOUT_ICONS: Record<WorkoutIconType, {
   component: React.FC<IconProps>;
@@ -169,6 +193,8 @@ export const WORKOUT_ICONS: Record<WorkoutIconType, {
   core: { component: CoreIcon, label: 'Пресс', color: '#eab308' },
   cardio: { component: CardioIcon, label: 'Кардио', color: '#06b6d4' },
   full: { component: FullBodyIcon, label: 'Всё тело', color: '#a855f7' },
+  benchPress: { component: BenchPressIcon, label: 'Жим лёжа', color: '#ffffff' },
+  deadlift: { component: DeadliftIcon, label: 'Становая', color: '#84cc16' },
 };
 
 // Универсальный компонент иконки тренировки

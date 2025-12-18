@@ -345,13 +345,16 @@ const TemplatesPage = () => {
             >
                 <button
                   onClick={() => window.location.hash = `#/templates/${template.id}`}
-                  className="text-left flex-1 hover:opacity-90 flex items-center gap-3"
+                  className="text-left flex-1 hover:opacity-90 grid items-center gap-3"
+                  style={{ gridTemplateColumns: '40px 1fr' }}
                 >
-                  {template.icon && WORKOUT_ICONS[template.icon as WorkoutIconType] && (
-                    <div style={{ color: WORKOUT_ICONS[template.icon as WorkoutIconType].color }}>
-                      {React.createElement(WORKOUT_ICONS[template.icon as WorkoutIconType].component, { size: 24 })}
-                    </div>
-                  )}
+                  <div className="w-10 h-10 flex items-center justify-center">
+                    {template.icon && WORKOUT_ICONS[template.icon as WorkoutIconType] && (
+                      <div style={{ color: WORKOUT_ICONS[template.icon as WorkoutIconType].color }}>
+                        {React.createElement(WORKOUT_ICONS[template.icon as WorkoutIconType].component, { size: 36 })}
+                      </div>
+                    )}
+                  </div>
                   <h2 className="font-semibold text-lg text-gray-100">{template.name}</h2>
                 </button>
                 <TemplateDeleteButton 

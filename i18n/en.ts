@@ -408,6 +408,8 @@ export const en = {
       core: 'Core',
       cardio: 'Cardio',
       full: 'Full body',
+      benchPress: 'Bench Press',
+      deadlift: 'Deadlift',
     },
   },
 
