@@ -60,7 +60,7 @@ const ExerciseHistoryPage = () => {
   };
 
   return (
-    <div className="p-4 space-y-4 max-w-4xl mx-auto pt-safe">
+    <div className="p-4 space-y-4 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">{t.exerciseHistory.title}</h1>
 
       <div className="glass card-dark rounded-full px-4 py-3 search-container">

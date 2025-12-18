@@ -68,6 +68,9 @@ export const en = {
   calendar: {
     loading: 'Loading calendar...',
     daysOfWeek: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    daysOfWeekShort: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+    noWorkout: 'No workout',
+    today: 'Today',
   },
 
   // Workout page

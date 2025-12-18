@@ -610,7 +610,7 @@ const ProgressPage = () => {
   }
 
   return (
-    <div className="p-4 max-w-4xl mx-auto pt-safe pb-4">
+    <div className="p-4 max-w-4xl mx-auto pb-4">
       {/* CSS стили вынесены в styles/header-scroll.css */}
       {/* Хедер */}
       <div className={`mb-6 glass card-dark p-4 flex items-center gap-4 header-container ${isScrolling ? 'scrolling' : ''}`}>

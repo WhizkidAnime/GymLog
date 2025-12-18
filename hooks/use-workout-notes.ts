@@ -21,15 +21,27 @@ export function useWorkoutNotes({
 }: UseWorkoutNotesProps) {
   const db = supabase as any;
   const debouncedNotes = useDebounce(workoutNotes, 800);
-  const notesRef = useRef(workoutNotes);
+  const initialNotesRef = useRef<string | null>(null);
+  const hasUserEditedRef = useRef(false);
 
+  // Сбрасываем флаги при смене тренировки
   useEffect(() => {
-    notesRef.current = workoutNotes;
+    initialNotesRef.current = workout?.notes ?? '';
+    hasUserEditedRef.current = false;
+  }, [workout?.id]);
+
+  // Отслеживаем, редактировал ли пользователь заметку
+  useEffect(() => {
+    if (initialNotesRef.current !== null && workoutNotes !== initialNotesRef.current) {
+      hasUserEditedRef.current = true;
+    }
   }, [workoutNotes]);
 
   useEffect(() => {
     if (!user || !normalizedDate || !workout) return;
     if (debouncedNotes === (workout.notes ?? '')) return;
+    // Не сохраняем, если пользователь не редактировал заметку
+    if (!hasUserEditedRef.current) return;
 
     const saveNotes = async () => {
       setIsSavingNotes(true);
@@ -58,5 +70,5 @@ export function useWorkoutNotes({
     };
 
     saveNotes();
-  }, [debouncedNotes, user, normalizedDate, workout?.id, setIsSavingNotes]);
+  }, [debouncedNotes, user, normalizedDate, workout?.id, workout?.notes, setIsSavingNotes]);
 }

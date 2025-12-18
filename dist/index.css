@@ -266,10 +266,7 @@ body::before {
   -webkit-backdrop-filter: saturate(200%) blur(26px);
   backdrop-filter: saturate(200%) blur(26px);
   border: 1px solid color-mix(in oklab, var(--fg) 12%, transparent);
-  box-shadow:
-    0 20px 50px rgba(0,0,0,0.25),
-    inset 0 1px 0 rgba(255,255,255,0.14),
-    inset 0 -10px 22px rgba(0,0,0,0.3);
+  box-shadow: none;
   pointer-events: auto;
 }
 
@@ -283,6 +280,7 @@ body::before {
   background: linear-gradient(to right, transparent, rgba(255,255,255,0.45), transparent);
   opacity: 0.75;
   pointer-events: none;
+  display: none;
 }
 
 .glass-dock::after {
@@ -297,6 +295,7 @@ body::before {
     radial-gradient(38% 70% at 80% 50%, rgba(56,189,248,0.10), transparent 70%);
   filter: blur(18px);
   mix-blend-mode: screen;
+  display: none;
 }
 
 .dock-track {
@@ -807,6 +806,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .light-theme .calendar-day-today {
   color: #ffffff !important;
+}
+
+.light-theme .calendar-cell {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.light-theme .calendar-cell .text-white\/90 {
+  color: #1d1d1f;
 }
 
 .light-theme .text-gray-100 {

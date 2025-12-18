@@ -5,6 +5,7 @@ import { WorkoutLoadingOverlay } from './workout-loading-overlay';
 import { formatDateForDisplay } from '../utils/date-helpers';
 import type { WorkoutTemplate } from '../types/database.types';
 import { useI18n } from '../hooks/use-i18n';
+import { WORKOUT_ICONS, WorkoutIconType } from './workout-icons';
 
 type WorkoutEmptyStateProps = {
   normalizedDate: string;
@@ -43,15 +44,20 @@ export function WorkoutEmptyState({
         {templates.length > 0 ? (
           <>
             <h2 className="text-lg font-semibold mb-3">{t.workoutEmptyState.selectTemplate}</h2>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {templates.map(template => (
                 <button
                   key={template.id}
                   onClick={() => onCreateWorkout(template)}
                   disabled={isCreating}
-                  className="btn-glass btn-glass-primary btn-glass-full btn-glass-md disabled:opacity-50"
+                  className="relative p-4 glass card-dark flex items-center gap-3 w-full text-left hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
-                  {template.name}
+                  {template.icon && WORKOUT_ICONS[template.icon as WorkoutIconType] && (
+                    <div style={{ color: WORKOUT_ICONS[template.icon as WorkoutIconType].color }}>
+                      {React.createElement(WORKOUT_ICONS[template.icon as WorkoutIconType].component, { size: 24 })}
+                    </div>
+                  )}
+                  <span className="font-semibold text-lg text-gray-100">{template.name}</span>
                 </button>
               ))}
             </div>
